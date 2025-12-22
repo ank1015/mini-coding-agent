@@ -22,8 +22,11 @@
 		"dist"
 	],
 	"scripts": {
+		"dev": "npm run copy-assets && tsc --watch",
+		"start": "clear && node dist/index.js",
 		"clean": "rm -rf dist",
-		"build": "tsc",
+		"build": "npm run copy-assets && tsc",
+		"copy-assets": "mkdir -p dist/cli/theme && cp src/cli/theme/*.json dist/cli/theme/",
 		"test": "vitest --run"
 	},
 	"dependencies": {
@@ -41,6 +44,7 @@
 	"devDependencies": {
 		"@types/diff": "^7.0.2",
 		"@types/node": "^24.3.0",
+		"tsx": "^4.21.0",
 		"typescript": "^5.7.3",
 		"vitest": "^3.2.4"
 	},

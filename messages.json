@@ -1,0 +1,2272 @@
+[
+  {
+    "role": "user",
+    "id": "1708a705-db0c-476c-991b-317a21a8cad2",
+    "timestamp": 1766384649946,
+    "content": [
+      {
+        "type": "text",
+        "content": "Find me the urls of the officia website of follwing startup accelrators. Beta works AI camp, Y combinator, btv vc The mint, south pk commans."
+      }
+    ]
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "99e9fdc8-5b99-4ba6-8e24-37605a3bb0c7",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "search_1766384652302_1",
+        "name": "search",
+        "arguments": {
+          "objective": "Find the official websites of specific startup accelerators.",
+          "queries": [
+            "Beta works AI camp official website",
+            "Y combinator official website",
+            "btv vc The mint accelerator website",
+            "south park commons official website"
+          ]
+        },
+        "thoughtSignature": "ErIFCq8FAXLI2nwKUXvenNvWzoJHuoEUo3LKbWaRKA+Wg/cl6jQjOCTFoHlOz+vBB7vfjMI5FeKVabguDTaG+9J+TgFu5JcZNkKfoMZvkwaUiai53JJ8UmFrEItpMeQbnw0mteSDjb0TsAWT7vnM7NCsRvWYjwmI1xhLwH7elM9DPzc3LbnD61/2ecZp4w9jwACo8Vd943Nb2JPi0fGZMasJJCHNvgvWhZTss+BqFicRe2MwgSPhlvgBFd38SRl20z4O8fjluidLimD0AEgSUXCheTJ6V3sLrvDjRzw0kiaMiPGn9gLZItHtQ/aSodn756s/ULL+rBk6jwnxdbHi6xLC1/cjD+c+e/G7WsSO0bZmTJFVOhmMpPqJ9xg3hsqSwLYA8/kNybpm/kehwXB5k/eJc2Gvx43wy/yEp1Vu/nqIMh6DWZPS7w1MU13+zf1XpdgRkQFl7lZGCDJWMlLU6IZDYz1IuhA8gsRJxhacbURi5cQbQLPZYWls2zMSCAOF/F701mBELKTrHRSojaLouD0IVnoMjzucQqbxoETYtylx35UoZq+mE+9Cj2lao4A/qxih+GDI7U2ystPQOuW/TJJEwLR+NAIKPa8MvSG2j8t7MoEwN546VIJKgCMYxmhOAb71rKng/C8XvwvQ5GD/XzaY1XusARu6q974dizqt6yCMOF7Y3sth/oV/jzA9j5ohU3lALoeHepCxHzd5OZzBGtG9eKhFT5l8sHzg4nhICv1Vz44abMopfHJz/DXpj8VVfKVdeOUJnn1CdNWEVNfxTMTuRo5ojz6R+/T2eAsAnimCYu9BseT5bMVJGqTYcXW1WmT+0oB5YELlglBL/eJf05+NclRaY/1TCWRbCCrpquu3yPesCUKIm7f85cog543H18Em6kPAcyAvI1hGepSA3iKhKYe"
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 1157,
+      "output": 196,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 1353,
+      "cost": {
+        "input": 0.002314,
+        "output": 0.002352,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0.004666
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384652339,
+    "duration": 2388,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "search",
+                  "args": {
+                    "objective": "Find the official websites of specific startup accelerators.",
+                    "queries": [
+                      "Beta works AI camp official website",
+                      "Y combinator official website",
+                      "btv vc The mint accelerator website",
+                      "south park commons official website"
+                    ]
+                  }
+                },
+                "thoughtSignature": "ErIFCq8FAXLI2nwKUXvenNvWzoJHuoEUo3LKbWaRKA+Wg/cl6jQjOCTFoHlOz+vBB7vfjMI5FeKVabguDTaG+9J+TgFu5JcZNkKfoMZvkwaUiai53JJ8UmFrEItpMeQbnw0mteSDjb0TsAWT7vnM7NCsRvWYjwmI1xhLwH7elM9DPzc3LbnD61/2ecZp4w9jwACo8Vd943Nb2JPi0fGZMasJJCHNvgvWhZTss+BqFicRe2MwgSPhlvgBFd38SRl20z4O8fjluidLimD0AEgSUXCheTJ6V3sLrvDjRzw0kiaMiPGn9gLZItHtQ/aSodn756s/ULL+rBk6jwnxdbHi6xLC1/cjD+c+e/G7WsSO0bZmTJFVOhmMpPqJ9xg3hsqSwLYA8/kNybpm/kehwXB5k/eJc2Gvx43wy/yEp1Vu/nqIMh6DWZPS7w1MU13+zf1XpdgRkQFl7lZGCDJWMlLU6IZDYz1IuhA8gsRJxhacbURi5cQbQLPZYWls2zMSCAOF/F701mBELKTrHRSojaLouD0IVnoMjzucQqbxoETYtylx35UoZq+mE+9Cj2lao4A/qxih+GDI7U2ystPQOuW/TJJEwLR+NAIKPa8MvSG2j8t7MoEwN546VIJKgCMYxmhOAb71rKng/C8XvwvQ5GD/XzaY1XusARu6q974dizqt6yCMOF7Y3sth/oV/jzA9j5ohU3lALoeHepCxHzd5OZzBGtG9eKhFT5l8sHzg4nhICv1Vz44abMopfHJz/DXpj8VVfKVdeOUJnn1CdNWEVNfxTMTuRo5ojz6R+/T2eAsAnimCYu9BseT5bMVJGqTYcXW1WmT+0oB5YELlglBL/eJf05+NclRaY/1TCWRbCCrpquu3yPesCUKIm7f85cog543H18Em6kPAcyAvI1hGepSA3iKhKYe"
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "DORIaa6KCOqpjuMPzI_YqA0",
+      "usageMetadata": {
+        "promptTokenCount": 1157,
+        "candidatesTokenCount": 59,
+        "totalTokenCount": 1353,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1157
+          }
+        ],
+        "thoughtsTokenCount": 137
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:24:12 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=2144",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "0fede601-d804-4d3b-8d72-a931fd47aad8",
+    "toolCallId": "search_1766384652302_1",
+    "toolName": "search",
+    "content": [
+      {
+        "type": "text",
+        "content": "Search Results for: Find the official websites of specific startup accelerators.\nQueries: Beta works AI camp official website, Y combinator official website, btv vc The mint accelerator website, south park commons official website\n\nFound 5 results:\n\n================================================================================\n\n1. Y Combinator\n   URL: https://www.ycombinator.com/\n   Excerpts:\n   - [](/ \"Y Combinator\") [About](/about) [What Happens at YC? ](/about) [Apply](/apply) [YC Interview Guide](/interviews) [FAQ](/faq) [People](/people) [YC Blog](/blog) [Companies](/companies) [Startup Directory](/companies) [Founder Directory](/founders) [Launch YC](/launches) [Startup Jobs](/jobs) [All Jobs](/jobs) [◦ Engineering](/jobs/role/software-engineer) [◦ Operations](/jobs/role/operations) [◦ Marketing](/jobs/role/marketing) [◦ Sales](/jobs/role/sales) [Internships](/internships) [Startup ...\n\n\n2. Startup Accelerator Program - Best Startup Accelerators 2025\n   URL: https://startupsavant.com/best-startup-accelerators\n   Published: 2025-09-30\n   Excerpts:\n   - * [Home](https://startupsavant.com/) * [Resources](https://startupsavant.com/startup-resources) # 32 Best Startup Accelerators 2025 September 30, 2025 | Written by [TRUiC Team](https://startupsavant.com/authors/truic-team) [Startup accelerators](/what-is-a-startup-accelerator \"What Is a Startup Accelerator?\") are programs typically geared toward seed and early-stage startups. Members of a startup accelerator program gain services for every stage of company ownership, from launch to scale, and ac...\n\n\n3. The 60+ Best Startup Incubators & Accelerators in the USA for 2025\n   URL: https://altar.io/best-startup-accelerators-usa/\n   Published: 2025-08-20\n   Excerpts:\n   - They’re ranked based on the support and equity they offer, the number of startups they’ve helped create and the industries they focus on. The top 10 include in-depth information on both the application process and what you can expect from their programs. Having applied for several incubators and accelerators in my time, I’ve had a lot of experience with the due diligence process already. And while some of your questions will be specific to your startup, I wanted to give you the answers to the ge...\n\n\n4. Techstars Accelerators\n   URL: https://www.techstars.com/accelerators\n   Published: 2019-11-12\n   Excerpts:\n   - [](/) * [startups](/startups \"startups\") * [investors](/investors \"investors\") * [partners](/partner \"partners\") * [locations](/locations \"locations\") * [verticals](/vertical-networks \"verticals\") * [about](/about \"about\") * [Apply Now](https://apply.techstars.com?source=nav \"Apply Now\") - [](https://www.linkedin.com/company/techstars/ \"LinkedIn\") - [](https://www.instagram.com/techstars/ \"Instagram\") - [](https://twitter.com/techstars \"Twitter\") - [](https://www.tiktok.com/@techstars.global \"Ti...\n\n\n5. Building the World’s Most Powerful Network for Founders | Techstars\n   URL: https://www.techstars.com/\n   Published: 2024-06-26\n   Excerpts:\n   - [](/) * [startups](/startups \"startups\") * [investors](/investors \"investors\") * [partners](/partner \"partners\") * [locations](/locations \"locations\") * [verticals](/vertical-networks \"verticals\") * [about](/about \"about\") * [Apply Now](https://apply.techstars.com?source=nav \"Apply Now\") ### **Techstars Helps Founders Succeed** **Join the Techstars accelerator that's right for you. ** [Find a Program](https://www.techstars.com/accelerators) [Investment Terms](https://www.techstars.com/newsroom/i...\n"
+      }
+    ],
+    "details": {
+      "search_id": "search_b8a86777acbc454b9aa0bca4e8c5a63f",
+      "result_count": 5
+    },
+    "isError": false,
+    "timestamp": 1766384657935
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "1876e13a-b278-4ea0-85f3-c49f37bc3889",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "search_1766384659607_1",
+        "name": "search",
+        "arguments": {
+          "objective": "Find official website URLs for specific accelerators.",
+          "queries": [
+            "Beta works AI camp website",
+            "BTV VC The Mint accelerator official page",
+            "South Park Commons official website"
+          ]
+        },
+        "thoughtSignature": "Et4CCtsCAXLI2nyYzCCmgStg9qVRJZ6mEcx+d+h61+kNDCkBM8AZwQ4GjjIl7tEhANIjtlq5TdsBJhThRx17gF0FMs6o6uiOlY99aqir/Yr6WlfO1BDtPwlP/iWzDzPsG8yyS+xy1N47tRabGXkY1/O1C7G5470V8ol0DJV3iuj7NoSKcVa2k2NG3lfBli0Kawcb06V3cK4/HGIl+jaKJcvGscvJckYmoyNR8e1p415VuOuBLDE6JMEejerCLr1v1Jbmi/gqY1OeRPz3P5UJ+4Ss8XonNErtcza5IYSDJ20ogNlkY6C5dijGUcp1YVA7lKQa/h+zI6MQYYBB+x7LT9nYH11gcO0qbdMcAMlOkwR7SDsSKa8L7qRlzpjfGR1Q4tdklvWz72jmyJN4AZiRDTdK3VHvyQDGERp3OCLlPJLbWXuRtFw9+qglMpbq0g6MdmPST355Xq4+gydJ/jA3tos="
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 2339,
+      "output": 109,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 2448,
+      "cost": {
+        "input": 0.004678,
+        "output": 0.0013080000000000001,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0.005986
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384659609,
+    "duration": 1673,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "search",
+                  "args": {
+                    "objective": "Find official website URLs for specific accelerators.",
+                    "queries": [
+                      "Beta works AI camp website",
+                      "BTV VC The Mint accelerator official page",
+                      "South Park Commons official website"
+                    ]
+                  }
+                },
+                "thoughtSignature": "Et4CCtsCAXLI2nyYzCCmgStg9qVRJZ6mEcx+d+h61+kNDCkBM8AZwQ4GjjIl7tEhANIjtlq5TdsBJhThRx17gF0FMs6o6uiOlY99aqir/Yr6WlfO1BDtPwlP/iWzDzPsG8yyS+xy1N47tRabGXkY1/O1C7G5470V8ol0DJV3iuj7NoSKcVa2k2NG3lfBli0Kawcb06V3cK4/HGIl+jaKJcvGscvJckYmoyNR8e1p415VuOuBLDE6JMEejerCLr1v1Jbmi/gqY1OeRPz3P5UJ+4Ss8XonNErtcza5IYSDJ20ogNlkY6C5dijGUcp1YVA7lKQa/h+zI6MQYYBB+x7LT9nYH11gcO0qbdMcAMlOkwR7SDsSKa8L7qRlzpjfGR1Q4tdklvWz72jmyJN4AZiRDTdK3VHvyQDGERp3OCLlPJLbWXuRtFw9+qglMpbq0g6MdmPST355Xq4+gydJ/jA3tos="
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "E-RIaeSHF5i3juMPhOHruQw",
+      "usageMetadata": {
+        "promptTokenCount": 2339,
+        "candidatesTokenCount": 50,
+        "totalTokenCount": 2448,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2339
+          }
+        ],
+        "thoughtsTokenCount": 59
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:24:19 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=1604",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "60f724e2-9324-436c-bd22-92147d03d3c0",
+    "toolCallId": "search_1766384659607_1",
+    "toolName": "search",
+    "content": [
+      {
+        "type": "text",
+        "content": "Search Results for: Find official website URLs for specific accelerators.\nQueries: Beta works AI camp website, BTV VC The Mint accelerator official page, South Park Commons official website\n\nFound 5 results:\n\n================================================================================\n\n1. 100 Startup Accelerators Around the World You Need to Know About\n   URL: https://about.crunchbase.com/blog/100-startup-accelerators-around-the-world\n   Excerpts:\n   - Nov 12, 2025 — The benefits startup accelerators grant early-stage companies are invaluable. Here are 100 top startup accelerators you need to know about.\n\n\n2. The 53 Best Startup Acccelerators in the World (Sorted by Country) | GrowthMentor\n   URL: https://www.growthmentor.com/blog/best-startup-accelerators/\n   Published: 2023-07-31\n   Excerpts:\n   - **KEY INFORMATION** * **When it was founded:** 2009 * ****Location:**** Los Angeles, California, USA * **How to apply:** They are not accepting applications at this time, but keep an eye on this **[page](https://launchpad.la/apply/)** * **What they give:** $25,000 – $100,000 in exchange for 6% equity, office space and provide access to a massive network of mentors, investors and advisors * **Industry focus:** Technology * **Startups funded:** 54 * **Exits:** 14 * ****Exit value:**** $185,000,000...\n\n\n3. Camp | Betaworks\n   URL: https://www.betaworks.com/camp\n   Excerpts:\n   - [Camp](/camp) [Companies](/companies) [Team](/team) [Events](/events) [Writing](/writing) Events [Calendar](#) [Archive](#) [Apply to AI Camp: Agent Systems](https://www.betaworks.com/writing/camp-agent-systems-spring-2026) [](/) # Camp ## A thematic investment and in-residence program for startups building in frontier technologies. Camp takes place twice annually. The Spring session runs March through May (applications open Dec - Jan). The Fall session runs August through November (applications...\n\n\n4. The Mint - Better Tomorrow Ventures\n   URL: https://btv.vc/the-mint\n   Excerpts:\n   - [](/) [About](/about) [Team](/team) [Companies](/companies) [The Mint](/the-mint) [Content](https://better-tomorrow-ventures.ghost.io/) [Jobs](https://jobs.btv.vc/jobs) # The Mint by BTV The most comprehensive and supportive pre-seed platform curated for fintech founders [Applications closed](https://kgz17nvn79o.typeform.com/to/ovbW2uQK?typeform-source=www.themint.vc) The most comprehensive and supportive pre-seed platform curated for fintech founders Fintech companies have unique needs and face...\n\n\n5. South Park Commons\n   URL: https://www.southparkcommons.com/\n   Excerpts:\n   - Founder Fellowship Applications Open - [Apply Here](https://airtable.com/appxDXHfPCZvb75qk/pagdT5QLZFC3weCJq/form) Founder Fellowship [Applications Open](https://airtable.com/appxDXHfPCZvb75qk/pagdT5QLZFC3weCJq/form) # South Park Commons helps you go from \\-1 to 0 SPC is a home for the most talented technologists and founders figuring out what's next. We are a community designed to turn the illegible into the inevitable. [Our Story](/our-story) #### OUR APPROACH ## Why join SPC? **\\-1 to 0 is cr...\n"
+      }
+    ],
+    "details": {
+      "search_id": "search_f2038ddf5192435898e7bb3318810772",
+      "result_count": 5
+    },
+    "isError": false,
+    "timestamp": 1766384664618
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "b4823d98-3b0d-4ff8-a03a-0938622e32ae",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "search_1766384667203_1",
+        "name": "search",
+        "arguments": {
+          "objective": "Verify if themint.vc is a separate website or if btv.vc/the-mint is the official page.",
+          "queries": [
+            "themint.vc website",
+            "Better Tomorrow Ventures The Mint official site"
+          ]
+        },
+        "thoughtSignature": "EuMFCuAFAXLI2nywLDQ/pP+35PyMRU2lHLBSExLPMoKmWZICeyziwOclipN1wRrxzpmG7Cbf6xvXSYe0zpYdhiv3w6U9K3zqIXizIEHhKiEChk3c7cJJVNtVp/Bk3p0C5Jtjy5J40XmLtNIcdLNVEc+8pgG4OWbrw83LVBpgiv8OqDGt3C+lO8f2VZkbwm35abiqjXpenoJ7EDxiUu+vyjef+oXxx57emKh9C/x9kvnMBMX5xh5E6tGRBlIK5hgZsVUH6IXnSsasB9bzp0MjXt+jq+0NdZlg/nlHlksyn9pFLca8XeOMrR7pN3KoVy1/nVlKQ+O1Fqt/xellMZ4KwV9T/FhhgUA9Yr87fDNOaIY+Row/TvVGjekyKc5jzE/btRSraVqLH7WlhmoUmpiuMRenP6LH6qL8cd+m1Y+2b8qX3meu0le8w1TpEXR1uRQMysZsSEtCkA7irSelHFkJXmRMJtsdO5HeTID7fUL1s7qgLPC3rHeWLwpK1u86zXgqdEIvbhM0JPebuf9fn2+djLipYuBAAfCUCyXus+edUA9E6O7xrzpRErl3NK5icp1qZK2SznNfs1y74b446Hm1FFZ8Ux58o/OiHl4ym1CBvj5/Vn/+IQK1EMKdo/m7epDIMvZGCWu3a5hDG9TRv5jX0UKUagYmS0Ep7jrg9SBmLe8vdE/80yXndszYjGvGkmEPtTqG/+y9edLREu03fNOR5NYJMooJ/Jkx4fl2mUHv181PQ0ZQddjkDffRqMd6tfnX2G7LgvcfSeVaOWTP8+4xyLV1n68hQCNrwS/DLDxJGepoH/ydzW2wWQnmd/ZKG+aJEyd1G9Oc2ri5mz2eQAGNoDIU/QMpMhKzVx9WudoAVnHo6ZVb/lHTU94hUyI6s711wnVERdBQeNw84Osn6IpCoRvaOi3OAxln+1qjZQDUr3CkLESIWvyoWgIYEi9TNv5JbVzi5XYLRQEs1jeTzlAruxlYAUkFjg=="
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 3322,
+      "output": 241,
+      "cacheRead": 2005,
+      "cacheWrite": 0,
+      "totalTokens": 3563,
+      "cost": {
+        "input": 0.006644,
+        "output": 0.002892,
+        "cacheRead": 0.00040100000000000004,
+        "cacheWrite": 0,
+        "total": 0.009937
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384667204,
+    "duration": 2585,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "search",
+                  "args": {
+                    "objective": "Verify if themint.vc is a separate website or if btv.vc/the-mint is the official page.",
+                    "queries": [
+                      "themint.vc website",
+                      "Better Tomorrow Ventures The Mint official site"
+                    ]
+                  }
+                },
+                "thoughtSignature": "EuMFCuAFAXLI2nywLDQ/pP+35PyMRU2lHLBSExLPMoKmWZICeyziwOclipN1wRrxzpmG7Cbf6xvXSYe0zpYdhiv3w6U9K3zqIXizIEHhKiEChk3c7cJJVNtVp/Bk3p0C5Jtjy5J40XmLtNIcdLNVEc+8pgG4OWbrw83LVBpgiv8OqDGt3C+lO8f2VZkbwm35abiqjXpenoJ7EDxiUu+vyjef+oXxx57emKh9C/x9kvnMBMX5xh5E6tGRBlIK5hgZsVUH6IXnSsasB9bzp0MjXt+jq+0NdZlg/nlHlksyn9pFLca8XeOMrR7pN3KoVy1/nVlKQ+O1Fqt/xellMZ4KwV9T/FhhgUA9Yr87fDNOaIY+Row/TvVGjekyKc5jzE/btRSraVqLH7WlhmoUmpiuMRenP6LH6qL8cd+m1Y+2b8qX3meu0le8w1TpEXR1uRQMysZsSEtCkA7irSelHFkJXmRMJtsdO5HeTID7fUL1s7qgLPC3rHeWLwpK1u86zXgqdEIvbhM0JPebuf9fn2+djLipYuBAAfCUCyXus+edUA9E6O7xrzpRErl3NK5icp1qZK2SznNfs1y74b446Hm1FFZ8Ux58o/OiHl4ym1CBvj5/Vn/+IQK1EMKdo/m7epDIMvZGCWu3a5hDG9TRv5jX0UKUagYmS0Ep7jrg9SBmLe8vdE/80yXndszYjGvGkmEPtTqG/+y9edLREu03fNOR5NYJMooJ/Jkx4fl2mUHv181PQ0ZQddjkDffRqMd6tfnX2G7LgvcfSeVaOWTP8+4xyLV1n68hQCNrwS/DLDxJGepoH/ydzW2wWQnmd/ZKG+aJEyd1G9Oc2ri5mz2eQAGNoDIU/QMpMhKzVx9WudoAVnHo6ZVb/lHTU94hUyI6s711wnVERdBQeNw84Osn6IpCoRvaOi3OAxln+1qjZQDUr3CkLESIWvyoWgIYEi9TNv5JbVzi5XYLRQEs1jeTzlAruxlYAUkFjg=="
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "G-RIabv7AaPpjuMPttWOwQ4",
+      "usageMetadata": {
+        "promptTokenCount": 3322,
+        "candidatesTokenCount": 58,
+        "totalTokenCount": 3563,
+        "cachedContentTokenCount": 2005,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 3322
+          }
+        ],
+        "cacheTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2005
+          }
+        ],
+        "thoughtsTokenCount": 183
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:24:27 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=2518",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "fd17b5cc-7f05-498a-bb95-8c29866d018b",
+    "toolCallId": "search_1766384667203_1",
+    "toolName": "search",
+    "content": [
+      {
+        "type": "text",
+        "content": "Search Results for: Verify if themint.vc is a separate website or if btv.vc/the-mint is the official page.\nQueries: themint.vc website, Better Tomorrow Ventures The Mint official site\n\nFound 5 results:\n\n================================================================================\n\n1. the mint\n   URL: http://themint.vc\n   Excerpts:\n   - [0](/cart) by [BTV](https://btv.vc) The fintech pre-seed platform minted just for you [Apply Now](https://mintapplication.btv.vc) Section Title: Fintech companies have unique needs and face unique challenges in building and distributing their pr Content: But even the best platforms don't specialize in fintech. Imagine building your fintech company in a **platform built by fintech operators.** Enter: BTV. We know fintech inside and out, and we improve the odds of a startup’s success. [Tailor-made...\n\n\n2. The Mint - Better Tomorrow Ventures\n   URL: https://www.btv.vc/the-mint\n   Excerpts:\n   - [](/) [About](/about) [Team](/team) [Companies](/companies) [The Mint](/the-mint) [Content](https://better-tomorrow-ventures.ghost.io/) [Jobs](https://jobs.btv.vc/jobs) # The Mint by BTV The most comprehensive and supportive pre-seed platform curated for fintech founders [Applications closed](https://kgz17nvn79o.typeform.com/to/ovbW2uQK?typeform-source=www.themint.vc) The most comprehensive and supportive pre-seed platform curated for fintech founders Fintech companies have unique needs and face...\n\n\n3. The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs | TechCrunch\n   URL: https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/\n   Published: 2023-05-10\n   Excerpts:\n   - [Startups](https://techcrunch.com/category/startups/) [](https://www.facebook.com/sharer.php?u=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F) [](https://twitter.com/intent/tweet?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&text=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fint...\n\n\n4. My experience in The Mint - Fintech Focused Startup Accelerator in SF\n   URL: https://www.reddit.com/r/StartupAccelerators/comments/1dzcb3p/my_experience_in_the_mint_fintech_focused_startup/\n   Excerpts:\n   - [Skip to main content]() Open menu Open navigation [](/) Go to Reddit Home r/StartupAccelerators A chip A close button [Log In](https://www.reddit.com/login/) Log in to Reddit Expand user menu Open settings menu [Go to StartupAccelerators](/r/StartupAccelerators/) [r/StartupAccelerators](/r/StartupAccelerators/) [r/StartupAccelerators](/r/StartupAccelerators/) Community for everyone who is interested in joining a startup accelerator program, has graduated from one, or has insight into the experi...\n\n\n5. Better Tomorrow Ventures - Ramp\n   URL: https://ramp.com/partner-profiles/btv\n   Excerpts:\n   - [](/) [Sign in](https://app.ramp.com/sign-in) * Products * Solutions * [Customers](/customers) * Resources * [Pricing](/pricing) * [Careers](/careers) [Sign in](https://app.ramp.com/sign-in) [See a demo](/see-a-demo) # Why BTV partnered with Ramp to empower their fintech portfolio founders “From startup to IPO, Ramp consistently delivers. It’s part of the foundational tech stack that we encourage all of our founders to adopt.” Jake Gibson Founding Partner, Better Tomorrow Ventures Our partnershi...\n"
+      }
+    ],
+    "details": {
+      "search_id": "search_1a4e147202734254aab1882acf28ce08",
+      "result_count": 5
+    },
+    "isError": false,
+    "timestamp": 1766384674634
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "a0a8e86f-38e6-4cd1-97f8-7bebe4831bbc",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "write_1766384677893_1",
+        "name": "write",
+        "arguments": {
+          "path": "accelerator_urls.md",
+          "content": "# Startup Accelerator Official Websites\n\nThis document lists the official website URLs for the requested startup accelerators.\n\n| Accelerator | Official Website URL |\n| :--- | :--- |\n| **Beta Works AI Camp** | [https://www.betaworks.com/camp](https://www.betaworks.com/camp) |\n| **Y Combinator** | [https://www.ycombinator.com/](https://www.ycombinator.com/) |\n| **BTV VC The Mint** | [http://themint.vc](http://themint.vc) (also accessible via [https://btv.vc/the-mint](https://btv.vc/the-mint)) |\n| **South Park Commons** | [https://www.southparkcommons.com/](https://www.southparkcommons.com/) |\n\n### Summary of Findings:\n- **Beta Works AI Camp**: A thematic investment and in-residence program for startups building in frontier technologies.\n- **Y Combinator**: The well-known startup accelerator that provides seed funding for startups.\n- **The Mint by BTV (Better Tomorrow Ventures)**: A pre-seed platform specifically curated for fintech founders.\n- **South Park Commons (SPC)**: A community and fellowship designed for technologists and founders in the \"-1 to 0\" stage of company building."
+        },
+        "thoughtSignature": "Ev8DCvwDAXLI2nxfzBjFgl3Zn2ketXK9JFmFZr7B5xdkM7KkHJQJFv1LkCv6NjirpWAE6ViG+o+OsUglH5RzAWfUPgfSbUncTuBe1kaMaWaacbHwpC/hyi097PIbRPus2ClFnBpNxx17MU+83JagOSRMN7NHoj/fwUZoz3UcjfmIQfPm9gK5So9rdDcwYiD8xCfGTih3IVUPQ83UaDtMNmqwtFoZkszPJPH0xXITBsx2I5X3p83MFAa2Y4m7kwsgRpcEE5Mdh4LItc2+8y873KQuaA2UBWYWqp9293j/2IMW+R19uUYa76BJJOTmFZluoOZ6KW5vmEQCgt7mG8JYI1EgStvr5IYBSg5Ydep2ZOjG0WkzLiS2FdABRJ2r1G7Bk7iCotznCeG1VHfsnM6pjek5zUOjHEiB2gT7LH6JUjoD0E3DkaCp0c9VFf8CO8UcrAxJQ51eFvbxsePMn4ZM7Kh7qHHjS/G4yyA02F+FsajY31ngNqKLf7XyAAOsR6TPg/bvyTGmLlyr6ZLiBx2Asi7vTZVzdj7BQ8WLcYlEFW/WxLPCQVdyzvRT33SNTa4N34Oja2vXKpblrpVVelwYz3vto7v5O8o8TTkBS8+MYdciwNmlSrnILxaAQHZRtyzY/SPgEeu9vfc1M9Km+hm7VZlAkU5tnQPuzdhFBmbzk0Tj7g=="
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 4606,
+      "output": 430,
+      "cacheRead": 2013,
+      "cacheWrite": 0,
+      "totalTokens": 5036,
+      "cost": {
+        "input": 0.009212,
+        "output": 0.0051600000000000005,
+        "cacheRead": 0.00040260000000000003,
+        "cacheWrite": 0,
+        "total": 0.014774599999999999
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384677896,
+    "duration": 3262,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "write",
+                  "args": {
+                    "path": "accelerator_urls.md",
+                    "content": "# Startup Accelerator Official Websites\n\nThis document lists the official website URLs for the requested startup accelerators.\n\n| Accelerator | Official Website URL |\n| :--- | :--- |\n| **Beta Works AI Camp** | [https://www.betaworks.com/camp](https://www.betaworks.com/camp) |\n| **Y Combinator** | [https://www.ycombinator.com/](https://www.ycombinator.com/) |\n| **BTV VC The Mint** | [http://themint.vc](http://themint.vc) (also accessible via [https://btv.vc/the-mint](https://btv.vc/the-mint)) |\n| **South Park Commons** | [https://www.southparkcommons.com/](https://www.southparkcommons.com/) |\n\n### Summary of Findings:\n- **Beta Works AI Camp**: A thematic investment and in-residence program for startups building in frontier technologies.\n- **Y Combinator**: The well-known startup accelerator that provides seed funding for startups.\n- **The Mint by BTV (Better Tomorrow Ventures)**: A pre-seed platform specifically curated for fintech founders.\n- **South Park Commons (SPC)**: A community and fellowship designed for technologists and founders in the \"-1 to 0\" stage of company building."
+                  }
+                },
+                "thoughtSignature": "Ev8DCvwDAXLI2nxfzBjFgl3Zn2ketXK9JFmFZr7B5xdkM7KkHJQJFv1LkCv6NjirpWAE6ViG+o+OsUglH5RzAWfUPgfSbUncTuBe1kaMaWaacbHwpC/hyi097PIbRPus2ClFnBpNxx17MU+83JagOSRMN7NHoj/fwUZoz3UcjfmIQfPm9gK5So9rdDcwYiD8xCfGTih3IVUPQ83UaDtMNmqwtFoZkszPJPH0xXITBsx2I5X3p83MFAa2Y4m7kwsgRpcEE5Mdh4LItc2+8y873KQuaA2UBWYWqp9293j/2IMW+R19uUYa76BJJOTmFZluoOZ6KW5vmEQCgt7mG8JYI1EgStvr5IYBSg5Ydep2ZOjG0WkzLiS2FdABRJ2r1G7Bk7iCotznCeG1VHfsnM6pjek5zUOjHEiB2gT7LH6JUjoD0E3DkaCp0c9VFf8CO8UcrAxJQ51eFvbxsePMn4ZM7Kh7qHHjS/G4yyA02F+FsajY31ngNqKLf7XyAAOsR6TPg/bvyTGmLlyr6ZLiBx2Asi7vTZVzdj7BQ8WLcYlEFW/WxLPCQVdyzvRT33SNTa4N34Oja2vXKpblrpVVelwYz3vto7v5O8o8TTkBS8+MYdciwNmlSrnILxaAQHZRtyzY/SPgEeu9vfc1M9Km+hm7VZlAkU5tnQPuzdhFBmbzk0Tj7g=="
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "JeRIaeXaJqnf4-EPjrWRuAU",
+      "usageMetadata": {
+        "promptTokenCount": 4606,
+        "candidatesTokenCount": 316,
+        "totalTokenCount": 5036,
+        "cachedContentTokenCount": 2013,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 4606
+          }
+        ],
+        "cacheTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2013
+          }
+        ],
+        "thoughtsTokenCount": 114
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:24:37 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=3112",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "29010bcd-e9ba-4138-a227-5c94e6e027e3",
+    "toolCallId": "write_1766384677893_1",
+    "toolName": "write",
+    "content": [
+      {
+        "type": "text",
+        "content": "Successfully wrote 1097 characters to accelerator_urls.md"
+      }
+    ],
+    "details": {
+      "path": "/Users/notacoder/Desktop/agents/providers/.logs/research/temp/bd63908a-dbee-4fb9-bc27-9de48b951d45/accelerator_urls.md",
+      "size": 1097
+    },
+    "isError": false,
+    "timestamp": 1766384677899
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "1fdf54b7-75cc-455b-be9b-6b4626f46791",
+    "content": [
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": "The official website URLs for the requested startup accelerators are as follows:\n\n- **Beta Works AI Camp**: [https://www.betaworks.com/camp](https://www.betaworks.com/camp)\n- **Y Combinator**: [https://www.ycombinator.com/](https://www.ycombinator.com/)\n- **BTV VC The Mint**: [http://themint.vc](http://themint.vc) (also reachable at [https://btv.vc/the-mint](https://btv.vc/the-mint))\n- **South Park Commons**: [https://www.southparkcommons.com/](https://www.southparkcommons.com/)\n\nI have compiled these details into a research report for your reference.\n\n**File name:** `accelerator_urls.md`"
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 5066,
+      "output": 199,
+      "cacheRead": 4024,
+      "cacheWrite": 0,
+      "totalTokens": 5265,
+      "cost": {
+        "input": 0.010132,
+        "output": 0.002388,
+        "cacheRead": 0.0008048,
+        "cacheWrite": 0,
+        "total": 0.0133248
+      }
+    },
+    "stopReason": "stop",
+    "timestamp": 1766384679677,
+    "duration": 1778,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "The official website URLs for the requested startup accelerators are as follows:\n\n- **Beta Works AI Camp**: [https://www.betaworks.com/camp](https://www.betaworks.com/camp)\n- **Y Combinator**: [https://www.ycombinator.com/](https://www.ycombinator.com/)\n- **BTV VC The Mint**: [http://themint.vc](http://themint.vc) (also reachable at [https://btv.vc/the-mint](https://btv.vc/the-mint))\n- **South Park Commons**: [https://www.southparkcommons.com/](https://www.southparkcommons.com/)\n\nI have compiled these details into a research report for your reference.\n\n**File name:** `accelerator_urls.md`",
+                "thoughtSignature": "EosBCogBAXLI2nxTccJYz+VNg9JrDMla6shzoe4UVMNNlR8WNtKqGLHX40u3lPTSiMSDsFOJm/FhqjIS2Jgc3Ol3jdKRHLbESVlikjjX/Yg65TG2d1Lnivge2kdCHQ6DKzp8ygnOHsomSHX8HMfgtWJy89HWbAh08+u7pI24OPtbt22u7KZ8kdNGaM3jdQ=="
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "JuRIadSvNv6_juMPo9mo2As",
+      "usageMetadata": {
+        "promptTokenCount": 5066,
+        "candidatesTokenCount": 182,
+        "totalTokenCount": 5265,
+        "cachedContentTokenCount": 4024,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5066
+          }
+        ],
+        "cacheTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 4024
+          }
+        ],
+        "thoughtsTokenCount": 17
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:24:39 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=1145",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "user",
+    "id": "9dfcc5df-5bcb-4d48-93af-59ea59e74e36",
+    "timestamp": 1766384740677,
+    "content": [
+      {
+        "type": "text",
+        "content": "Can you find me the investment tems of the following accelerators"
+      }
+    ]
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "5779b4e8-e052-41f7-b2f8-ea8bd20b61a7",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "search_1766384744244_1",
+        "name": "search",
+        "arguments": {
+          "objective": "Find investment terms for specific startup accelerators.",
+          "queries": [
+            "Beta works AI camp investment terms equity funding",
+            "Y Combinator current investment terms 2024 2025",
+            "BTV VC The Mint accelerator investment terms equity funding",
+            "South Park Commons Founder Fellowship investment terms equity funding"
+          ]
+        },
+        "thoughtSignature": "ErcICrQIAXLI2nzTL9+cIEfacsNZSamkFG1KkOAFI902ZILmjrmyc3S7Mu6x6BS0ctCXd9YICxyMdDVyrKU27DMFzmhdBoCLhv2hTixBoC3ndSwAiUSlFUGg3zwVmN4cOR2QxTk0KN5AReSeYbVSFxALvpMv5tG33g7Kiu5PCfUa14LtNzhWzHbBbn+eh8FJT9fkAky87OY5FOen6NMOs4/I29xgwM5WuUnV2/EfhPTZQxcDCUEa8hX/F4H5UyCZ3EFoQgiSdishCCeJpolqjH40VKpYTtm5+zvTHYPGX42pn7tN6LchQFAJ92snniha+R7MO+f6BxrW8SNJjq5jlsTzDk4sT8yBupzjLMUsNyLDNblgdDiPMrbJqjzxTMc0J9GAVJDcfLkxhFiIqNImdMMfbpaPtX1xEFaT66OkevgfjwTzR/PSDwGQNkfKkmkB7D/MC9LNVwjFMSLhKsSWpKcmJ8zxvOS8x8b9yL18Jxf5UULGUS62Z7WjEoYXcwVySlPey5vZjBnVDjL0yYi2KCGhCuSQP3BZ7bmeT05IQ/xRZhQtEhTDieM4HkBey1ye1s9fDeHkWI+d/frEoG5IhUGf2+6/YsSIWtXZx+qJOEdFZ76uuK0VoOuk4R44cl0z/lHyIIChjQ5SXFeBpfHrEKSoNxLCx4f02C+pmA4COzFAsuiMIyGBTiCQBg/zP0WXlatfEOeNEjHPwpn657RmLqj/ABAYp9bNXXZ0K3jNxZ7MMLmxEsJVREj3IzI7s5Gqq9pj9CfiPvbqXo2kzvWxmvBRZ5i/PtxxJ+sB+sg1zTcIXH7o+r5EZ+2HrVuUCyptjUT4DOQDiq3GO4+dnKpLXv1SDcZHr2i5cdobJlNWEnb3iNo0K5Yb8zGdnOuxZ1WHdL20lfVL+U2X6F5kAwiBAiDAG4J6ppo5vX6SbKoRSEmSeuO7ShsMKapI3l/4gU1a4IWV+XTwxudN3u4b5776ajUJBX2Kykqjq4guR1AdmfIWeLmUwcP8OBTJ3ySvOac7U2PYMmxgwYx/pqPu+667v9EA4184fvo/h+aG9sm0L/eLWPRZ2GerySQtVESYDBHA+qjHCd2I9scVGOGu+TEJospPvbld2et0Kx6yUypU0INlTX2NyaHTzYVil1Hak0Z569vV3bwxlU09gKA28ihDA3UOzbyxAYNgR9oG8VbCqd8o7L9fp9Koru7JTt31SfPNCUL9KA7/O6Obcc3sTBtO5EGaCJTznIDUg7LC+mdvsMxyhgbk8nPkBaBhqDDqdf7IR3BmfmCoepofjNdIw0usPxQ/RqyCi0KuKYAR2kwOMs2itKU9/TvPXvj7ZPxhhLHclOr5Ie5DE/XCLHplM+q0wtDRxH5ZZyleQXdE6nJtUuzuatluaRH2B6DfDbKWaDHi6ECeR/ngaez6GEIggOLFThgJorX2mZJI+R4="
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 4768,
+      "output": 285,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 5053,
+      "cost": {
+        "input": 0.009536,
+        "output": 0.0034200000000000003,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0.012955999999999999
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384744249,
+    "duration": 3572,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "search",
+                  "args": {
+                    "objective": "Find investment terms for specific startup accelerators.",
+                    "queries": [
+                      "Beta works AI camp investment terms equity funding",
+                      "Y Combinator current investment terms 2024 2025",
+                      "BTV VC The Mint accelerator investment terms equity funding",
+                      "South Park Commons Founder Fellowship investment terms equity funding"
+                    ]
+                  }
+                },
+                "thoughtSignature": "ErcICrQIAXLI2nzTL9+cIEfacsNZSamkFG1KkOAFI902ZILmjrmyc3S7Mu6x6BS0ctCXd9YICxyMdDVyrKU27DMFzmhdBoCLhv2hTixBoC3ndSwAiUSlFUGg3zwVmN4cOR2QxTk0KN5AReSeYbVSFxALvpMv5tG33g7Kiu5PCfUa14LtNzhWzHbBbn+eh8FJT9fkAky87OY5FOen6NMOs4/I29xgwM5WuUnV2/EfhPTZQxcDCUEa8hX/F4H5UyCZ3EFoQgiSdishCCeJpolqjH40VKpYTtm5+zvTHYPGX42pn7tN6LchQFAJ92snniha+R7MO+f6BxrW8SNJjq5jlsTzDk4sT8yBupzjLMUsNyLDNblgdDiPMrbJqjzxTMc0J9GAVJDcfLkxhFiIqNImdMMfbpaPtX1xEFaT66OkevgfjwTzR/PSDwGQNkfKkmkB7D/MC9LNVwjFMSLhKsSWpKcmJ8zxvOS8x8b9yL18Jxf5UULGUS62Z7WjEoYXcwVySlPey5vZjBnVDjL0yYi2KCGhCuSQP3BZ7bmeT05IQ/xRZhQtEhTDieM4HkBey1ye1s9fDeHkWI+d/frEoG5IhUGf2+6/YsSIWtXZx+qJOEdFZ76uuK0VoOuk4R44cl0z/lHyIIChjQ5SXFeBpfHrEKSoNxLCx4f02C+pmA4COzFAsuiMIyGBTiCQBg/zP0WXlatfEOeNEjHPwpn657RmLqj/ABAYp9bNXXZ0K3jNxZ7MMLmxEsJVREj3IzI7s5Gqq9pj9CfiPvbqXo2kzvWxmvBRZ5i/PtxxJ+sB+sg1zTcIXH7o+r5EZ+2HrVuUCyptjUT4DOQDiq3GO4+dnKpLXv1SDcZHr2i5cdobJlNWEnb3iNo0K5Yb8zGdnOuxZ1WHdL20lfVL+U2X6F5kAwiBAiDAG4J6ppo5vX6SbKoRSEmSeuO7ShsMKapI3l/4gU1a4IWV+XTwxudN3u4b5776ajUJBX2Kykqjq4guR1AdmfIWeLmUwcP8OBTJ3ySvOac7U2PYMmxgwYx/pqPu+667v9EA4184fvo/h+aG9sm0L/eLWPRZ2GerySQtVESYDBHA+qjHCd2I9scVGOGu+TEJospPvbld2et0Kx6yUypU0INlTX2NyaHTzYVil1Hak0Z569vV3bwxlU09gKA28ihDA3UOzbyxAYNgR9oG8VbCqd8o7L9fp9Koru7JTt31SfPNCUL9KA7/O6Obcc3sTBtO5EGaCJTznIDUg7LC+mdvsMxyhgbk8nPkBaBhqDDqdf7IR3BmfmCoepofjNdIw0usPxQ/RqyCi0KuKYAR2kwOMs2itKU9/TvPXvj7ZPxhhLHclOr5Ie5DE/XCLHplM+q0wtDRxH5ZZyleQXdE6nJtUuzuatluaRH2B6DfDbKWaDHi6ECeR/ngaez6GEIggOLFThgJorX2mZJI+R4="
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "aORIabEyqrKO4w-46JnIDg",
+      "usageMetadata": {
+        "promptTokenCount": 4768,
+        "candidatesTokenCount": 78,
+        "totalTokenCount": 5053,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 4768
+          }
+        ],
+        "thoughtsTokenCount": 207
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:25:44 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=3487",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "58da0b1c-12c7-430e-9750-393116ca286e",
+    "toolCallId": "search_1766384744244_1",
+    "toolName": "search",
+    "content": [
+      {
+        "type": "text",
+        "content": "Search Results for: Find investment terms for specific startup accelerators.\nQueries: Beta works AI camp investment terms equity funding, Y Combinator current investment terms 2024 2025, BTV VC The Mint accelerator investment terms equity funding, South Park Commons Founder Fellowship investment terms equity funding\n\nFound 5 results:\n\n================================================================================\n\n1. How to Get Accepted to The Mint Accelerator by BTV - XRaise\n   URL: https://xraise.ai/blog/how-to-get-accepted-to-the-mint-accelerator/\n   Published: 2025-06-02\n   Excerpts:\n   - With a focus on **deep industry expertise, funding, and community** , The Mint provides startups with 💰 **$500,000 in investment** and a **10-week in-person program** in 📍 **San Francisco and New York** . This accelerator is built by fintech operators who understand the unique challenges of launching and scaling a fintech startup. The program goes beyond mentorship, offering **hands-on guidance, direct funding, and an extensive fintech network** to help startups reach their next growth milesto...\n\n\n2. Founder Fellowship - South Park Commons\n   URL: https://www.southparkcommons.com/founder-fellowship\n   Excerpts:\n   - # Founder Fellowship In our experience, most companies don’t fail because they run out of cash or can't find traction. They fail because they never picked the right idea in the first place. We partner with founders pre-revenue, pre-product, and even pre-idea, to make sure you find founder-market fit. Our approach is boutique and customized. We don’t force strict timelines. We help you avoid local maxima and find your global maximum. [Apply](https://airtable.com/appxDXHfPCZvb75qk/pagOboNVU8MPyDJ8...\n\n\n3. The Y Combinator Standard Deal | Y Combinator\n   URL: https://www.ycombinator.com/deal\n   Excerpts:\n   - # The Y Combinator Deal By Kirsty Nathoo ### YC’s Standard Deal We have a standard deal for every company that is accepted to Y Combinator. We invest $500,000, and our investment gives YC 7% of your company plus an incremental equity amount that will be fixed when you raise money from other investors. The YC investment is not contingent on hitting any milestones, and we do not wait until the batch program starts to invest. The day a company is accepted to YC, we commit to investing our standard ...\n\n\n4. Startmate Accelerator Investment Terms 101 | Startmate\n   URL: https://www.startmate.com/writing/startmate-accelerator-investment-terms-101\n   Excerpts:\n   - [](/) offerings offerings [Founders Founders](/audience/founders) [Accelerator Accelerator](/accelerator/program) [Launch Club Launch Club](/programs/launch-club) [Investors Investors](/audience/investors) [First Believers First Believers](/first-believers/program) [Operators Operators](/audience/operators) [Student Founder Bootcamp Student Founder Bootcamp](/programs/student-founder-bootcamp) [Women Women](/audience/women) [Startmate Collective Startmate Collective](/membership/startmate-collec...\n\n\n5. Camp | Betaworks\n   URL: https://www.betaworks.com/camp\n   Excerpts:\n   - [Camp](/camp) [Companies](/companies) [Team](/team) [Events](/events) [Writing](/writing) Events [Calendar](#) [Archive](#) [Apply to AI Camp: Agent Systems](https://www.betaworks.com/writing/camp-agent-systems-spring-2026) [](/) # Camp ## A thematic investment and in-residence program for startups building in frontier technologies. Camp takes place twice annually. The Spring session runs March through May (applications open Dec - Jan). The Fall session runs August through November (applications...\n"
+      }
+    ],
+    "details": {
+      "search_id": "search_85d064b11650442090e894c73c507e5d",
+      "result_count": 5
+    },
+    "isError": false,
+    "timestamp": 1766384750065
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "60e00b27-e8e7-40a3-8cef-a64dbfcc5326",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "extract_1766384753160_1",
+        "name": "extract",
+        "arguments": {
+          "objective": "Find investment terms (funding amount and equity %).",
+          "url": "https://www.betaworks.com/camp"
+        },
+        "thoughtSignature": "EuIICt8IAXLI2nxLrU8rWgOaR3DjdKVFksrHgLFv+IUTvihQ5HwFC/lMOtvXYNUDmJPO9QJAdvudqi7NYrRYyvLBVYVzlLgLEs2ShclBzcIstUNUxvx1x8TBASZPpr2idJSKMev9X9ZVzVhZinxpShazKab7QoCaVkjgHEVue7HFrsSCjUJUfW/NOlQluyxFmlJPhvDz1KvfjyKL8bONSar60ASvUqX3Mi+kVqqkHYw+NxDQTboLOuERUl4wlvZaipWZXOh39jPDe6m4nXAVfZRm1D8TVQr5p5AXzyj0v+n8N1SGqyF/gMPoq+5RXlEDPfNkceaAAuLUwNoFL2DZtGQMoakXdOHrFDdxZDfN5pvLx6jkZj/mLIUuPFNy6+9lzlYGjkh1as8U++CEhaXTnY8aPUlZrso3WpbXyytTMLXsQ+D4BJxspUqhLThXr+6Totsm69OuTa38hIEcuLwRrHbBSl9/4+bzLVg1kMnSbBEsCJX3nkEjGGvxIC7vuBDjqEjA/8ziT7ZBJdqLSDe1eqbf+iQ+ZaSWU4aO7nAnm6wlIrRR4a5DsZxuuZ78bm3vX5tspIP4j/9GRqg7DJGNTl+VzSJ0o8MtmVb0sabnwYaIzLAj4VXHvdiZIiRp9jtOgZnFhHxZgeq0GpLV2Jx9JQNgZf0IRy5ebWiF+H8JH9IioiShvIynKapc+GV6l1z0rj7yUKK0Achn89O9EgQbjg7WFuc+Te5iw7mdyOWW5edsewEjcWOUCNFNSyOe3EOSMWr0TtSukUI9YunWdY8nNfTMT5Y824rJ/dM03/2mUytTtQNtt1d1dfRshO9OLf1XGxJAh4Vi1VyMdifYVZKB3VL/BeBUJ6WKRPuYfismV14UbvkvSG4QHEYSNVSjrTmOdni/Fr++rxk6I9gXY/28hcHbhFX/Edt6qpNSyzbClqBGT1u6CZE4SrBdWCeCabRM/PpBWoLGOPhFiBAApDaTbdSXSCLE/qwVFoU0IqhzDnLlZHUIVWD1nsyQ4h/88y2L20HAo8JfxsuWoLL+WaJ9FmXjK0QJIFP/rxL0II0Eq4EOkffQ2BSEkV7z4WAFPK1HZjlaiiggXIHZjaEB4U390bGLokUkY6uNF6c6U/bbXljohZl+FlziqbonOd6BnU1OHAvctyqqr++YR8V+PI9FZbYgu1hMl0GOt8lzwVl2Rhp6vmGISrdqHYpX5MdfTiDyt5AzOopnjxg4vxk1rgFBRFU7tjDmy9AYAy5ZCwwXroSHUy2UtKRuSRfPSkxkbTMKSD46NNmLj7KEqu8lC6Tq5Z/icwlk0ohP3kdg9fQnp1ppdwxI0jElR7IWJ+PRwLfhDuv010tEMegUBFCpwjeNw+yAFf0nIiZuyJREWqZuKKER2w8ewkuqSpjT4SOg8IiEkC1RXJU/o4lWofgg5MsCwE5nwQYdWN6erUbtwuFIuNXlz4a2qtPpQXtLvyk/mhYbSZ7IvIjws1T9IgCtfMkxrYoPR+4I"
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 5951,
+      "output": 286,
+      "cacheRead": 4033,
+      "cacheWrite": 0,
+      "totalTokens": 6237,
+      "cost": {
+        "input": 0.011902,
+        "output": 0.003432,
+        "cacheRead": 0.0008066000000000001,
+        "cacheWrite": 0,
+        "total": 0.0161406
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384753163,
+    "duration": 3098,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "extract",
+                  "args": {
+                    "objective": "Find investment terms (funding amount and equity %).",
+                    "url": "https://www.betaworks.com/camp"
+                  }
+                },
+                "thoughtSignature": "EuIICt8IAXLI2nxLrU8rWgOaR3DjdKVFksrHgLFv+IUTvihQ5HwFC/lMOtvXYNUDmJPO9QJAdvudqi7NYrRYyvLBVYVzlLgLEs2ShclBzcIstUNUxvx1x8TBASZPpr2idJSKMev9X9ZVzVhZinxpShazKab7QoCaVkjgHEVue7HFrsSCjUJUfW/NOlQluyxFmlJPhvDz1KvfjyKL8bONSar60ASvUqX3Mi+kVqqkHYw+NxDQTboLOuERUl4wlvZaipWZXOh39jPDe6m4nXAVfZRm1D8TVQr5p5AXzyj0v+n8N1SGqyF/gMPoq+5RXlEDPfNkceaAAuLUwNoFL2DZtGQMoakXdOHrFDdxZDfN5pvLx6jkZj/mLIUuPFNy6+9lzlYGjkh1as8U++CEhaXTnY8aPUlZrso3WpbXyytTMLXsQ+D4BJxspUqhLThXr+6Totsm69OuTa38hIEcuLwRrHbBSl9/4+bzLVg1kMnSbBEsCJX3nkEjGGvxIC7vuBDjqEjA/8ziT7ZBJdqLSDe1eqbf+iQ+ZaSWU4aO7nAnm6wlIrRR4a5DsZxuuZ78bm3vX5tspIP4j/9GRqg7DJGNTl+VzSJ0o8MtmVb0sabnwYaIzLAj4VXHvdiZIiRp9jtOgZnFhHxZgeq0GpLV2Jx9JQNgZf0IRy5ebWiF+H8JH9IioiShvIynKapc+GV6l1z0rj7yUKK0Achn89O9EgQbjg7WFuc+Te5iw7mdyOWW5edsewEjcWOUCNFNSyOe3EOSMWr0TtSukUI9YunWdY8nNfTMT5Y824rJ/dM03/2mUytTtQNtt1d1dfRshO9OLf1XGxJAh4Vi1VyMdifYVZKB3VL/BeBUJ6WKRPuYfismV14UbvkvSG4QHEYSNVSjrTmOdni/Fr++rxk6I9gXY/28hcHbhFX/Edt6qpNSyzbClqBGT1u6CZE4SrBdWCeCabRM/PpBWoLGOPhFiBAApDaTbdSXSCLE/qwVFoU0IqhzDnLlZHUIVWD1nsyQ4h/88y2L20HAo8JfxsuWoLL+WaJ9FmXjK0QJIFP/rxL0II0Eq4EOkffQ2BSEkV7z4WAFPK1HZjlaiiggXIHZjaEB4U390bGLokUkY6uNF6c6U/bbXljohZl+FlziqbonOd6BnU1OHAvctyqqr++YR8V+PI9FZbYgu1hMl0GOt8lzwVl2Rhp6vmGISrdqHYpX5MdfTiDyt5AzOopnjxg4vxk1rgFBRFU7tjDmy9AYAy5ZCwwXroSHUy2UtKRuSRfPSkxkbTMKSD46NNmLj7KEqu8lC6Tq5Z/icwlk0ohP3kdg9fQnp1ppdwxI0jElR7IWJ+PRwLfhDuv010tEMegUBFCpwjeNw+yAFf0nIiZuyJREWqZuKKER2w8ewkuqSpjT4SOg8IiEkC1RXJU/o4lWofgg5MsCwE5nwQYdWN6erUbtwuFIuNXlz4a2qtPpQXtLvyk/mhYbSZ7IvIjws1T9IgCtfMkxrYoPR+4I"
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "cORIaYy0Nuntg8UP2Ov30A4",
+      "usageMetadata": {
+        "promptTokenCount": 5951,
+        "candidatesTokenCount": 38,
+        "totalTokenCount": 6237,
+        "cachedContentTokenCount": 4033,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 5951
+          }
+        ],
+        "cacheTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 4033
+          }
+        ],
+        "thoughtsTokenCount": 248
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:25:53 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=2933",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "893a0355-ef86-4862-b385-67460840a165",
+    "toolCallId": "extract_1766384753160_1",
+    "toolName": "extract",
+    "content": [
+      {
+        "type": "text",
+        "content": "Extracted Information for: Find investment terms (funding amount and equity %).\nURL: https://www.betaworks.com/camp\n\n================================================================================\n\nTitle: Camp | Betaworks\nURL: https://www.betaworks.com/camp\n\nRelevant Excerpts:\n\n[Camp](/camp) [Companies](/companies) [Team](/team) [Events](/events) [Writing](/writing) Events [Calendar](#) [Archive](#) [Apply to AI Camp: Agent Systems](https://www.betaworks.com/writing/camp-agent-systems-spring-2026) [](/) Section Title: Camp > A thematic investment and in-residence program for startups building in frontier technologies. Content: Camp takes place twice annually. The Spring session runs March through May (applications open Dec - Jan). The Fall session runs August through November (applications open June - July). The next Camp application will open soon, submit your project for early consideration [here](https://airtable.com/appld745djcYNLnP4/shrWRDYei5Qetn1tz) . Section Title: Camp > Fall '25 Camp theme is Interfaces Content: We're looking for early-stage startups that are rethinking the human-machine boundary through new interface paradigms: voice-native tools, ambient agents, novel input/output flows, multi-modal or invisible interfaces, sophisticated prompt-based interactions. We want to see products with a strong opinion, that treat the interface as fundamental. If you're designing how AI is experienced, not just what it can do, we want to talk. [Read More](https://render.betaworks.com/apply-to-betaworks-fall-ai-camp-interfaces-b99a3f4ac81e) Section Title: What is Camp? > Tell your story, develop your roadmap, and find your fit. Content: Since 2016 we’ve been running sessions of Camp, our cohort-based investment and product development program that goes deep on tech modalities and themes we’re excited about. Each camp consists of 12 weeks “in-residence” at Betaworks to help early stage companies with product development, platform strategy, data science, branding, and fundraising. Entrepreneurs have access to the Betaworks team, its network, and to a carefully curated group of industry leaders to assist with general company-building needs. See previous Camp themes and companies below. [FAQ](#) Section Title: Why apply to Camp? Content: “We started Hugging Face at Betaworks’ Camp, so couldn't recommend this enough!” [](https://huggingface.co/) Section Title: Why apply to Camp? > Hugging Face Content: BotCamp “Camp put Graze on a trajectory from being a rough draft idea to being a real business. The team at Betaworks was immensely helpful in breathing life into our organization at the time we were just starting the business.” [](https://www.graze.social/) Section Title: Why apply to Camp? > Hugging Face > Graze Social Content: AI Camp: App Layer “The Betaworks team has the right mix of ambition, carefulness, experience and knowing when to be challenging — everything you need to start your rocket ship.” [](https://twin.so/) Section Title: Why apply to Camp? > Hugging Face > Graze Social > Twin Content: AI Camp: Agents \"Betaworks agent camp was a life changing portal for me to begin my founder journey building Opponent. We'd be homeless, half blind, and disoriented without Betaworks. Instead, the tank is full, navigation is calibrated, and we have wise friends for life.” [](https://opponent.systems/) Section Title: Why apply to Camp? > Hugging Face > Graze Social > Opponent Content: AI Camp: Agents \"At Betaworks we were given the space, the capital, the network and the energy to think bigger. It's more than a space, it's an invitation to embrace your zone of genius. What a privilege it has been to work alongside such remarkable founders and join such a unique community.” [](https://trampoline.ai/) Section Title: Why apply to Camp? > Hugging Face > Graze Social > Trampoline Content: AI Camp: App Layer \"Camp was exceptionally impactful for Superposition, working shoulder to shoulder with other highly ambitious builders was energizing and we're going to embed ourselves in Meatpacking for as long as they'll have us!” [](https://www.superposition.ai/) Section Title: Why apply to Camp? > Hugging Face > Graze Social > Superposition Content: AI Camp: App Layer \"My cohort-mates have become true allies; their camaraderie, encouragement, and candid feedback have pushed me to rethink my own assumptions. The dedicated mentor pairing was the cherry on top, and Demo Day was well-attended, forcing us to polish our stories and bringing us several promising connections.” [](https://jigsawml.com/) Section Title: Why apply to Camp? > Hugging Face > Graze Social > JigsawML Content: AI Camp: App Layer \"The sessions were great, the Betaworks team is amazing, but the real magic of Camp is the in-person and extended community that connected me with an expert in every realm I needed (and some I didn't even know existed).” [](https://www.esai.ai/) Section Title: Why apply to Camp? > Hugging Face > Graze Social > ESAI Content: AI Camp: Native Applications \"The caliber of the people you are around is exceptional, which is one of the most impactful things for an early stage startup. The Betaworks team is supportive while holding you accountable, and are experts in domains that are helpful for founders. Would do it again in a heartbeat :)” [](https://www.dessn.ai/) Section Title: Why apply to Camp? > Hugging Face > Graze Social > Dessn Content: AI Camp: Native Applications Section Title: Why apply to Camp? > Camp companies have gone on to raise follow-on financing from leading investors: Content: [](https://acapital.com/) [](https://www.sparkcapital.com/) [](https://eniac.vc/) [](https://www.makersfund.com/) [](https://www.coatue.com/) [](https://www.generalcatalyst.com/) [](https://www.kleinerperkins.com/) [](https://atomico.com/) [](https://www.luxcapital.com/) [](https://www.greycroft.com/) [](https://svangel.com/) [](https://foundersfund.com/) [](https://homebrew.co/) [](https://lsvp.com/) [](https://github.com/Bloomberg-Beta/Manual) [](https://www.sequoiacap.com/) [](https://acapital.com/) [](https://www.sparkcapital.com/) [](https://eniac.vc/) [](https://www.makersfund.com/) [](https://www.coatue.com/) [](https://www.generalcatalyst.com/) [](https://www.kleinerperkins.com/) [](https://atomico.com/) [](https://www.luxcapital.com/) [](https://www.greycroft.com/) [](https://svangel.com/) [](https://foundersfund.com/) [](https://homebrew.co/) [](https://lsvp.com/) [](https://github.com/Bloomberg-Beta/Manual) [](https://www.sequoiacap.com/) [Applt Now Deadline Extended Deadline Extended Apply Now Deadline Extended Apply Now Deadline Extended Apply Now Deadline Extended Apply Now Camp is open Apply Now](https://airtable.com/shrpbXXslxEGx1W7Y) Section Title: Why apply to Camp? > Camp companies have gone on to raise follow-on financing from leading investors: Content: [Deadline Extended Apply Now Deadline Extended Apply Now Deadline Extended Apply Now Deadline Extended Apply Now Deadline Extended Apply Now Camp is open Apply Now](https://airtable.com/shrpbXXslxEGx1W7Y) [](/) [](https://www.linkedin.com/company/betaworks/) [](https://twitter.com/betaworks) [](https://www.youtube.com/@betaworks872) [](https://render.betaworks.com/) [Contact](/contact) [Event Inquiries](mailto:eventsny@betaworks.com) [Privacy Policy](/privacy-policy) © 2025 Betaworks. All rights reserved Sign up for events, news, and announcements. Thank you! Your submission has been received! Oops! Something went wrong while submitting the form. [](#) Section Title: Why apply to Camp? > Camp FAQ > What is Betaworks? Content: Betaworks has been a foundational part of the NYC tech ecosystem for the last 15 years – first, as an incubator of brands you know and love like Giphy, Tweetdeck, Bit.ly, and Dots, and more recently as a pre-seed and seed stage investor in companies like HuggingFace and Stability AI, among many others. We believe in thesis-based investing, and have spent almost a decade honing and iterating on our thesis around artificial intelligence. A significant amount of learning in that space came from Camp. We started with BotCamp (HuggingFace) in 2016 and have done many camps since (including VoiceCamp, VisionCamp, AudioCamp, SyntheticCamp, and more), most of which focus on a single mode of applied machine learning. Section Title: Why apply to Camp? > Camp FAQ > What is Betaworks? > What is Camp? Content: Camp is like an accelerator, but not. Rather than writing a small check into dozens, and sometimes hundreds, of companies across a wide variety of categories, we look at the evolution of technology and bet on a cohort of companies that are creating and/or defining a brand new category. We bring these founders together to learn from one another as they embark into uncharted territory, and tap them into our network of portfolio founders, tech big brains and, of course, investors. Section Title: Why apply to Camp? > Camp FAQ > What is Betaworks? > How long is Camp? Content: Camp runs for 12 weeks, culminating in a Demo Day. Section Title: Why apply to Camp? > Camp FAQ > What is Betaworks? > When can I apply to Camp? Content: Camp takes place twice annually. The first Camp session runs March through May (applications open Dec - Jan). The second session runs August through November (applications open June - July). Section Title: Why apply to Camp? > Camp FAQ > What is Betaworks? > What does Demo Day entail? Content: Each team has 5min on stage, in front of a room full of investors, to tell their story and share a live demo of the product. We help you prep your pitch deck, draft a compelling script, and hone your stage presence. It’s the capstone event of the Camp program, it’s a milestone in the life of your company and product development, and it builds team camaraderie as we all work together to put on a great show! Section Title: Why apply to Camp? > Camp FAQ > What is Betaworks? > How big is camp? Content: We typically select a cohort of 8-12 companies. Section Title: Why apply to Camp? > Camp FAQ > What is Betaworks? > Where is Camp? Content: Camp takes place in-person at the Betaworks offices in NYC's Meatpacking District, where teams will have access to shared workspace, desks, and conference rooms. We require teams to participate IRL for the first and final two weeks and encourage them to stay in NYC for the entire session, but hybrid options are available. In the final week each team will present their product at Demo Day before a room of investors. ... Section Title: Why apply to Camp? > Camp FAQ > What is Betaworks? > Do I need a product to apply? Content: It's not required, but having something to show like a demo or beta or Figma is highly encouraged. Section Title: Why apply to Camp? > Camp FAQ > What is Betaworks? > Are there any costs associated with Camp? Content: We don't charge anything to participate in Camp. Your only expense would be travel costs to/from NYC, and housing while here. Section Title: Why apply to Camp? > Camp FAQ > What is Betaworks? > Do I need to be US-based to apply? Content: No, we accept applications from companies based anywhere in the world. We do require IRL participation for specific portions of the program, so you must be willing/able to spend time in NYC during the Camp session."
+      }
+    ],
+    "details": {
+      "extract_id": "extract_8a88ace4a4c74576933aac828a3940fe",
+      "result_count": 1,
+      "error_count": 0
+    },
+    "isError": false,
+    "timestamp": 1766384755446
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "5479500c-2314-4b30-b878-1882d9c99d1c",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "search_1766384757995_1",
+        "name": "search",
+        "arguments": {
+          "queries": [
+            "Betaworks Camp investment amount equity percentage 2024 2025",
+            "BTV VC The Mint accelerator $500k equity percentage",
+            "South Park Commons Founder Fellowship investment amount equity percentage"
+          ],
+          "objective": "Find funding amount and equity percentage for Beta works Camp, BTV VC The Mint, and South Park Commons."
+        },
+        "thoughtSignature": "ErEECq4EAXLI2nwaWilEYlpVAjHN0wSGgkhoYAgPR5//IZs/m082ckWrb+xGGKPv4OcgRrrbO6gkXpIh3jDD0G/Fk6pGfi1DfTP0Hbn+kfjmNG209XNGAKzOFLIYnxXlIguWhQWPwcne9RbE2Qxg2fiZ0u3zfkcCbN8fVV3X/fqYbRHsF3VHPzW9ySv4dQe0DbrXl3eWdKJ+yCL+UFM0BnvkT36TGgwFD5ymucwg5kqIWGMsUAdXQCRi3nfqyut8Prni/tf/0AWDcvBChB70WMys7v985yRx0daOq6cJOIS0jUp86EnZTXzkracPSXL8jgXpOl4WR7HTI/zxBJUIiRqrxCIPwkR5mRIwbMQZjo2VebpkiFIH+vOambGVTiDY693DALLbtyZK8GsyRUXL2Pt/eMeO7yQGAOP3nmvrxpWXXe/fWu11RzL//laRlU++nE9yMWilpj6FmePWE2KAGay0G7GLWHShPoA5MkUsPD5xuJxj2WztRJ+B//fYFAJJDDQe0NIRaHgIyrbPlQzs0M7tYssXh0FuF0HOyPr9vpFgHSlKFktWtrdR3GQ5qZh8RUETQaF3o4SnbbavPt5Wii+z3z+2kI8TZ5sQDKV/OeLBnsEQ+cp5adiQrnxGAYA2x/zQYN3eldPodaSe+e6yDTEiamCHY/VIuNcaBYcp0AvE95JbB89yCEkyZZ8Hh4+MuNiJtQF+XDpKiy5uvaeh/ZKfnc91G1Z/kONE+QhzNPp7HJyu"
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 8953,
+      "output": 188,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 9141,
+      "cost": {
+        "input": 0.017906,
+        "output": 0.002256,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0.020162
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384757997,
+    "duration": 2551,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "search",
+                  "args": {
+                    "queries": [
+                      "Betaworks Camp investment amount equity percentage 2024 2025",
+                      "BTV VC The Mint accelerator $500k equity percentage",
+                      "South Park Commons Founder Fellowship investment amount equity percentage"
+                    ],
+                    "objective": "Find funding amount and equity percentage for Beta works Camp, BTV VC The Mint, and South Park Commons."
+                  }
+                },
+                "thoughtSignature": "ErEECq4EAXLI2nwaWilEYlpVAjHN0wSGgkhoYAgPR5//IZs/m082ckWrb+xGGKPv4OcgRrrbO6gkXpIh3jDD0G/Fk6pGfi1DfTP0Hbn+kfjmNG209XNGAKzOFLIYnxXlIguWhQWPwcne9RbE2Qxg2fiZ0u3zfkcCbN8fVV3X/fqYbRHsF3VHPzW9ySv4dQe0DbrXl3eWdKJ+yCL+UFM0BnvkT36TGgwFD5ymucwg5kqIWGMsUAdXQCRi3nfqyut8Prni/tf/0AWDcvBChB70WMys7v985yRx0daOq6cJOIS0jUp86EnZTXzkracPSXL8jgXpOl4WR7HTI/zxBJUIiRqrxCIPwkR5mRIwbMQZjo2VebpkiFIH+vOambGVTiDY693DALLbtyZK8GsyRUXL2Pt/eMeO7yQGAOP3nmvrxpWXXe/fWu11RzL//laRlU++nE9yMWilpj6FmePWE2KAGay0G7GLWHShPoA5MkUsPD5xuJxj2WztRJ+B//fYFAJJDDQe0NIRaHgIyrbPlQzs0M7tYssXh0FuF0HOyPr9vpFgHSlKFktWtrdR3GQ5qZh8RUETQaF3o4SnbbavPt5Wii+z3z+2kI8TZ5sQDKV/OeLBnsEQ+cp5adiQrnxGAYA2x/zQYN3eldPodaSe+e6yDTEiamCHY/VIuNcaBYcp0AvE95JbB89yCEkyZZ8Hh4+MuNiJtQF+XDpKiy5uvaeh/ZKfnc91G1Z/kONE+QhzNPp7HJyu"
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "deRIabvfMO7ijuMPiba0gAE",
+      "usageMetadata": {
+        "promptTokenCount": 8953,
+        "candidatesTokenCount": 86,
+        "totalTokenCount": 9141,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 8953
+          }
+        ],
+        "thoughtsTokenCount": 102
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:25:57 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=2528",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "2a56a761-f8f7-4740-9d06-13f4dbd92ba3",
+    "toolCallId": "search_1766384757995_1",
+    "toolName": "search",
+    "content": [
+      {
+        "type": "text",
+        "content": "Search Results for: Find funding amount and equity percentage for Beta works Camp, BTV VC The Mint, and South Park Commons.\nQueries: Betaworks Camp investment amount equity percentage 2024 2025, BTV VC The Mint accelerator $500k equity percentage, South Park Commons Founder Fellowship investment amount equity percentage\n\nFound 5 results:\n\n================================================================================\n\n1. Camp | Betaworks\n   URL: https://www.betaworks.com/camp\n   Excerpts:\n   - Each camp consists of 12 weeks “in-residence” at Betaworks to help early stage companies with product development, platform strategy, data science, branding, and fundraising. Entrepreneurs have access to the Betaworks team, its network, and to a carefully curated group of industry leaders to assist with general company-building needs. See previous Camp themes and companies below. [FAQ](#) # Why apply to Camp? “We started Hugging Face at Betaworks’ Camp, so couldn't recommend this enough!” [](htt...\n\n\n2. Betaworks Camps | Investor Profile, Funding Criteria & Team\n   URL: https://www.openvc.app/fund/Betaworks%20Camps\n   Excerpts:\n   - [](./) * [](./) [](./) * [Sign up]() * [Log in]() * Fundraising * [Search investors](search) * [Pitch decks](decks) * <CRM> * Resources * [Fundability](fundability) * [Perks](perks) * [Learn to raise]() + Learn to raise + [Masterclass](masterclass) + [Webinars](webinars) + [Ebook](ebook) + [Podcast](podcast) + [Blog](blog) * [Founder tools]() + Founder tools + [Deck template](pitchDeckTemplate) + [OpenMap](./map) + [OpenDeck](opendeck) + [Tech multiples](./multiples) * [Startup Experts]() + Star...\n\n\n3. FAQ - South Park Commons\n   URL: https://www.southparkcommons.com/faq\n   Excerpts:\n   - Typically, 20% of our members are technologists doing independent research, building open-source software, writing books, or pursuing other non-founding endeavors. ### Can I apply if I’m in school? Yes, we consider applicants who want to leave academia to become full-time SPC members. In the past, we’ve had academics, from PhDs to professors, join the community. ### What if I’m planning to fundraise soon? We encourage applicants at this stage to consider our Founder Fellowship program, which off...\n\n\n4. The Mint - Better Tomorrow Ventures\n   URL: https://www.btv.vc/the-mint\n   Excerpts:\n   - [](/) [About](/about) [Team](/team) [Companies](/companies) [The Mint](/the-mint) [Content](https://better-tomorrow-ventures.ghost.io/) [Jobs](https://jobs.btv.vc/jobs) # The Mint by BTV The most comprehensive and supportive pre-seed platform curated for fintech founders [Applications closed](https://kgz17nvn79o.typeform.com/to/ovbW2uQK?typeform-source=www.themint.vc) The most comprehensive and supportive pre-seed platform curated for fintech founders Fintech companies have unique needs and face...\n\n\n5. How to Get Accepted to The Mint Accelerator by BTV - XRaise\n   URL: https://xraise.ai/blog/how-to-get-accepted-to-the-mint-accelerator/\n   Published: 2025-06-02\n   Excerpts:\n   - [](https://www.pinterest.com/pin/create/bookmarklet/?pinFave=1&url=https%3A%2F%2Fxraise.ai%2Fblog%2Fhow-to-get-accepted-to-the-mint-accelerator%2F&media=https://xraise.ai/blog/wp-content/uploads/2025/02/The-Mint-1.jpg&description=How%20to%20Get%20Accepted%20to%20The%20Mint%20Accelerator%20by%20BTV) [](https://www.linkedin.com/shareArticle?url=https%3A%2F%2Fxraise.ai%2Fblog%2Fhow-to-get-accepted-to-the-mint-accelerator%2F&title=How%20to%20Get%20Accepted%20to%20The%20Mint%20Accelerator%20by%20BTV)...\n"
+      }
+    ],
+    "details": {
+      "search_id": "search_6d1e9ac0ce164dfbbc8670f675547350",
+      "result_count": 5
+    },
+    "isError": false,
+    "timestamp": 1766384763948
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "c3bc0a39-a18b-4697-9cb9-f2db3f2d56c7",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "search_1766384767077_1",
+        "name": "search",
+        "arguments": {
+          "queries": [
+            "Betaworks Camp standard investment terms 2024 2025",
+            "BTV VC The Mint $500k equity percentage standard deal",
+            "South Park Commons Founder Fellowship $400k $500k investment terms",
+            "\"The Mint\" BTV investment equity percentage"
+          ],
+          "objective": "Find standard investment terms for Betaworks Camp, BTV VC The Mint, and South Park Commons."
+        },
+        "thoughtSignature": "EugFCuUFAXLI2nxukUwsoRYTc/rw7s2gxzkqbFTiC6yHrlLgBM2oP+mOL1DkTLbaEYPLOCz/iZajyhxExE33AonpVkX0//3egTORBy0IgRTSYZZn3WBVH9GEgX4B+58cQf3alc1TXyvI1YBbajVMTqstKTduBV8tjp+1Kssz0GQMW2A1g8Bny1rLK6BIPb/NiCL2EkfTDQH8FEcSmATWgk3tc8pUXfvTjZ9IP57mKJfzBD4WbZMPcn5B3mqayFJrviYBq/GMg8uXUQg36iryl6TM6WAtJ4DfHOqDer/sDnvM6OUYbfZ/4LFNhosqPRRZAJJ3hhxRzk82GmrGwbleWPbNfFHL8gsuC99G9asyJ5KmnylfwJXCrO6iYSdLd+++zWbStuP1OxE2RPD/OQWwS4ydz/wDz/H9jp91G7Qg1pHxnO3TRvSa5BiFGvBQZRY1xi7wX2bwmhNLjOMidDBOYpipu8QTuyLvb5gjTKWYTJzNJFXwP4XVD6bdnCeQ4oYS9m0Q5kysHEliSqSk3zp1zrnVmdmF4bbyZ9fyLck4XJe/W73kKOsMHHNZsSgpCWnK4htst+6f2DQg7YtN0qWc1Wlg3qPR8b+WEuCJtzS2mBKjUF13Qk71hhStZSuLcFioL7AiDwIz5EflPDT2zBgsuHnSWY458Bk8/vFI76i/b3ong7yHTG39g7ytTKd83jOXytNkuvbOmYECVc5xSABj823mpXO/jYlT6sM0RwZTwosLDFPajgoJIX2sUfAAwUzUlcU8KPEvuD5Lb09IX3eXnt4JASXncZlC9f4TG+CKzRRD+ayfAZEsSe8R7AayrhjTZF19r5fOXzntFW82CUBuDaS1GV7zjsPrtVPSmjDdhVMBdgTc7DzYDOn95boOyEw+bq1E5umAGdhS3++8k7v4dWxSBeRGLqq52AZJm26z0+6AjX/lUamwlPpBhBR5qRwDV9FbO98eBQkYMEFQQZZU3o8ytV6HVntgIOZr"
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 10200,
+      "output": 262,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 10462,
+      "cost": {
+        "input": 0.020399999999999998,
+        "output": 0.003144,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0.023544
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384767078,
+    "duration": 3130,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "search",
+                  "args": {
+                    "queries": [
+                      "Betaworks Camp standard investment terms 2024 2025",
+                      "BTV VC The Mint $500k equity percentage standard deal",
+                      "South Park Commons Founder Fellowship $400k $500k investment terms",
+                      "\"The Mint\" BTV investment equity percentage"
+                    ],
+                    "objective": "Find standard investment terms for Betaworks Camp, BTV VC The Mint, and South Park Commons."
+                  }
+                },
+                "thoughtSignature": "EugFCuUFAXLI2nxukUwsoRYTc/rw7s2gxzkqbFTiC6yHrlLgBM2oP+mOL1DkTLbaEYPLOCz/iZajyhxExE33AonpVkX0//3egTORBy0IgRTSYZZn3WBVH9GEgX4B+58cQf3alc1TXyvI1YBbajVMTqstKTduBV8tjp+1Kssz0GQMW2A1g8Bny1rLK6BIPb/NiCL2EkfTDQH8FEcSmATWgk3tc8pUXfvTjZ9IP57mKJfzBD4WbZMPcn5B3mqayFJrviYBq/GMg8uXUQg36iryl6TM6WAtJ4DfHOqDer/sDnvM6OUYbfZ/4LFNhosqPRRZAJJ3hhxRzk82GmrGwbleWPbNfFHL8gsuC99G9asyJ5KmnylfwJXCrO6iYSdLd+++zWbStuP1OxE2RPD/OQWwS4ydz/wDz/H9jp91G7Qg1pHxnO3TRvSa5BiFGvBQZRY1xi7wX2bwmhNLjOMidDBOYpipu8QTuyLvb5gjTKWYTJzNJFXwP4XVD6bdnCeQ4oYS9m0Q5kysHEliSqSk3zp1zrnVmdmF4bbyZ9fyLck4XJe/W73kKOsMHHNZsSgpCWnK4htst+6f2DQg7YtN0qWc1Wlg3qPR8b+WEuCJtzS2mBKjUF13Qk71hhStZSuLcFioL7AiDwIz5EflPDT2zBgsuHnSWY458Bk8/vFI76i/b3ong7yHTG39g7ytTKd83jOXytNkuvbOmYECVc5xSABj823mpXO/jYlT6sM0RwZTwosLDFPajgoJIX2sUfAAwUzUlcU8KPEvuD5Lb09IX3eXnt4JASXncZlC9f4TG+CKzRRD+ayfAZEsSe8R7AayrhjTZF19r5fOXzntFW82CUBuDaS1GV7zjsPrtVPSmjDdhVMBdgTc7DzYDOn95boOyEw+bq1E5umAGdhS3++8k7v4dWxSBeRGLqq52AZJm26z0+6AjX/lUamwlPpBhBR5qRwDV9FbO98eBQkYMEFQQZZU3o8ytV6HVntgIOZr"
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "fuRIafe2M5aJqfkPurrbiQE",
+      "usageMetadata": {
+        "promptTokenCount": 10200,
+        "candidatesTokenCount": 105,
+        "totalTokenCount": 10462,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 10200
+          }
+        ],
+        "thoughtsTokenCount": 157
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:26:07 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=3043",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "bc89d051-5f27-48f7-9e96-5934442193fa",
+    "toolCallId": "search_1766384767077_1",
+    "toolName": "search",
+    "content": [
+      {
+        "type": "text",
+        "content": "Search Results for: Find standard investment terms for Betaworks Camp, BTV VC The Mint, and South Park Commons.\nQueries: Betaworks Camp standard investment terms 2024 2025, BTV VC The Mint $500k equity percentage standard deal, South Park Commons Founder Fellowship $400k $500k investment terms, \"The Mint\" BTV investment equity percentage\n\nFound 5 results:\n\n================================================================================\n\n1. Camp | Betaworks\n   URL: https://www.betaworks.com/camp\n   Excerpts:\n   - [Camp](/camp) [Companies](/companies) [Team](/team) [Events](/events) [Writing](/writing) Events [Calendar](#) [Archive](#) [Apply to AI Camp: Agent Systems](https://www.betaworks.com/writing/camp-agent-systems-spring-2026) [](/) # Camp ## A thematic investment and in-residence program for startups building in frontier technologies. Camp takes place twice annually. The Spring session runs March through May (applications open Dec - Jan). The Fall session runs August through November (applications...\n\n\n2. Understanding venture capital term sheets - Silicon Valley Bank\n   URL: https://www.svb.com/startup-insights/vc-relations/venture-capital-term-sheets/\n   Published: 2021-09-21\n   Excerpts:\n   - **Anti-dilution provisions** If you need to sell stock at prices lower than what the investor paid, this clause stipulates that the investor receives additional stock to preserve their original percentage of ownership without additional investment. 1. **The pay-to-play provision** Usually, companies and investors seek this arrangement. The provision requires investors to participate in future financing rounds to avoid having their preferred stock converted to common stock. 1. **Boardroom makeup*...\n\n\n3. The Mint - Better Tomorrow Ventures\n   URL: https://btv.vc/the-mint\n   Excerpts:\n   - [](/) [About](/about) [Team](/team) [Companies](/companies) [The Mint](/the-mint) [Content](https://better-tomorrow-ventures.ghost.io/) [Jobs](https://jobs.btv.vc/jobs) # The Mint by BTV The most comprehensive and supportive pre-seed platform curated for fintech founders [Applications closed](https://kgz17nvn79o.typeform.com/to/ovbW2uQK?typeform-source=www.themint.vc) The most comprehensive and supportive pre-seed platform curated for fintech founders Fintech companies have unique needs and face...\n\n\n4. FAQ - South Park Commons\n   URL: https://www.southparkcommons.com/faq\n   Excerpts:\n   - We run a variety of lightweight accountability groups and learning forums to help you connect with others. We also run a popular speaker series and workshop series to accelerate your learning. ### How long does membership last? Membership at SPC lasts 6 months. After these 6 months of exploration, many members graduate to work on their companies or projects full-time. Founders who receive funding from our community fund are welcomed to SPC as lifetime members, which means they’ll have access to ...\n\n\n5. AI Camp: Agents - Meet the Companies\n   URL: https://www.betaworks.com/writing/introducing-the-ai-camp-agents-cohort\n   Excerpts:\n   - Out of the more than 250 companies that applied, we picked nine teams, each of which have formed a unique insight about agents and agentic AI, and are taking a differentiated approach to solving massive problems. The cohort we assembled is a distinct mix of infrastructure/tooling and application-layer products, with founders from the US, Europe, and Canada. While some of the products are built specifically for developers, others are targeted at the enterprise, and others at prosumers. Besides he...\n"
+      }
+    ],
+    "details": {
+      "search_id": "search_ce28a2b7d79e4dca9e75dbe127f9e8e6",
+      "result_count": 5
+    },
+    "isError": false,
+    "timestamp": 1766384774736
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "4279e3ec-f98d-4e6b-9265-477b98514cbb",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "search_1766384777837_1",
+        "name": "search",
+        "arguments": {
+          "objective": "Find exact investment terms (amount and equity) for The Mint by BTV and South Park Commons Founder Fellowship.",
+          "queries": [
+            "The Mint BTV accelerator funding amount equity percentage",
+            "\"South Park Commons\" Founder Fellowship $400,000 equity percentage",
+            "\"Betaworks Camp\" investment terms equity amount"
+          ]
+        },
+        "thoughtSignature": "EugECuUEAXLI2nzQMfzNfYfIpEOOdX5/UznOLuCCSNOxSaYVcL+ZboNQCOcShN9n3JAl3e5QxVzdHDYcF9EBeXiA/6+xGe99b5dRqG4oni12UO9s8C3S8B3l7CR+Zp/U8+x+lMA6zYbsk5KMkBZxhcyJZVBOZJDB3YZRg6cXlvnkW/mm+RAYjcoH1mAHQvHSzaeGTpPJ7heS5cKMG/0AJg01VWxFB1wBZuxf+tyxoDYtRSPBnghyd+0wt2GkOsizh7FoCueb6abmWggovGAnff4NYDTeXRs77lI/NFPjvCWsQ7oRbwqLr7TrDcRMF0aNluQ4L/o5OCdE15C1e8vC61Frpmwk92w5CxD+1dEvLW/fK+FnSJa37fNqiidM9AmxJv8T3HDpLNzlHqVOtguF8+hq2tBDeruAI4IVl+tZX6rfZMd6um8Jcnp6VWPziOcwmNJPf3e8wNh5PZqkWU1gdJqWPRGuXnz3R0v/QvJF/mFrElCo0guJE7yfyuDmHO9emnqXsoq26pd0t7drDx/HG2kdtFst/HU7i66Cs89g71NHC3qvTAM1OmJYwj6wdhMDEAPolZdSB2UhWMQdVUiPNJ6KCfTInGuvUBzKB+ipuUs5rAG2H8yEv8gr2Ae5eooSIwdlKSQ26xaH0jOfQiMA68vz7OKX10p1u8wy1TXr0zohMHjjivfMnANEg+bXFa/mQBoJsAxScsT2s52Z4w5hjLWh+GYEv5ViMFzx2AKW60fPZOxoRbUL/fL8CLISZnrI40xXnVTxkaVmMtGuHxl1+I3RZDuXl2k6w0TrjxDAUfyl/+StnafS80i54g=="
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 11334,
+      "output": 210,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 11544,
+      "cost": {
+        "input": 0.022668,
+        "output": 0.00252,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0.025188000000000002
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384777837,
+    "duration": 3100,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "search",
+                  "args": {
+                    "objective": "Find exact investment terms (amount and equity) for The Mint by BTV and South Park Commons Founder Fellowship.",
+                    "queries": [
+                      "The Mint BTV accelerator funding amount equity percentage",
+                      "\"South Park Commons\" Founder Fellowship $400,000 equity percentage",
+                      "\"Betaworks Camp\" investment terms equity amount"
+                    ]
+                  }
+                },
+                "thoughtSignature": "EugECuUEAXLI2nzQMfzNfYfIpEOOdX5/UznOLuCCSNOxSaYVcL+ZboNQCOcShN9n3JAl3e5QxVzdHDYcF9EBeXiA/6+xGe99b5dRqG4oni12UO9s8C3S8B3l7CR+Zp/U8+x+lMA6zYbsk5KMkBZxhcyJZVBOZJDB3YZRg6cXlvnkW/mm+RAYjcoH1mAHQvHSzaeGTpPJ7heS5cKMG/0AJg01VWxFB1wBZuxf+tyxoDYtRSPBnghyd+0wt2GkOsizh7FoCueb6abmWggovGAnff4NYDTeXRs77lI/NFPjvCWsQ7oRbwqLr7TrDcRMF0aNluQ4L/o5OCdE15C1e8vC61Frpmwk92w5CxD+1dEvLW/fK+FnSJa37fNqiidM9AmxJv8T3HDpLNzlHqVOtguF8+hq2tBDeruAI4IVl+tZX6rfZMd6um8Jcnp6VWPziOcwmNJPf3e8wNh5PZqkWU1gdJqWPRGuXnz3R0v/QvJF/mFrElCo0guJE7yfyuDmHO9emnqXsoq26pd0t7drDx/HG2kdtFst/HU7i66Cs89g71NHC3qvTAM1OmJYwj6wdhMDEAPolZdSB2UhWMQdVUiPNJ6KCfTInGuvUBzKB+ipuUs5rAG2H8yEv8gr2Ae5eooSIwdlKSQ26xaH0jOfQiMA68vz7OKX10p1u8wy1TXr0zohMHjjivfMnANEg+bXFa/mQBoJsAxScsT2s52Z4w5hjLWh+GYEv5ViMFzx2AKW60fPZOxoRbUL/fL8CLISZnrI40xXnVTxkaVmMtGuHxl1+I3RZDuXl2k6w0TrjxDAUfyl/+StnafS80i54g=="
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "ieRIad_oJeuq4-EPve3Q-As",
+      "usageMetadata": {
+        "promptTokenCount": 11334,
+        "candidatesTokenCount": 82,
+        "totalTokenCount": 11544,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 11334
+          }
+        ],
+        "thoughtsTokenCount": 128
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:26:17 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=2968",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "d3c7e860-3be8-4163-a623-2f1bc3d50813",
+    "toolCallId": "search_1766384777837_1",
+    "toolName": "search",
+    "content": [
+      {
+        "type": "text",
+        "content": "Search Results for: Find exact investment terms (amount and equity) for The Mint by BTV and South Park Commons Founder Fellowship.\nQueries: The Mint BTV accelerator funding amount equity percentage, \"South Park Commons\" Founder Fellowship $400,000 equity percentage, \"Betaworks Camp\" investment terms equity amount\n\nFound 5 results:\n\n================================================================================\n\n1. Founder Fellowship - South Park Commons\n   URL: https://www.southparkcommons.com/founder-fellowship\n   Excerpts:\n   - # Founder Fellowship In our experience, most companies don’t fail because they run out of cash or can't find traction. They fail because they never picked the right idea in the first place. We partner with founders pre-revenue, pre-product, and even pre-idea, to make sure you find founder-market fit. Our approach is boutique and customized. We don’t force strict timelines. We help you avoid local maxima and find your global maximum. [Apply](https://airtable.com/appxDXHfPCZvb75qk/pagOboNVU8MPyDJ8...\n\n\n2. The Mint | Investor Profile, Funding Criteria & Team - OpenVC\n   URL: https://www.openvc.app/fund/The%20Mint\n   Excerpts:\n   - [](./) * [](./) [](./) * [Sign up]() * [Log in]() * Fundraising * [Search investors](search) * [Pitch decks](decks) * <CRM> * Resources * [Fundability](fundability) * [Perks](perks) * [Learn to raise]() + Learn to raise + [Masterclass](masterclass) + [Webinars](webinars) + [Ebook](ebook) + [Podcast](podcast) + [Blog](blog) * [Founder tools]() + Founder tools + [Deck template](pitchDeckTemplate) + [OpenMap](./map) + [OpenDeck](opendeck) + [Tech multiples](./multiples) * [Startup Experts]() + Star...\n\n\n3. The Mint - Better Tomorrow Ventures\n   URL: https://btv.vc/the-mint\n   Excerpts:\n   - [](/) [About](/about) [Team](/team) [Companies](/companies) [The Mint](/the-mint) [Content](https://better-tomorrow-ventures.ghost.io/) [Jobs](https://jobs.btv.vc/jobs) # The Mint by BTV The most comprehensive and supportive pre-seed platform curated for fintech founders [Applications closed](https://kgz17nvn79o.typeform.com/to/ovbW2uQK?typeform-source=www.themint.vc) The most comprehensive and supportive pre-seed platform curated for fintech founders Fintech companies have unique needs and face...\n\n\n4. FAQ - South Park Commons\n   URL: https://www.southparkcommons.com/faq\n   Excerpts:\n   - Community Membership and the Founder Fellowship are both paths to joining South Park Commons. Community Membership supports technologists that are earlier in the process of taking their ideas from -1 to 0 and are not ready for funding. Members on this path spend up to 6 months at SPC exploring and learning about new areas, meeting potential collaborators, and building conviction in their ideas. The Founder Fellowship supports technologists that are further along in their -1 to 0 journey, usually...\n\n\n5. The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs | TechCrunch\n   URL: https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/\n   Published: 2023-05-10\n   Excerpts:\n   - [](https://www.reddit.com/submit?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&title=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs) [](mailto:?subject=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs&body=Article%3A+https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-want...\n"
+      }
+    ],
+    "details": {
+      "search_id": "search_0155edddfb934a449db71b673b243dfb",
+      "result_count": 5
+    },
+    "isError": false,
+    "timestamp": 1766384785762
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "bbf5cac2-7391-43c9-b704-1e39532cf35f",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "search_1766384789024_1",
+        "name": "search",
+        "arguments": {
+          "objective": "Find funding amount and equity percentage for Betaworks Camp, BTV VC The Mint, and South Park Commons.",
+          "queries": [
+            "\"The Mint\" BTV investment terms equity percentage TechCrunch",
+            "\"South Park Commons\" Founder Fellowship $400,000 7% equity",
+            "\"Betaworks Camp\" investment amount $200k $250k equity",
+            "\"South Park Commons\" Founder Fellowship terms 2024 2025"
+          ]
+        },
+        "thoughtSignature": "EucFCuQFAXLI2nwt0wmvWKHeXImdJYRGQENxWWxF1MPKPtRhNllhzVg3pHL3OgQe4+6uHwb08MoVmxy0eLSvF/kBThLz+Ck7BRmlMO0tkzKsM0jDUnzlo9nOBMqhYx2+0JO78J5E+DwvCrB1EOSPqaRpHnmYU0qPy/O9V1UvnTiFKy/uP0wV0n471xC9BQtRUllYagpVHlUJaviYef/Y7awQmtocTnmtBDseM4yYgXiaoLubKp6AuCk5ijb7/aEf6PvbSU+z2DOWTn07+9iZVDecIWuMmE2Lf4D8KA4ZCb0CxkMo3NHTUHaj1snKPx/8cZK/Lxeu1nvIrer4UCGxyXxCyqB88dxYjWAfh+YPQvzhEuZ9qKn5y8QEizO1qlDe9I44Mm4/t2Y6vZaVUhY1/ZC9oKvkpnXfz21Ra7/9ZNIqTVtqYn8rcSdfcZIt6y11OQSHokT0N4AC7QqsXjOIpWeKkpo9ZBrL9rK4r6cj9aukeA+3bZK74X13YeUepX+Wa1ngdDQrAVs8hKqBpKP0TrPjsvgulb8rAZwIg3K4QE6vovNUkp2bz22ouAO/2aBOuAFKKTTmSnxWyfbhYhCVVNWp1qChA92NL/FRtf0+EFJppy1cIZuGIBakkJcHB+/DxdLIqmDjiTY5pY2zYq9EHSLDygAdn4t6EYkE/J0Bo4goBSmAWVoxOYuB5kp879Fz/pMvM/Hj+6xv6UJ2KuRMkRFizKBn0US8dUWxBlBn20mW0b7ZM2C0vtrkTDIWf7B8skcXSor15iUBdNgyYojM1ulgsCUCbMbtbVYdRZd0v+o6+uf3gARUful2LsKKY+ePcgsDeNBpP+qLcttiJDwVrh0feMF/sfbWBEawj3GjWTmUdVUBXNwxpAnuz59R1tP96Tu6S6ZmzBndMOhNgkr7k4XouCVLQb0vUUPPcMAVb37zqmctyarNbQJ1qWsO5HfNpitOD6o/a/9Wxylo4m++GM48yYudUvpDMNU="
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 12614,
+      "output": 261,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 12875,
+      "cost": {
+        "input": 0.025228,
+        "output": 0.0031320000000000002,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0.02836
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384789034,
+    "duration": 3272,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "search",
+                  "args": {
+                    "objective": "Find funding amount and equity percentage for Betaworks Camp, BTV VC The Mint, and South Park Commons.",
+                    "queries": [
+                      "\"The Mint\" BTV investment terms equity percentage TechCrunch",
+                      "\"South Park Commons\" Founder Fellowship $400,000 7% equity",
+                      "\"Betaworks Camp\" investment amount $200k $250k equity",
+                      "\"South Park Commons\" Founder Fellowship terms 2024 2025"
+                    ]
+                  }
+                },
+                "thoughtSignature": "EucFCuQFAXLI2nwt0wmvWKHeXImdJYRGQENxWWxF1MPKPtRhNllhzVg3pHL3OgQe4+6uHwb08MoVmxy0eLSvF/kBThLz+Ck7BRmlMO0tkzKsM0jDUnzlo9nOBMqhYx2+0JO78J5E+DwvCrB1EOSPqaRpHnmYU0qPy/O9V1UvnTiFKy/uP0wV0n471xC9BQtRUllYagpVHlUJaviYef/Y7awQmtocTnmtBDseM4yYgXiaoLubKp6AuCk5ijb7/aEf6PvbSU+z2DOWTn07+9iZVDecIWuMmE2Lf4D8KA4ZCb0CxkMo3NHTUHaj1snKPx/8cZK/Lxeu1nvIrer4UCGxyXxCyqB88dxYjWAfh+YPQvzhEuZ9qKn5y8QEizO1qlDe9I44Mm4/t2Y6vZaVUhY1/ZC9oKvkpnXfz21Ra7/9ZNIqTVtqYn8rcSdfcZIt6y11OQSHokT0N4AC7QqsXjOIpWeKkpo9ZBrL9rK4r6cj9aukeA+3bZK74X13YeUepX+Wa1ngdDQrAVs8hKqBpKP0TrPjsvgulb8rAZwIg3K4QE6vovNUkp2bz22ouAO/2aBOuAFKKTTmSnxWyfbhYhCVVNWp1qChA92NL/FRtf0+EFJppy1cIZuGIBakkJcHB+/DxdLIqmDjiTY5pY2zYq9EHSLDygAdn4t6EYkE/J0Bo4goBSmAWVoxOYuB5kp879Fz/pMvM/Hj+6xv6UJ2KuRMkRFizKBn0US8dUWxBlBn20mW0b7ZM2C0vtrkTDIWf7B8skcXSor15iUBdNgyYojM1ulgsCUCbMbtbVYdRZd0v+o6+uf3gARUful2LsKKY+ePcgsDeNBpP+qLcttiJDwVrh0feMF/sfbWBEawj3GjWTmUdVUBXNwxpAnuz59R1tP96Tu6S6ZmzBndMOhNgkr7k4XouCVLQb0vUUPPcMAVb37zqmctyarNbQJ1qWsO5HfNpitOD6o/a/9Wxylo4m++GM48yYudUvpDMNU="
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "lORIaa28Mp_4juMP9dfR0As",
+      "usageMetadata": {
+        "promptTokenCount": 12614,
+        "candidatesTokenCount": 118,
+        "totalTokenCount": 12875,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 12614
+          }
+        ],
+        "thoughtsTokenCount": 143
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:26:29 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=3201",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "a6680502-d25a-47ae-ae6a-2a4ee295fac8",
+    "toolCallId": "search_1766384789024_1",
+    "toolName": "search",
+    "content": [
+      {
+        "type": "text",
+        "content": "Search Results for: Find funding amount and equity percentage for Betaworks Camp, BTV VC The Mint, and South Park Commons.\nQueries: \"The Mint\" BTV investment terms equity percentage TechCrunch, \"South Park Commons\" Founder Fellowship $400,000 7% equity, \"Betaworks Camp\" investment amount $200k $250k equity, \"South Park Commons\" Founder Fellowship terms 2024 2025\n\nFound 5 results:\n\n================================================================================\n\n1. The Mint - Better Tomorrow Ventures\n   URL: https://btv.vc/the-mint\n   Excerpts:\n   - [](/) [About](/about) [Team](/team) [Companies](/companies) [The Mint](/the-mint) [Content](https://better-tomorrow-ventures.ghost.io/) [Jobs](https://jobs.btv.vc/jobs) # The Mint by BTV The most comprehensive and supportive pre-seed platform curated for fintech founders [Applications closed](https://kgz17nvn79o.typeform.com/to/ovbW2uQK?typeform-source=www.themint.vc) The most comprehensive and supportive pre-seed platform curated for fintech founders Fintech companies have unique needs and face...\n\n\n2. Understanding venture capital term sheets - Silicon Valley Bank\n   URL: https://www.svb.com/startup-insights/vc-relations/venture-capital-term-sheets/\n   Published: 2021-09-21\n   Excerpts:\n   - Banking Solutions](/international-banking/global-banking-solutions/) [Global Trade Finance](/international-banking/global-trade-finance/) [Foreign Exchange](/international-banking/foreign-exchange/) [PRIVATE FUND BANKING](#) [Private Equity & Private Credit](/global-fund-banking/pe-credit-fund-banking/) [Venture Capital](/global-fund-banking/vc-fund-banking/) [Insights](#) [REPORTS](#) [Future of Climate Tech](/trends-insights/reports/future-of-climate-tech/) [Future of Fintech](/trends-insights...\n\n\n3. Chapter 5. Right pitch will get you rich : r/startups - Reddit\n   URL: https://www.reddit.com/r/startups/comments/1aetump/chapter_5_right_pitch_will_get_you_rich/\n   Excerpts:\n   - 30 Jan 2024 · South Park Commons Founder Fellowship - \"Pre-idea\" program. $400k ... $500k uncapped plus 2.5% fee (they get 2.5% equity plus however much equity ...\n\n\n4. The 2025 Founder's Ultimate Guide to 33 Top Accelerators - Fe/male Switch\n   URL: https://www.femaleswitch.com/facilitator-incubator/tpost/ucpdmthod1-the-2025-founders-ultimate-guide-to-33-t\n   Published: 2025-09-19\n   Excerpts:\n   - **Admission** < 1 % acceptance; prototype or early traction required. **Tip** Emphasize momentum over polish; founders must be full-time on-site. ## 8\\. South Park Commons Fellowship [SPC](https://www.southparkcommons.com/) • San Francisco **Investment & Equity** $400 k for 7 % + $600 k guaranteed follow-on. **Model** Community + venture fund; no fixed demo day. **Apply** Rolling; small cohorts & 1:1 partner mentorship. **Good Fit** Web3, infra, hard-tech founders seeking exploratory phase. ## 9...\n\n\n5. Camp | Betaworks\n   URL: https://www.betaworks.com/camp\n   Excerpts:\n   - Each camp consists of 12 weeks “in-residence” at Betaworks to help early stage companies with product development, platform strategy, data science, branding, and fundraising. Entrepreneurs have access to the Betaworks team, its network, and to a carefully curated group of industry leaders to assist with general company-building needs. See previous Camp themes and companies below. [FAQ](#) # Why apply to Camp? “We started Hugging Face at Betaworks’ Camp, so couldn't recommend this enough!” [](htt...\n"
+      }
+    ],
+    "details": {
+      "search_id": "search_160b70c0931c4e4392df7f197f7b4e1d",
+      "result_count": 5
+    },
+    "isError": false,
+    "timestamp": 1766384796402
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "cbc7931f-3ee0-4877-a34f-de1ccdc3e9dd",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "search_1766384800076_1",
+        "name": "search",
+        "arguments": {
+          "queries": [
+            "\"The Mint\" BTV $500,000 investment equity percentage",
+            "\"Betaworks Camp\" investment amount $250k equity percentage",
+            "\"Betaworks\" Camp funding terms 2024 2025",
+            "\"The Mint\" by Better Tomorrow Ventures investment terms"
+          ],
+          "objective": "Find exact investment terms (amount and equity) for The Mint (BTV) and Betaworks Camp."
+        },
+        "thoughtSignature": "ErYGCrMGAXLI2nwtHpvukSscVXcOsT7iQrHASk0vRgG7f964HpoFCWhXGUKt16WVMy7bjGcLsZw+dDP9lTU1NQ+7+WxK9jCPxI3IvibKHsEN10Jhr8iw1ODRrYNYBqfeAjHLybrSnSH58XEdwyw9JrsP8Enrr7/PGKI/7sHyOdqXks4hG/N236SltCr6cirFSpOlZjdm4STEmYjIXwrwc8SNLh1jYGFco2sonXnQXlQ3uNeeigEsVc01495Ryfldu+ukI4ux7B2TQummX8ATMnZOIpPu5xHNnV5MieOc+684Y6H0nYcJB8UwUcaeWlerljUjgKm07fJlUfzvcNSue6UvKECIwB+x5Z0RqEb6oOzxxhdcUlbrYIYXaz0yqJBtKHsaLzAMwyV0PSAPARO86IJ1nNjQaD6vS/fiHsIaXk2mLAmLTeekYh2MYaMog+HZaygtw3cjkPMjAHeY3n9kpcHwpeRDyNhA3iNWjZeWaRQL1kCOH4YdYrD+GJbIhhPybcMvPiwUtuy2cB4jud1k8ti+BXS8zEfWDJdixOaKP2QnQfZftOUuHTny53kpDrhH+KpdQ0A5W9alRbzeP1dKOM31J6NI1XQqBUesmO83gJgASI9nejn0ehsnZ1TwgqvHfCefbIORQTTbUg1ntA6F6n2LxfUxZLoO76Ox0h/PVil3A9B/+mVaMMoH1fDrKwdDULk1tju2VzQTnojn6gCnZJn0kWH34kerGjg+rcD904LCRsIhWHCdERw8VX7McWDZhezMroNx7tZ2T6c6Ml6uh5j4RIqSLqh6QChbAS0vI+kR0VhTx70BuPJIWgqXvYPrZ0LX3SmPQ4QmeC0hV1NEE83Tigcp491hUN0uM/bEg20e3KxvXa6dmohdb5dSRx9akFpV/nboj3VI9WeBR92c5mHJgh9s6dGYcm3NlIwxLATCjS8ikTTeqSWgwVQs8wAUJvDp3iQWC+aXeJXAvDeg6uwL1bk7cl7tzrAtgruskmMMzowlHuqw2BuS1iFhX01sX/Zvl/knvyzOEzcP3D6FH4TIh/vFzLeYr+azQAGsXIctlbsunCjNK3VRb2baYQJYqWF3I1njYaH8"
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 13863,
+      "output": 316,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 14179,
+      "cost": {
+        "input": 0.027725999999999997,
+        "output": 0.0037920000000000002,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0.031518
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384800077,
+    "duration": 3675,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "search",
+                  "args": {
+                    "queries": [
+                      "\"The Mint\" BTV $500,000 investment equity percentage",
+                      "\"Betaworks Camp\" investment amount $250k equity percentage",
+                      "\"Betaworks\" Camp funding terms 2024 2025",
+                      "\"The Mint\" by Better Tomorrow Ventures investment terms"
+                    ],
+                    "objective": "Find exact investment terms (amount and equity) for The Mint (BTV) and Betaworks Camp."
+                  }
+                },
+                "thoughtSignature": "ErYGCrMGAXLI2nwtHpvukSscVXcOsT7iQrHASk0vRgG7f964HpoFCWhXGUKt16WVMy7bjGcLsZw+dDP9lTU1NQ+7+WxK9jCPxI3IvibKHsEN10Jhr8iw1ODRrYNYBqfeAjHLybrSnSH58XEdwyw9JrsP8Enrr7/PGKI/7sHyOdqXks4hG/N236SltCr6cirFSpOlZjdm4STEmYjIXwrwc8SNLh1jYGFco2sonXnQXlQ3uNeeigEsVc01495Ryfldu+ukI4ux7B2TQummX8ATMnZOIpPu5xHNnV5MieOc+684Y6H0nYcJB8UwUcaeWlerljUjgKm07fJlUfzvcNSue6UvKECIwB+x5Z0RqEb6oOzxxhdcUlbrYIYXaz0yqJBtKHsaLzAMwyV0PSAPARO86IJ1nNjQaD6vS/fiHsIaXk2mLAmLTeekYh2MYaMog+HZaygtw3cjkPMjAHeY3n9kpcHwpeRDyNhA3iNWjZeWaRQL1kCOH4YdYrD+GJbIhhPybcMvPiwUtuy2cB4jud1k8ti+BXS8zEfWDJdixOaKP2QnQfZftOUuHTny53kpDrhH+KpdQ0A5W9alRbzeP1dKOM31J6NI1XQqBUesmO83gJgASI9nejn0ehsnZ1TwgqvHfCefbIORQTTbUg1ntA6F6n2LxfUxZLoO76Ox0h/PVil3A9B/+mVaMMoH1fDrKwdDULk1tju2VzQTnojn6gCnZJn0kWH34kerGjg+rcD904LCRsIhWHCdERw8VX7McWDZhezMroNx7tZ2T6c6Ml6uh5j4RIqSLqh6QChbAS0vI+kR0VhTx70BuPJIWgqXvYPrZ0LX3SmPQ4QmeC0hV1NEE83Tigcp491hUN0uM/bEg20e3KxvXa6dmohdb5dSRx9akFpV/nboj3VI9WeBR92c5mHJgh9s6dGYcm3NlIwxLATCjS8ikTTeqSWgwVQs8wAUJvDp3iQWC+aXeJXAvDeg6uwL1bk7cl7tzrAtgruskmMMzowlHuqw2BuS1iFhX01sX/Zvl/knvyzOEzcP3D6FH4TIh/vFzLeYr+azQAGsXIctlbsunCjNK3VRb2baYQJYqWF3I1njYaH8"
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "n-RIaeeLLLPFjuMPvIe2wA4",
+      "usageMetadata": {
+        "promptTokenCount": 13863,
+        "candidatesTokenCount": 109,
+        "totalTokenCount": 14179,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 13863
+          }
+        ],
+        "thoughtsTokenCount": 207
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:26:39 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=3512",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "834b57f9-6c4b-4726-9ea2-9dced98b2162",
+    "toolCallId": "search_1766384800076_1",
+    "toolName": "search",
+    "content": [
+      {
+        "type": "text",
+        "content": "Search Results for: Find exact investment terms (amount and equity) for The Mint (BTV) and Betaworks Camp.\nQueries: \"The Mint\" BTV $500,000 investment equity percentage, \"Betaworks Camp\" investment amount $250k equity percentage, \"Betaworks\" Camp funding terms 2024 2025, \"The Mint\" by Better Tomorrow Ventures investment terms\n\nFound 5 results:\n\n================================================================================\n\n1. The Mint | Investor Profile, Funding Criteria & Team - OpenVC\n   URL: https://www.openvc.app/fund/The%20Mint\n   Excerpts:\n   - [](./) * [](./) [](./) * [Sign up]() * [Log in]() * Fundraising * [Search investors](search) * [Pitch decks](decks) * <CRM> * Resources * [Fundability](fundability) * [Perks](perks) * [Learn to raise]() + Learn to raise + [Masterclass](masterclass) + [Webinars](webinars) + [Ebook](ebook) + [Podcast](podcast) + [Blog](blog) * [Founder tools]() + Founder tools + [Deck template](pitchDeckTemplate) + [OpenMap](./map) + [OpenDeck](opendeck) + [Tech multiples](./multiples) * [Startup Experts]() + Star...\n\n\n2. Camp | Betaworks\n   URL: https://www.betaworks.com/camp\n   Excerpts:\n   - [Camp](/camp) [Companies](/companies) [Team](/team) [Events](/events) [Writing](/writing) Events [Calendar](#) [Archive](#) [Apply to AI Camp: Agent Systems](https://www.betaworks.com/writing/camp-agent-systems-spring-2026) [](/) # Camp ## A thematic investment and in-residence program for startups building in frontier technologies. Camp takes place twice annually. The Spring session runs March through May (applications open Dec - Jan). The Fall session runs August through November (applications...\n\n\n3. Announcing Betaworks Fund 3.0\n   URL: https://www.betaworks.com/stories/announcing-betaworks-fund-3-0\n   Excerpts:\n   - Jul 22, 2025 — Today, we're thrilled to announce that we've closed $66 million for Betaworks Fund 3.0 — a pre-seed/seed stage venture fund dedicated to ...\n\n\n4. The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs | TechCrunch\n   URL: https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/\n   Published: 2023-05-10\n   Excerpts:\n   - [](https://www.reddit.com/submit?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&title=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs) [](mailto:?subject=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs&body=Article%3A+https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-want...\n\n\n5. My experience in The Mint - Fintech Focused Startup Accelerator in SF\n   URL: https://www.reddit.com/r/StartupAccelerators/comments/1dzcb3p/my_experience_in_the_mint_fintech_focused_startup/\n   Excerpts:\n   - [Skip to main content]() Open menu Open navigation [](/) Go to Reddit Home r/StartupAccelerators A chip A close button [Log In](https://www.reddit.com/login/) Log in to Reddit Expand user menu Open settings menu [Go to StartupAccelerators](/r/StartupAccelerators/) [r/StartupAccelerators](/r/StartupAccelerators/) [r/StartupAccelerators](/r/StartupAccelerators/) Community for everyone who is interested in joining a startup accelerator program, has graduated from one, or has insight into the experi...\n"
+      }
+    ],
+    "details": {
+      "search_id": "search_ff0fb53e69af43f4972ade0f1d135f0e",
+      "result_count": 5
+    },
+    "isError": false,
+    "timestamp": 1766384806908
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "35c0e890-f9e8-488a-aabb-207f1f7469f5",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "extract_1766384810104_1",
+        "name": "extract",
+        "arguments": {
+          "objective": "Find funding amount and equity percentage for The Mint.",
+          "url": "https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/"
+        },
+        "thoughtSignature": "EuUECuIEAXLI2nzs+dQSNh8UHSmKmzosCesU4gTX0MQs9uMwYGZYKKBlJgjmDGvtAuRPd8aHRgs4OnEdOBO8+xdkjegkwM+dMYbbzaliS3aeTrMvPGMF40QbxV20ziDD2baqzKqnCjCqntBl7i/Epdvc10jCh+sldKmDzYdDjSAoK686XM8WZ+ErMARmSqQ2TzDwk8ff9G6JeekJtn0bWVxSedWshI8Dn0JXRKfsqWsL6igYvjB+3XWKozx+A8g14p18ONlQRf5XBzC+QJbdXNqodNtpsnMuC5+Ip1ZzAtNjKYwFhzIG1t+YUzBWYcglW3waR0ppIYuThIp2aymskA4P8fOuxnnGQxLK8LANUSzxO1VFnMos6PRqgh1bsVZ+advHylDp/mhzj4yjGzYKkHQA2ez0McAegiSCt+NB6lTCKEBk5QZ9Nr2ouwAbWPopPz/x8kPfJxawGxVBZ9bEB0cqG04a4nT2YiV6kuRjVPdr1h4HY/pgtfNYhiptGFL4tvkXrPD/jNQoRB+pnjZEYM9nm0BD1r2Ct5b/+wL/mqeSHMbQR/hhZggtK2ns0dbU3YT+vehSBM2EQ62Smc/qF/FCiZ9A8cFTP808OqVrVR4La+vRw0Pv8Pvl2J9UBxF3Xrpa4lKOs77gu5b9cc8leNaLXqtE6S+UGZQLTjXtfkPRHhE0Z5hjH4ZdsVBSNqq/uunBu9UYBBpIkzX5d0GANqye2sntU1U+UQXR8ylHwElfj9JZM2ZY+0NeA5qCl/Rlc8byV5LiMZopBPLQDhoXVV2mh5CNRllMWLD7LuiMdpcKFv11BRZhAw=="
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 15252,
+      "output": 216,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 15468,
+      "cost": {
+        "input": 0.030504,
+        "output": 0.002592,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0.033096
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384810105,
+    "duration": 3197,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "extract",
+                  "args": {
+                    "objective": "Find funding amount and equity percentage for The Mint.",
+                    "url": "https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/"
+                  }
+                },
+                "thoughtSignature": "EuUECuIEAXLI2nzs+dQSNh8UHSmKmzosCesU4gTX0MQs9uMwYGZYKKBlJgjmDGvtAuRPd8aHRgs4OnEdOBO8+xdkjegkwM+dMYbbzaliS3aeTrMvPGMF40QbxV20ziDD2baqzKqnCjCqntBl7i/Epdvc10jCh+sldKmDzYdDjSAoK686XM8WZ+ErMARmSqQ2TzDwk8ff9G6JeekJtn0bWVxSedWshI8Dn0JXRKfsqWsL6igYvjB+3XWKozx+A8g14p18ONlQRf5XBzC+QJbdXNqodNtpsnMuC5+Ip1ZzAtNjKYwFhzIG1t+YUzBWYcglW3waR0ppIYuThIp2aymskA4P8fOuxnnGQxLK8LANUSzxO1VFnMos6PRqgh1bsVZ+advHylDp/mhzj4yjGzYKkHQA2ez0McAegiSCt+NB6lTCKEBk5QZ9Nr2ouwAbWPopPz/x8kPfJxawGxVBZ9bEB0cqG04a4nT2YiV6kuRjVPdr1h4HY/pgtfNYhiptGFL4tvkXrPD/jNQoRB+pnjZEYM9nm0BD1r2Ct5b/+wL/mqeSHMbQR/hhZggtK2ns0dbU3YT+vehSBM2EQ62Smc/qF/FCiZ9A8cFTP808OqVrVR4La+vRw0Pv8Pvl2J9UBxF3Xrpa4lKOs77gu5b9cc8leNaLXqtE6S+UGZQLTjXtfkPRHhE0Z5hjH4ZdsVBSNqq/uunBu9UYBBpIkzX5d0GANqye2sntU1U+UQXR8ylHwElfj9JZM2ZY+0NeA5qCl/Rlc8byV5LiMZopBPLQDhoXVV2mh5CNRllMWLD7LuiMdpcKFv11BRZhAw=="
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "qeRIaeLfMaPb4-EPwpTmoAQ",
+      "usageMetadata": {
+        "promptTokenCount": 15252,
+        "candidatesTokenCount": 77,
+        "totalTokenCount": 15468,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15252
+          }
+        ],
+        "thoughtsTokenCount": 139
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:26:50 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=3066",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "20f84222-7c5c-48b6-b45f-f44d6e6356eb",
+    "toolCallId": "extract_1766384810104_1",
+    "toolName": "extract",
+    "content": [
+      {
+        "type": "text",
+        "content": "Extracted Information for: Find funding amount and equity percentage for The Mint.\nURL: https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/\n\n================================================================================\n\nTitle: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs | TechCrunch\nURL: https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/\n\nRelevant Excerpts:\n\n**Image Credits:** Getty Images under a Sezeryadigar license. [Startups](https://techcrunch.com/category/startups/) [](https://www.facebook.com/sharer.php?u=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F) [](https://twitter.com/intent/tweet?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&text=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs&via=techcrunch) [](https://www.linkedin.com/shareArticle?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&title=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs&summary=Better+Tomorrow+Ventures%E2%80%99+Sheel+Mohnot+landed+some+of+his+biggest+wins+before+he+ever+started+a+venture+firm.+The+investor+previously+worked+as+a+partner+at+500%2C+previously+known+as+500+Startups%2C+where+he+raised+and+ran+a+dedicated+fintech+fund+as+well+as+helped+build+an+accelerator.+There+he+met+his+eventual+founding+partner+%5B%E2%80%A6%5D&mini=1&source=TechCrunch) [](https://www.reddit.com/submit?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&title=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs) [](mailto:?subject=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs&body=Article%3A+https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F) [](https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/) Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs Content: [Natasha Mascarenhas](https://techcrunch.com/author/natasha-mascarenhas/) Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs Content: [](https://www.facebook.com/sharer.php?u=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F) [](https://twitter.com/intent/tweet?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&text=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs&via=techcrunch) [](https://www.linkedin.com/shareArticle?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&title=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs&summary=Better+Tomorrow+Ventures%E2%80%99+Sheel+Mohnot+landed+some+of+his+biggest+wins+before+he+ever+started+a+venture+firm.+The+investor+previously+worked+as+a+partner+at+500%2C+previously+known+as+500+Startups%2C+where+he+raised+and+ran+a+dedicated+fintech+fund+as+well+as+helped+build+an+accelerator.+There+he+met+his+eventual+founding+partner+%5B%E2%80%A6%5D&mini=1&source=TechCrunch) Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs Content: [](https://www.reddit.com/submit?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&title=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs) [](mailto:?subject=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs&body=Article%3A+https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F) [](https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/) Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs Content: [Better Tomorrow Ventures’](https://www.btv.vc/) [Sheel Mohnot](https://twitter.com/pitdesi) landed some of his biggest wins before he ever started a venture firm. The investor previously worked as a partner at [500](https://500.co/) , previously known as 500 Startups, where he raised and ran a dedicated fintech fund as well as helped build an accelerator. There he met his eventual founding partner at BTV – [Jake Gibson](https://www.btv.vc/) – and backed a cadre of fintech startups, including Chipper and Albert, each at $2.5 million valuations. Today, Chipper is [valued at over $1 billion](https://techcrunch.com/2022/12/06/ftx-marked-down-chipper-cashs-valuation-from-2b-to-1-25b/) , and [Albert has raised over $175 million.](https://www.crunchbase.com/organization/albert-3) And while the firm has certainly cashed in on that early track record – [raising a $225 million second fund last year](https://techcrunch.com/2022/02/15/better-tomorrow-ventures-closes-on-225m-fintech-focused-fund-which-is-triple-the-size-of-its-last-fund/) – the duo behind it thinks it’s time to launch a nod toward their roots. Better Tomorrow Ventures tells TechCrunch that it is launching a fintech accelerator, this time under its own roof, called [The Mint.](https://www.themint.vc/) Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs Content: The Mint will be a three-month accelerator, based out of San Francisco, that cuts $500,000 checks in exchange for 10% equity in between six to ten startups. The initial cohort, which starts this upcoming August, already accepted one company, and sent a second acceptance letter out today. “It’s something we’ve done successfully before. Our returns were crazy, crazy good from that initial fintech cohort, so I think if we can get anywhere near that again, our LPs will be happy,” Mohnot said. The accelerator offers some standard support: a speaker series that includes founders from Mercury, Flexport and NerdWallet, office hours with experts, wellness resources, hiring support and desk space. Unlike some Zoom accelerator programs, The Mint is long San Francisco: two team members are moving to the city to help with logistics, and Better Tomorrow is leasing a new office space, outside of its Mission HQ, dedicated to the accelerator. Better Tomorrow seems to be stepping in where it believes Y Combinator is lacking. “YC is built for scale. The advice is a lot like one size fits all,” Mohnot said. “We felt like with fintech, there are so many things that are unique about building that it makes sense to have something distinct.” Techcrunch event Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs > Join the Disrupt 2026 Waitlist > Join the Disrupt 2026 Wait Content: San Francisco | October 13-15, 2026 [**W** AITLIST **NOW**](https://techcrunch.com/events/tc-disrupt-2026/) Among some seed stage investors, YC’s new standard deal [has been met with varying degrees of weariness.](https://twitter.com/dunkhippo33/status/1480688542212755459) Last year, [YC announced that it would still offer its original deal](https://techcrunch.com/2022/01/10/y-combinator-will-now-invest-500000-in-accelerator-companies/) – a $125,000 check in exchange for 7/% equity – as well as a $375,000 check at an uncapped SAFE note with a most favored nation (MFN) clause. The latter has stirred up some controversy: an MFN means that YC will get to invest $375,000 at the same terms as the investor who has the best terms in the next round. Now, YC companies are less incentivized to raise a small amount of money from angels, and more incentivized to optimize for higher valuations after Demo Day, so dilution is limited when accepting that $375,000 check. Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs > Join the Disrupt 2026 Waitlist > Join the Disrupt 2026 Wait Content: “We think the MFN clause [that YC currently offers] can do companies a disservice. Because they end up almost having to raise at a very high valuation…you’re seeing that bite them in the ass a little bit. Because as if they don’t hit the metrics, the next round is even more challenging,” Mohnot said. While BTV’s 10% ownership is higher than other VC-spun out programs – [take NextView’s $200,000 in exchange for 8% stake for an example](https://techcrunch.com/2020/04/20/nextview-ventures-is-launching-a-remote-accelerator-for-startups/) – it’s less than what BTV usually targets for first checks, which is between 15% to 20% ownership. YC has a new deal that is $125k for 7% and an additional $375k on an uncapped note w/ MFN. Good move for them but makes YC incompatible with seed-stage VC's that lead rounds… hard for us to get our ownership with that add'l $375k from YC. <https://t.co/0oDhIKbEGB> — Sheel Mohnot (@pitdesi) [January 10, 2022](https://twitter.com/pitdesi/status/1480604335755063299?ref_src=twsrc%5Etfw) Mohnot says that BTV will continue investing outside of the accelerator, but the big focus for the rest of the year in terms of net new investments will be within the program. Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs > Join the Disrupt 2026 Waitlist > Join the Disrupt 2026 Wait Content: “I think there’s a TechCrunch article right now about fintech” pessimism, Mohnot said. “We are still really excited about the future of fintech and we liked fintech before it was cool.. At a fundamental level, financial services are 20% of GDP, and they are inherently digital, so the numbers make sense.” [We’re close to peak pessimism around fintech](https://techcrunch.com/2023/05/09/were-close-to-peak-pessimism-around-fintech/) Topics [accelerator](https://techcrunch.com/tag/accelerator/) , [Better Tomorrow Ventures](https://techcrunch.com/tag/better-tomorrow-ventures/) , [Fintech](https://techcrunch.com/category/fintech/) , [Fintech](https://techcrunch.com/tag/fintech/) , [Startups](https://techcrunch.com/category/startups/) Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs > Join the Disrupt 2026 Waitlist > Join the Disrupt 2026 Wait Content: [](https://www.facebook.com/sharer.php?u=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F) [](https://twitter.com/intent/tweet?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&text=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs&via=techcrunch) [](https://www.linkedin.com/shareArticle?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&title=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs&summary=Better+Tomorrow+Ventures%E2%80%99+Sheel+Mohnot+landed+some+of+his+biggest+wins+before+he+ever+started+a+venture+firm.+The+investor+previously+worked+as+a+partner+at+500%2C+previously+known+as+500+Startups%2C+where+he+raised+and+ran+a+dedicated+fintech+fund+as+well+as+helped+build+an+accelerator.+There+he+met+his+eventual+founding+partner+%5B%E2%80%A6%5D&mini=1&source=TechCrunch) Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs > Join the Disrupt 2026 Waitlist > Join the Disrupt 2026 Wait Content: [](https://www.reddit.com/submit?url=https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F&title=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs) [](mailto:?subject=The+Mint%2C+started+by+Better+Tomorrow+Ventures%2C+wants+to+be+the+accelerator+fintech+needs&body=Article%3A+https%3A%2F%2Ftechcrunch.com%2F2023%2F05%2F10%2Fthe-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs%2F) [](https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/) Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs > Join the Disrupt 2026 Waitlist > Join the Disrupt 2026 Wait Content: Natasha Mascarenhas Senior Reporter [](https://twitter.com/nmasc_) [](https://techcrunch.com/) Natasha Mascarenhas was a senior reporter at TechCrunch covering early stage startups and venture capital trends. [View Bio](https://techcrunch.com/author/natasha-mascarenhas/) Dates TBD Locations TBA Plan ahead for the 2026 StrictlyVC events. Hear straight-from-the-source candid insights in on-stage fireside sessions and meet the builders and backers shaping the industry. Join the waitlist to get first access to the lowest-priced tickets and important updates. [Waitlist Now](https://techcrunch.com/events/strictlyvc-2026-events/) ... Section Title: The Mint, started by Better Tomorrow Ventures, wants to be the accelerator fintech needs > Most Popular > Join the Disrupt 2026 Waitlist > Add yoursel Content: San Francisco | October 13-15, 2026 [**W** AITLIST **NOW**](https://techcrunch.com/events/tc-disrupt-2026/) [Google’s vibe-coding tool Opal comes to Gemini](https://techcrunch.com/2025/12/17/googles-vibe-coding-tool-opal-comes-to-gemini/) [Sarah Perez](https://techcrunch.com/author/sarah-perez/) [Google tests an email-based productivity assistant](https://techcrunch.com/2025/12/16/google-tests-an-email-based-productivity-assistant/) [Ivan Mehta](https://techcrunch.com/author/ivan-mehta/) [Hacking group says it’s extorting Pornhub after stealing users’ viewing data](https://techcrunch.com/2025/12/16/hacking-group-says-its-extorting-pornhub-after-stealing-users-viewing-data/) [Lorenzo Franceschi-Bicchierai](https://techcrunch.com/author/lorenzo-franceschi-bicchierai/) Loading the next article Error loading the next article"
+      }
+    ],
+    "details": {
+      "extract_id": "extract_f00cb825cb46472a926a860e55163f32",
+      "result_count": 1,
+      "error_count": 0
+    },
+    "isError": false,
+    "timestamp": 1766384822711
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "4ace0898-9277-4f8a-826a-1f1ed50cd1ef",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "search_1766384826225_1",
+        "name": "search",
+        "arguments": {
+          "queries": [
+            "\"Betaworks Camp\" investment amount equity percentage 2024 2025",
+            "\"Betaworks\" $250k investment equity percentage camp",
+            "\"Betaworks\" investment terms thematic camp"
+          ],
+          "objective": "Find exact investment amount and equity for Betaworks Camp."
+        },
+        "thoughtSignature": "EugECuUEAXLI2nw1aTyJ3Ypo9atecfwgVILDDlv+TpLNWCI7HEX5K0OdiXkYiGKoxukQJS/631rKg2Lvp8zZjGfn1Qz9at7j1EwLJdItgmX5hvzANkczLsg/qjTiQY49V8p30vlVSQDY1V65g/yNlOo+JBpW7515x6MsZL7I/N3J4SY/P3fSIKp2+jFWR5R4dxg6rYz4Jaeki4gmbi2OmpnzkG+Jui2oP2DmB/rG+hSi+qrOTAyJnUgXSwEEvCUnc0OYwzv+8GAGEORoD3YOf+EX1eXMeVcP04dRQQYSo7gvs9KDld5AXZPv4lo1sOK4O6Vc/U3LNOTCLWVaKhOzO9n91uB+QY1tzY4ZnY0ISvyf42Ewc0TZW4YOgpz4mLWczGu9zvScTm7ahX9gApQLEnCCoZv19Xz7Z2Low/g7Gv/gd7iFXIxjHAtk9UxfmaBJ0aH5tzRu3Xwq2uJt1O/IuN+Wv/F6Gis/MxhJ2J4LUD7FlojObDu+dtU6+En4hK+l8F8lqjl0vEjuEg5WPID+HbNDRGSA1Ro+3ipoNxBSz8ro2KdOk0Y7GbqmzJWH7zBtz5cuTIjSeECbCaYsik6a7pO7CooaiaTkU+qTOoXs6S+S/eiTxcVW9AbK8g8Cp/OgAhg/QvY2MzNyV/bsI1vrm4ZcGQX89j0AOWIwZaHXrWWbN945yoldIZlCqeVlN1RXUBNoK9s5yFoYYS1Si8Ln2isO1y1vhum54Irh7C4crv8Tl+AoydtJzxk3/qvu+vF4ANy6Yw8WgfMOp36TUEFcJ7KgR1Vr99AEFwwITBcTUOK5hRvxmQu8ji2o9g=="
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 20411,
+      "output": 227,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "totalTokens": 20638,
+      "cost": {
+        "input": 0.040822,
+        "output": 0.002724,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0.043545999999999994
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384826228,
+    "duration": 3517,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "search",
+                  "args": {
+                    "queries": [
+                      "\"Betaworks Camp\" investment amount equity percentage 2024 2025",
+                      "\"Betaworks\" $250k investment equity percentage camp",
+                      "\"Betaworks\" investment terms thematic camp"
+                    ],
+                    "objective": "Find exact investment amount and equity for Betaworks Camp."
+                  }
+                },
+                "thoughtSignature": "EugECuUEAXLI2nw1aTyJ3Ypo9atecfwgVILDDlv+TpLNWCI7HEX5K0OdiXkYiGKoxukQJS/631rKg2Lvp8zZjGfn1Qz9at7j1EwLJdItgmX5hvzANkczLsg/qjTiQY49V8p30vlVSQDY1V65g/yNlOo+JBpW7515x6MsZL7I/N3J4SY/P3fSIKp2+jFWR5R4dxg6rYz4Jaeki4gmbi2OmpnzkG+Jui2oP2DmB/rG+hSi+qrOTAyJnUgXSwEEvCUnc0OYwzv+8GAGEORoD3YOf+EX1eXMeVcP04dRQQYSo7gvs9KDld5AXZPv4lo1sOK4O6Vc/U3LNOTCLWVaKhOzO9n91uB+QY1tzY4ZnY0ISvyf42Ewc0TZW4YOgpz4mLWczGu9zvScTm7ahX9gApQLEnCCoZv19Xz7Z2Low/g7Gv/gd7iFXIxjHAtk9UxfmaBJ0aH5tzRu3Xwq2uJt1O/IuN+Wv/F6Gis/MxhJ2J4LUD7FlojObDu+dtU6+En4hK+l8F8lqjl0vEjuEg5WPID+HbNDRGSA1Ro+3ipoNxBSz8ro2KdOk0Y7GbqmzJWH7zBtz5cuTIjSeECbCaYsik6a7pO7CooaiaTkU+qTOoXs6S+S/eiTxcVW9AbK8g8Cp/OgAhg/QvY2MzNyV/bsI1vrm4ZcGQX89j0AOWIwZaHXrWWbN945yoldIZlCqeVlN1RXUBNoK9s5yFoYYS1Si8Ln2isO1y1vhum54Irh7C4crv8Tl+AoydtJzxk3/qvu+vF4ANy6Yw8WgfMOp36TUEFcJ7KgR1Vr99AEFwwITBcTUOK5hRvxmQu8ji2o9g=="
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "ueRIadOqPP6_juMPo9mo2As",
+      "usageMetadata": {
+        "promptTokenCount": 20411,
+        "candidatesTokenCount": 79,
+        "totalTokenCount": 20638,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 20411
+          }
+        ],
+        "thoughtsTokenCount": 148
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:27:06 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=3447",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "e8c252c4-85a4-4855-a506-b887e3195a1f",
+    "toolCallId": "search_1766384826225_1",
+    "toolName": "search",
+    "content": [
+      {
+        "type": "text",
+        "content": "Search Results for: Find exact investment amount and equity for Betaworks Camp.\nQueries: \"Betaworks Camp\" investment amount equity percentage 2024 2025, \"Betaworks\" $250k investment equity percentage camp, \"Betaworks\" investment terms thematic camp\n\nFound 5 results:\n\n================================================================================\n\n1. Camp | Betaworks\n   URL: https://www.betaworks.com/camp\n   Excerpts:\n   - [Camp](/camp) [Companies](/companies) [Team](/team) [Events](/events) [Writing](/writing) Events [Calendar](#) [Archive](#) [Apply to AI Camp: Agent Systems](https://www.betaworks.com/writing/camp-agent-systems-spring-2026) [](/) # Camp ## A thematic investment and in-residence program for startups building in frontier technologies. Camp takes place twice annually. The Spring session runs March through May (applications open Dec - Jan). The Fall session runs August through November (applications...\n\n\n2. Announcing Betaworks Fund 3.0\n   URL: https://www.betaworks.com/stories/announcing-betaworks-fund-3-0\n   Excerpts:\n   - Jul 22, 2025 · Today, we're thrilled to announce that we've closed $66 million for Betaworks Fund 3.0 — a pre-seed/seed stage venture fund dedicated to ... Missing: rounds | Show results with: rounds\n\n\n3. Betaworks AI Camp Dec20D - XRaise\n   URL: https://xraise.ai/program_draft/1732905175175x428053110498466370\n   Excerpts:\n   - Betaworks AI Camp Dec20D Agnostic AI/ML See Program Info **Program Type:** Hybrid (In-person & Online) **Location:** New York City, NY **Investment:** Up to $500,000 **Equity Taken:** 5% common stock **Program Fee:** Not mentioned **Program Duration:** 13 weeks **Stage:** Early Stage, Pre-seed, Seed **Industry of Focus:** Betaworks’ AI Camp focuses on AI-driven solutions for productivity, workflows, vertical industries, and innovative human-AI interaction systems. **Key Highlights:** **Program O...\n\n\n4. Apply to Betaworks’ AI Camp: App Layer for $500k in funding | by Jordan Crook | Betaworks\n   URL: https://render.betaworks.com/apply-to-betaworks-ai-camp-app-layer-for-500k-in-funding-005f71076f3e\n   Published: 2024-11-25\n   Excerpts:\n   - in](https://medium.com/m/signin?operation=login&redirect=https%3A%2F%2Frender.betaworks.com%2Fapply-to-betaworks-ai-camp-app-layer-for-500k-in-funding-005f71076f3e&source=post_page---top_nav_layout_nav-----------------------global_nav------------------) [## Betaworks](https://render.betaworks.com/?source=post_page---publication_nav-1baed5266331-005f71076f3e---------------------------------------) · Follow publication [](https://render.betaworks.com/?source=post_page---post_publication_sidebar-1b...\n\n\n5. Announcing Betaworks Fund 3.0. Today, we’re thrilled to announce that… | by Jordan Crook | Betaworks\n   URL: https://render.betaworks.com/announcing-betaworks-fund-3-0-9f47e7c20e42\n   Published: 2025-07-22\n   Excerpts:\n   - in](https://medium.com/m/signin?operation=login&redirect=https%3A%2F%2Frender.betaworks.com%2Fannouncing-betaworks-fund-3-0-9f47e7c20e42&source=post_page---top_nav_layout_nav-----------------------global_nav------------------) [## Betaworks](https://render.betaworks.com/?source=post_page---publication_nav-1baed5266331-9f47e7c20e42---------------------------------------) · Follow publication [](https://render.betaworks.com/?source=post_page---post_publication_sidebar-1baed5266331-9f47e7c20e42----...\n"
+      }
+    ],
+    "details": {
+      "search_id": "search_d748c9b3956a49028e79d23565ad87fa",
+      "result_count": 5
+    },
+    "isError": false,
+    "timestamp": 1766384830420
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "9926b226-35c2-4685-be9a-3a90430b3bae",
+    "content": [
+      {
+        "type": "toolCall",
+        "toolCallId": "write_1766384837538_1",
+        "name": "write",
+        "arguments": {
+          "path": "accelerator_investment_terms.md",
+          "content": "# Startup Accelerator Investment Terms\n\nThis document provides a detailed breakdown of the investment terms for the requested startup accelerators.\n\n| Accelerator | Funding Amount | Equity / Terms | Additional Notes |\n| :--- | :--- | :--- | :--- |\n| **Y Combinator** | **$500,000** | **7%** (for $125k) + Uncapped SAFE with MFN (for $375k) | The \"Standard Deal\" includes a fixed $125k for 7% and an additional $375k on an uncapped SAFE with a \"Most Favored Nation\" clause. |\n| **The Mint (by BTV)** | **$500,000** | **10%** Equity | Focuses exclusively on fintech founders; 3-month program in San Francisco. |\n| **South Park Commons (Founder Fellowship)** | **$400,000** | **7%** Equity | Designed for founders in the \"-1 to 0\" stage. Some terms include a guaranteed $600k follow-on in the next round. |\n| **Beta Works AI Camp** | **Up to $500,000** | **5% - 8%** (Commonly 5% common stock) | A thematic 12-week in-residence program in NYC. Recent cohorts (AI Camp) mention $500k total funding. |\n\n### Key Details:\n\n- **Y Combinator**: The MFN (Most Favored Nation) clause on the $375k portion means YC gets the terms of the best SAFE/Equity round you raise subsequently.\n- **The Mint (BTV)**: Positioned as a specialized alternative to YC for fintech, offering more hands-on help with the unique challenges of the sector.\n- **South Park Commons**: Unique because it often accepts founders before they even have a clear product or idea, focusing on \"Founder-Market Fit.\"\n- **Betaworks Camp**: Highly thematic (e.g., AI Agents, Interfaces). They focus on a small cohort (8-12 companies) and provide deep product development support.\n\n---\n*Sources:*\n- [Y Combinator Standard Deal](https://www.ycombinator.com/deal)\n- [TechCrunch: The Mint by BTV](https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/)\n- [South Park Commons Founder Fellowship](https://www.southparkcommons.com/founder-fellowship)\n- [Betaworks AI Camp (via Medium/Render)](https://render.betaworks.com/apply-to-betaworks-ai-camp-app-layer-for-500k-in-funding-005f71076f3e)\n- [XRaise Accelerator Database](https://xraise.ai/blog/how-to-get-accepted-to-the-mint-accelerator/)\n"
+        },
+        "thoughtSignature": "EvwGCvkGAXLI2ny34tgujlXAbCUkrCwkveMFrxBwCrGke9/aRLWo75qCPYGy1iQBGRAxc+K8rMsrWPGMxO1DTp4YzwuYMj4L1xtO8VhAXDTbnh5f+SbH/FOCngQeslJ8TUpAoDEXz3/08Q9Msz7fOBsYsnoRU3Pi+bVW6ExKLaANi7EvDsJRnsq12aXFaKJmaFiWtTUhPIlFPqtkoP9mjYpvep6amFlm4AOgkIvKepI9KVOhl5H6LBJFHgmC3G6XfJH7uw54E6BcJZxwaqDRL1OJ3AmxEydFMaA6pDexz3piFzOsNsxzYxg54m99RgtMv1N3pwiGSrzOKaqY4CgIGSpG9wNeEXhb5gkT+hbT6OjHB5D37US1nRfvoJOxQeoe5oik40VuA9gKJEKFn7XaEdjaPp/BdMW+E4XW2D73YmPs2HnCeAWQ78YCUpJxNTreQCvMrjWx6YvLYIHQOM/risLHhwvA5ltYKVcrcc2vG93HsqGECOmUPvRQW67pFDVEMWFHJIps+KsPNCj4pY6VSBtePLCfUKM4l500uyPBmastk5ZfqV2NT50E9jqhCLYxW5kLmz1LW0+naufdtSKqsEhsUWzB1cUjDxYLzqWLfY8qCcuKVBPVDJC3qzXgMYpuymvzg3DH7zLAJdk1Mz+XzvQAlwWq9uNWiBU4XvQnqw+9ohNyIIQgS4IPM3JpN2QTt5w5HRKsQfAA8p/ZCqMy5whQpfdnjlcQ/Nbj5EgZEQ6hoV6OWLZVZxgmkM4BHCuTJ/J3QEtmDMfNj1h6WWJSbWiQYpQXpNrMtYBxjbAgSA2ot6cfog2i1A18r6KEFtWucECtDfiU3I0p6wjXI1avhfxcYXPCZgilr8Dpos0H7wlWo2vnzPyIw7WNqe0nZ2i8bD+JP5k2WqzXi7V2Jiut15ZMsgioLljeHsK8MJ1UeVLOhoNXhvPHP0CIdM6hEdnvBG2qLF/h3AR1Y7nqXX8q/pkwhuoU11wyeKurTx83DGZqLIkqOluebmps7BSPfcoNv32NLwZ8XQuiBVJozdc5hRE7bVZPAa24NrAtduPYgqup7eVrQ6ngIBwVL45gqBXPJu8frpOOsxKCrsEHbyym2GYirQJdWwPTY+dt0moRNkIDhnd6Pbhk8lZsqKrHInfp6FZwc6fB4QCCJABOU7zh2FbH3i+Q9+u8PrTkcSEQEA=="
+      },
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": ""
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 21758,
+      "output": 950,
+      "cacheRead": 16255,
+      "cacheWrite": 0,
+      "totalTokens": 22708,
+      "cost": {
+        "input": 0.043516,
+        "output": 0.0114,
+        "cacheRead": 0.0032510000000000004,
+        "cacheWrite": 0,
+        "total": 0.058166999999999996
+      }
+    },
+    "stopReason": "toolUse",
+    "timestamp": 1766384837539,
+    "duration": 7119,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "write",
+                  "args": {
+                    "path": "accelerator_investment_terms.md",
+                    "content": "# Startup Accelerator Investment Terms\n\nThis document provides a detailed breakdown of the investment terms for the requested startup accelerators.\n\n| Accelerator | Funding Amount | Equity / Terms | Additional Notes |\n| :--- | :--- | :--- | :--- |\n| **Y Combinator** | **$500,000** | **7%** (for $125k) + Uncapped SAFE with MFN (for $375k) | The \"Standard Deal\" includes a fixed $125k for 7% and an additional $375k on an uncapped SAFE with a \"Most Favored Nation\" clause. |\n| **The Mint (by BTV)** | **$500,000** | **10%** Equity | Focuses exclusively on fintech founders; 3-month program in San Francisco. |\n| **South Park Commons (Founder Fellowship)** | **$400,000** | **7%** Equity | Designed for founders in the \"-1 to 0\" stage. Some terms include a guaranteed $600k follow-on in the next round. |\n| **Beta Works AI Camp** | **Up to $500,000** | **5% - 8%** (Commonly 5% common stock) | A thematic 12-week in-residence program in NYC. Recent cohorts (AI Camp) mention $500k total funding. |\n\n### Key Details:\n\n- **Y Combinator**: The MFN (Most Favored Nation) clause on the $375k portion means YC gets the terms of the best SAFE/Equity round you raise subsequently.\n- **The Mint (BTV)**: Positioned as a specialized alternative to YC for fintech, offering more hands-on help with the unique challenges of the sector.\n- **South Park Commons**: Unique because it often accepts founders before they even have a clear product or idea, focusing on \"Founder-Market Fit.\"\n- **Betaworks Camp**: Highly thematic (e.g., AI Agents, Interfaces). They focus on a small cohort (8-12 companies) and provide deep product development support.\n\n---\n*Sources:*\n- [Y Combinator Standard Deal](https://www.ycombinator.com/deal)\n- [TechCrunch: The Mint by BTV](https://techcrunch.com/2023/05/10/the-mint-started-by-better-tomorrow-ventures-wants-to-be-the-accelerator-fintech-needs/)\n- [South Park Commons Founder Fellowship](https://www.southparkcommons.com/founder-fellowship)\n- [Betaworks AI Camp (via Medium/Render)](https://render.betaworks.com/apply-to-betaworks-ai-camp-app-layer-for-500k-in-funding-005f71076f3e)\n- [XRaise Accelerator Database](https://xraise.ai/blog/how-to-get-accepted-to-the-mint-accelerator/)\n"
+                  }
+                },
+                "thoughtSignature": "EvwGCvkGAXLI2ny34tgujlXAbCUkrCwkveMFrxBwCrGke9/aRLWo75qCPYGy1iQBGRAxc+K8rMsrWPGMxO1DTp4YzwuYMj4L1xtO8VhAXDTbnh5f+SbH/FOCngQeslJ8TUpAoDEXz3/08Q9Msz7fOBsYsnoRU3Pi+bVW6ExKLaANi7EvDsJRnsq12aXFaKJmaFiWtTUhPIlFPqtkoP9mjYpvep6amFlm4AOgkIvKepI9KVOhl5H6LBJFHgmC3G6XfJH7uw54E6BcJZxwaqDRL1OJ3AmxEydFMaA6pDexz3piFzOsNsxzYxg54m99RgtMv1N3pwiGSrzOKaqY4CgIGSpG9wNeEXhb5gkT+hbT6OjHB5D37US1nRfvoJOxQeoe5oik40VuA9gKJEKFn7XaEdjaPp/BdMW+E4XW2D73YmPs2HnCeAWQ78YCUpJxNTreQCvMrjWx6YvLYIHQOM/risLHhwvA5ltYKVcrcc2vG93HsqGECOmUPvRQW67pFDVEMWFHJIps+KsPNCj4pY6VSBtePLCfUKM4l500uyPBmastk5ZfqV2NT50E9jqhCLYxW5kLmz1LW0+naufdtSKqsEhsUWzB1cUjDxYLzqWLfY8qCcuKVBPVDJC3qzXgMYpuymvzg3DH7zLAJdk1Mz+XzvQAlwWq9uNWiBU4XvQnqw+9ohNyIIQgS4IPM3JpN2QTt5w5HRKsQfAA8p/ZCqMy5whQpfdnjlcQ/Nbj5EgZEQ6hoV6OWLZVZxgmkM4BHCuTJ/J3QEtmDMfNj1h6WWJSbWiQYpQXpNrMtYBxjbAgSA2ot6cfog2i1A18r6KEFtWucECtDfiU3I0p6wjXI1avhfxcYXPCZgilr8Dpos0H7wlWo2vnzPyIw7WNqe0nZ2i8bD+JP5k2WqzXi7V2Jiut15ZMsgioLljeHsK8MJ1UeVLOhoNXhvPHP0CIdM6hEdnvBG2qLF/h3AR1Y7nqXX8q/pkwhuoU11wyeKurTx83DGZqLIkqOluebmps7BSPfcoNv32NLwZ8XQuiBVJozdc5hRE7bVZPAa24NrAtduPYgqup7eVrQ6ngIBwVL45gqBXPJu8frpOOsxKCrsEHbyym2GYirQJdWwPTY+dt0moRNkIDhnd6Pbhk8lZsqKrHInfp6FZwc6fB4QCCJABOU7zh2FbH3i+Q9+u8PrTkcSEQEA=="
+              },
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "xeRIabjNEO7ijuMPiba0gAE",
+      "usageMetadata": {
+        "promptTokenCount": 21758,
+        "candidatesTokenCount": 706,
+        "totalTokenCount": 22708,
+        "cachedContentTokenCount": 16255,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 21758
+          }
+        ],
+        "cacheTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 16255
+          }
+        ],
+        "thoughtsTokenCount": 244
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:27:17 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=6989",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  },
+  {
+    "role": "toolResult",
+    "id": "46079f19-de24-442f-a5b4-44c8566c769e",
+    "toolCallId": "write_1766384837538_1",
+    "toolName": "write",
+    "content": [
+      {
+        "type": "text",
+        "content": "Successfully wrote 2206 characters to accelerator_investment_terms.md"
+      }
+    ],
+    "details": {
+      "path": "/Users/notacoder/Desktop/agents/providers/.logs/research/temp/bd63908a-dbee-4fb9-bc27-9de48b951d45/accelerator_investment_terms.md",
+      "size": 2206
+    },
+    "isError": false,
+    "timestamp": 1766384837541
+  },
+  {
+    "role": "assistant",
+    "api": "google",
+    "model": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "api": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image",
+        "file"
+      ],
+      "cost": {
+        "input": 2,
+        "output": 12,
+        "cacheRead": 0.2,
+        "cacheWrite": 0
+      },
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "tools": [
+        "function_calling"
+      ]
+    },
+    "id": "93189eda-a6be-42b6-b42d-c1e2f34ed59e",
+    "content": [
+      {
+        "type": "response",
+        "content": [
+          {
+            "type": "text",
+            "content": "The investment terms for the requested accelerators are summarized below:\n\n| Accelerator | Funding Amount | Equity / Terms |\n| :--- | :--- | :--- |\n| **Y Combinator** | **$500,000** | **7%** (for $125k) + Uncapped SAFE with MFN (for $375k) |\n| **The Mint (by BTV)** | **$500,000** | **10%** Equity |\n| **South Park Commons** | **$400,000** | **7%** Equity |\n| **Beta Works AI Camp** | **Up to $500,000** | **5% - 8%** (typically 5% common stock) |\n\n### Key Takeaways:\n- **Y Combinator**: Provides a \"Standard Deal\" where the initial $125k is for 7%, and the remaining $375k is on an uncapped SAFE with a \"Most Favored Nation\" (MFN) clause.\n- **The Mint (BTV)**: A fintech-specific accelerator that offers $500k in exchange for a 10% stake, aiming to be a more specialized alternative to YC.\n- **South Park Commons**: Their Founder Fellowship is tailored for the \"pre-idea\" stage, providing $400k for 7%, often with a path to additional follow-on funding.\n- **Beta Works AI Camp**: Offers thematic cohorts (e.g., AI Agents) with funding up to $500k. They focus heavily on product-building and in-residence collaboration in NYC.\n\nThe full details and source links have been saved in the file: `accelerator_investment_terms.md`."
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input": 22740,
+      "output": 387,
+      "cacheRead": 16253,
+      "cacheWrite": 0,
+      "totalTokens": 23127,
+      "cost": {
+        "input": 0.04548,
+        "output": 0.004644,
+        "cacheRead": 0.0032506,
+        "cacheWrite": 0,
+        "total": 0.0533746
+      }
+    },
+    "stopReason": "stop",
+    "timestamp": 1766384841244,
+    "duration": 3703,
+    "message": {
+      "candidates": [
+        {
+          "content": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "The investment terms for the requested accelerators are summarized below:\n\n| Accelerator | Funding Amount | Equity / Terms |\n| :--- | :--- | :--- |\n| **Y Combinator** | **$500,000** | **7%** (for $125k) + Uncapped SAFE with MFN (for $375k) |\n| **The Mint (by BTV)** | **$500,000** | **10%** Equity |\n| **South Park Commons** | **$400,000** | **7%** Equity |\n| **Beta Works AI Camp** | **Up to $500,000** | **5% - 8%** (typically 5% common stock) |\n\n### Key Takeaways:\n- **Y Combinator**: Provides a \"Standard Deal\" where the initial $125k is for 7%, and the remaining $375k is on an uncapped SAFE with a \"Most Favored Nation\" (MFN) clause.\n- **The Mint (BTV)**: A fintech-specific accelerator that offers $500k in exchange for a 10% stake, aiming to be a more specialized alternative to YC.\n- **South Park Commons**: Their Founder Fellowship is tailored for the \"pre-idea\" stage, providing $400k for 7%, often with a path to additional follow-on funding.\n- **Beta Works AI Camp**: Offers thematic cohorts (e.g., AI Agents) with funding up to $500k. They focus heavily on product-building and in-residence collaboration in NYC.\n\nThe full details and source links have been saved in the file: `accelerator_investment_terms.md`."
+              }
+            ]
+          }
+        }
+      ],
+      "modelVersion": "gemini-3-flash-preview",
+      "responseId": "x-RIacGtDPCKjuMP3pbfwAs",
+      "usageMetadata": {
+        "promptTokenCount": 22740,
+        "candidatesTokenCount": 387,
+        "totalTokenCount": 23127,
+        "cachedContentTokenCount": 16253,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 22740
+          }
+        ],
+        "cacheTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 16253
+          }
+        ]
+      },
+      "sdkHttpResponse": {
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+          "content-disposition": "attachment",
+          "content-type": "text/event-stream",
+          "date": "Mon, 22 Dec 2025 06:27:19 GMT",
+          "server": "scaffolding on HTTPServer2",
+          "server-timing": "gfet4t7; dur=1893",
+          "transfer-encoding": "chunked",
+          "vary": "Origin, X-Origin, Referer",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "0"
+        }
+      }
+    }
+  }
+]

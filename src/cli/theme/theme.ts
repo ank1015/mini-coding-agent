@@ -35,6 +35,7 @@ const ThemeJsonSchema = Type.Object({
 		muted: ColorValueSchema,
 		dim: ColorValueSchema,
 		text: ColorValueSchema,
+		box: ColorValueSchema,
 		// Backgrounds & Content Text (7 colors)
 		userMessageBg: ColorValueSchema,
 		userMessageText: ColorValueSchema,
@@ -88,6 +89,7 @@ export type ThemeColor =
 	| "muted"
 	| "dim"
 	| "text"
+	| "box"
 	| "userMessageText"
 	| "toolTitle"
 	| "toolOutput"
@@ -375,9 +377,11 @@ function getBuiltinThemes(): Record<string, ThemeJson> {
 		const themesDir = getThemesDir();
 		const darkPath = path.join(themesDir, "dark.json");
 		const lightPath = path.join(themesDir, "light.json");
+		const customPath = path.join(themesDir, "custom.json");
 		BUILTIN_THEMES = {
 			dark: JSON.parse(fs.readFileSync(darkPath, "utf-8")) as ThemeJson,
 			light: JSON.parse(fs.readFileSync(lightPath, "utf-8")) as ThemeJson,
+			custom: JSON.parse(fs.readFileSync(customPath, "utf-8")) as ThemeJson,
 		};
 	}
 	return BUILTIN_THEMES;
@@ -542,7 +546,7 @@ function startThemeWatcher(): void {
 	}
 
 	// Only watch if it's a custom theme (not built-in)
-	if (!currentThemeName || currentThemeName === "dark" || currentThemeName === "light") {
+	if (!currentThemeName || currentThemeName === "dark" || currentThemeName === "light" || currentThemeName === "custom") {
 		return;
 	}
 
