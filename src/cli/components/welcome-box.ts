@@ -76,24 +76,21 @@ export class WelcomeBox implements Component {
 		lines.push(this.centerLine(welcomeMsg, contentWidth));
 
 		lines.push(this.centerLine("", contentWidth));
+		lines.push(this.centerLine("", contentWidth));
 
 		// ASCII Robot (simple pixelated design inspired by the image)
 		// const robot = [
-		// "*****       *****    ***    *****       ***    ***",
-		// "******     ******    ***    ******      ***    ***",
-		// "*** ***   *** ***    ***    *** ***     ***    ***",
-		// "***  *** ***  ***    ***    ***  ***    ***    ***",
-		// "***   *****   ***    ***    ***    ***  ***    ***",
-		// "***           ***    ***    ***     *** ***    ***",
-		// "***           ***    ***    ***      ******    ***",
-		// "***           ***    ***    ***       *****    ***",
-		// ];
+		// 	" *  ▄  █    █  ▄  * ",
+		// 	"*   █▄█▀████▀█▄█   *", 
+		// 	"*   ▀████▄▄████▀   *",
+		// 	" *    █      █    * ",
+		// 	]
 
 		const robot = [
-		" *  ▄  █   █  ▄  *",
+		" *  ▄  █   █  ▄  * ",
 		"*   █▄█▀███▀█▄█   *", 
 		"*   ▀█████████▀   *",
-		" *    █     █    *",
+		" *    █     █    * ",
 		]
 
 

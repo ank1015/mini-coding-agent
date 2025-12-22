@@ -14,11 +14,33 @@ import { DynamicBorder } from "./components/dynamic-border.js";
 import { AssistantMessageComponent } from "./components/assistant-message.js";
 import { UserMessageComponent } from "./components/user-message.js";
 import { WelcomeBox } from "./components/welcome-box.js";
-import { PromptHint } from "./components/prompt-hint.js";
+// import { PromptHint } from "./components/prompt-hint.js";
 import { MarginWrapper } from "./components/margin-wrapper.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { Autocomplete } from "./components/auto-complete.js";
 
+/**
+ * Simple autocomplete provider that handles:
+ * - Slash commands: triggered by "/" at start of input
+ * - File references: triggered by "@" followed by text (mocked)
+ */
+
+// ============================================================================
+// Slash Commands
+// ============================================================================
+
+const SLASH_COMMANDS: SlashCommand[] = [
+	{ name: "/model", description: "Select model (opens selector UI)" },
+	{ name: "/export", description: "Export session to HTML file" },
+	{ name: "/options", description: "Setup provider options" },
+	{ name: "/config", description: "Mini Coding agent setting" },
+	{ name: "/copy", description: "Copy last agent message to clipboard" },
+	{ name: "/session", description: "Show session info and stats" },
+	{ name: "/changelog", description: "Show changelog entries" },
+	{ name: "/hotkeys", description: "Show all keyboard shortcuts" },
+	{ name: "/branch", description: "Create a new branch from a previous message" },
+];
 class MockChatApp {
 	private tui: TUI;
 	private messagesContainer: Container;
@@ -59,11 +81,15 @@ class MockChatApp {
 		this.editor = new CustomEditor(getEditorTheme());
 		this.tui.addChild(new MarginWrapper(this.editor, 2));
 
+		// Set up autocomplete provider for slash commands and @ file references
+		const autocompleteProvider = new Autocomplete(SLASH_COMMANDS);
+		this.editor.setAutocompleteProvider(autocompleteProvider);
+
 		// Add a footer-like status line
 		// this.tui.addChild(new DynamicBorder());
 
 		// Add hint below editor
-		this.tui.addChild(new MarginWrapper(new PromptHint(), 2));
+		// this.tui.addChild(new MarginWrapper(new PromptHint(), 2));
 		this.tui.addChild(new Spacer(1));
 
 		// Set up editor callbacks
@@ -240,7 +266,7 @@ class MockChatApp {
 	 */
 	private handleExit(): void {
 		this.stop();
-		console.log("\nGoodbye!");
+		// console.log("\nGoodbye!");
 		process.exit(0);
 	}
 
