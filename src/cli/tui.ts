@@ -15,6 +15,7 @@ import { AssistantMessageComponent } from "./components/assistant-message.js";
 import { UserMessageComponent } from "./components/user-message.js";
 import { WelcomeBox } from "./components/welcome-box.js";
 import { PromptHint } from "./components/prompt-hint.js";
+import { MarginWrapper } from "./components/margin-wrapper.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -25,6 +26,7 @@ class MockChatApp {
 	private hideThinkingBlocks = false;
 	private expandToolOutputs = false;
 	private toolComponents: ToolExecutionComponent[] = [];
+	private toolComponentsMap: Map<string, ToolExecutionComponent> = new Map(); // Map toolCallId -> component
 	private messages: any[] = [];
 	private currentMessageIndex = 0;
 	private isFirstUserMessage = true;
@@ -53,15 +55,15 @@ class MockChatApp {
 
 		// this.tui.addChild(new DynamicBorder());
 
-		// Create the editor for user input
+		// Create the editor for user input with "> " prefix
 		this.editor = new CustomEditor(getEditorTheme());
-		this.tui.addChild(this.editor);
+		this.tui.addChild(new MarginWrapper(this.editor, 2));
 
 		// Add a footer-like status line
 		// this.tui.addChild(new DynamicBorder());
 
 		// Add hint below editor
-		this.tui.addChild(new PromptHint());
+		this.tui.addChild(new MarginWrapper(new PromptHint(), 2));
 		this.tui.addChild(new Spacer(1));
 
 		// Set up editor callbacks
@@ -127,21 +129,24 @@ class MockChatApp {
 		const textContent = message.content.find((c: any) => c.type === "text");
 		if (textContent) {
 			this.messagesContainer.addChild(
-				new UserMessageComponent(textContent.content, this.isFirstUserMessage)
+				new MarginWrapper(
+					new UserMessageComponent(textContent.content, this.isFirstUserMessage),
+					2
+				)
 			);
 			this.isFirstUserMessage = false;
 		}
 	}
 
 	/**
-	 * Render an assistant message with tool calls
+	 * Render an assistant message with tool calls and tool results
 	 */
 	private renderAssistantMessage(message: any): void {
 		// Create assistant message component
 		const assistantComponent = new AssistantMessageComponent(message, this.hideThinkingBlocks);
-		this.messagesContainer.addChild(assistantComponent);
+		this.messagesContainer.addChild(new MarginWrapper(assistantComponent, 2));
 
-		// Render tool calls if present
+		// Process content in order to handle both toolCalls and toolResults
 		for (const content of message.content) {
 			if (content.type === "toolCall") {
 				// Create tool execution component
@@ -150,25 +155,26 @@ class MockChatApp {
 					content.arguments
 				);
 
-				// Find the corresponding tool result
-				const resultContent = message.content.find(
-					(c: any) => c.type === "toolResult" && c.toolCallId === content.toolCallId
-				);
+				// Store the component mapped by its toolCallId for later updates
+				this.toolComponentsMap.set(content.toolCallId, toolComponent);
 
-				if (resultContent) {
+				toolComponent.setExpanded(this.expandToolOutputs);
+				this.toolComponents.push(toolComponent);
+				this.messagesContainer.addChild(new MarginWrapper(toolComponent, 2));
+			} else if (content.type === "toolResult") {
+				// Find the corresponding tool component by toolCallId
+				const toolComponent = this.toolComponentsMap.get(content.toolCallId);
+
+				if (toolComponent) {
 					// Update with the result
 					toolComponent.updateResult(
 						{
-							content: resultContent.content,
-							isError: resultContent.isError || false,
+							content: content.content,
+							isError: content.isError || false,
 						},
 						false
 					);
 				}
-
-				toolComponent.setExpanded(this.expandToolOutputs);
-				this.toolComponents.push(toolComponent);
-				this.messagesContainer.addChild(toolComponent);
 			}
 		}
 	}
