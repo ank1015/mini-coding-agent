@@ -1,0 +1,62 @@
+{
+	"name": "@ank1015/mini-coding-agent",
+	"version": "0.0.1",
+	"description": "MINI coding agent",
+	"type": "module",
+	"miniConfig": {
+		"name": "mini",
+		"configDir": ".mini"
+	},
+	"bin": {
+		"mini": "dist/cli.js"
+	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"clean": "rm -rf dist",
+		"build": "tsc",
+		"test": "vitest --run"
+	},
+	"dependencies": {
+		"@ank1015/agents-tui": "file:/Users/notacoder/Desktop/agents/agents-tui",
+		"@ank1015/providers": "file:/Users/notacoder/Desktop/agents/providers",
+		"@sinclair/typebox": "^0.34.41",
+		"chalk": "^5.5.0",
+		"cli-highlight": "^2.1.11",
+		"diff": "^8.0.2",
+		"file-type": "^21.1.1",
+		"glob": "^11.0.3",
+		"jiti": "^2.6.1",
+		"strip-ansi": "^7.1.2"
+	},
+	"devDependencies": {
+		"@types/diff": "^7.0.2",
+		"@types/node": "^24.3.0",
+		"typescript": "^5.7.3",
+		"vitest": "^3.2.4"
+	},
+	"keywords": [
+		"coding-agent",
+		"mini",
+		"minimal",
+		"ai",
+		"llm",
+		"cli",
+		"tui",
+		"agent"
+	],
+	"author": "ank1015",
+	"license": "MIT",
+	"engines": {
+		"node": ">=20.0.0"
+	}
+}
