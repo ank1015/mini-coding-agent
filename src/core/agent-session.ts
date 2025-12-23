@@ -388,7 +388,7 @@ export class AgentSession {
 		// Restore model if saved
 		const savedModel = this.sessionManager.loadModel();
 		if (savedModel) {
-			const model = getModel(savedModel.api as Api, savedModel.modelId);
+			const model = getModel(savedModel.api as Api, savedModel.modelId as any);
 			if (!model) {
 				throw new Error(`Model not found: ${savedModel.api}/${savedModel.modelId}`);
 			}

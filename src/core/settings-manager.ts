@@ -10,17 +10,17 @@ export interface TerminalSettings {
 export interface Settings {
 	defaultApi?: string;
 	defaultModel?: string;
-	defaultProviderSettings?: OptionsForApi<Api>;
+	defaultProviderOptions?: OptionsForApi<Api>;
 	queueMode?: "all" | "one-at-a-time";
 	shellPath?: string; // Custom shell path (e.g., for Cygwin users on Windows)
 	terminal?: TerminalSettings;
 }
 
-/** Deep merge two objects recursively */
-function deepMerge<T extends Record<string, unknown>>(base: T, overrides: T): T {
-	const result = { ...base } as T;
+/** Deep merge settings: project/overrides take precedence, nested objects merge recursively */
+function deepMergeSettings(base: Settings, overrides: Settings): Settings {
+	const result: Settings = { ...base };
 
-	for (const key of Object.keys(overrides) as (keyof T)[]) {
+	for (const key of Object.keys(overrides) as (keyof Settings)[]) {
 		const overrideValue = overrides[key];
 		const baseValue = base[key];
 
@@ -37,10 +37,7 @@ function deepMerge<T extends Record<string, unknown>>(base: T, overrides: T): T 
 			baseValue !== null &&
 			!Array.isArray(baseValue)
 		) {
-			(result as Record<string, unknown>)[key] = deepMerge(
-				baseValue as Record<string, unknown>,
-				overrideValue as Record<string, unknown>
-			);
+			(result as Record<string, unknown>)[key] = { ...baseValue, ...overrideValue };
 		} else {
 			// For primitives and arrays, override value wins
 			(result as Record<string, unknown>)[key] = overrideValue;
@@ -48,11 +45,6 @@ function deepMerge<T extends Record<string, unknown>>(base: T, overrides: T): T 
 	}
 
 	return result;
-}
-
-/** Deep merge settings: project/overrides take precedence, nested objects merge recursively */
-function deepMergeSettings(base: Settings, overrides: Settings): Settings {
-	return deepMerge(base, overrides);
 }
 
 export class SettingsManager {
@@ -149,19 +141,19 @@ export class SettingsManager {
 		return this.settings.defaultModel;
 	}
 
-	getDefaultProviderSettings(): OptionsForApi<Api> | undefined {
-		return this.settings.defaultProviderSettings;
+	getDefaultProviderOptions(): OptionsForApi<Api> | undefined {
+		return this.settings.defaultProviderOptions;
 	}
 
-	setDefaultProviderSettings(providerSettings: OptionsForApi<Api>): void {
-		this.globalSettings.defaultProviderSettings = providerSettings;
+	setDefaultProviderOptions(providerSettings: OptionsForApi<Api>): void {
+		this.globalSettings.defaultProviderOptions = providerSettings;
 		this.save();
 	}
 
 	setDefaultModelAndSettings(model: Model<Api>, providerSettings: OptionsForApi<Api>): void {
 		this.globalSettings.defaultModel = model.id;
 		this.globalSettings.defaultApi = model.api;
-		this.globalSettings.defaultProviderSettings = providerSettings;
+		this.globalSettings.defaultProviderOptions = providerSettings;
 		this.save();
 	}
 
