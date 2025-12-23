@@ -8,36 +8,15 @@ export interface CompactionSettings {
 	keepRecentTokens?: number; // default: 20000
 }
 
-export interface RetrySettings {
-	enabled?: boolean; // default: true
-	maxRetries?: number; // default: 3
-	baseDelayMs?: number; // default: 2000 (exponential backoff: 2s, 4s, 8s)
-}
-
-export interface SkillsSettings {
-	enabled?: boolean; // default: true
-}
-
 export interface TerminalSettings {
 	showImages?: boolean; // default: true (only relevant if terminal supports images)
 }
 
 export interface Settings {
-	lastChangelogVersion?: string;
 	defaultProvider?: string;
 	defaultModel?: string;
-	defaultThinkingLevel?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 	queueMode?: "all" | "one-at-a-time";
-	theme?: string;
-	compaction?: CompactionSettings;
-	retry?: RetrySettings;
-	hideThinkingBlock?: boolean;
 	shellPath?: string; // Custom shell path (e.g., for Cygwin users on Windows)
-	collapseChangelog?: boolean; // Show condensed changelog after update (use /changelog for full)
-	hooks?: string[]; // Array of hook file paths
-	hookTimeout?: number; // Timeout for hook execution in ms (default: 30000)
-	customTools?: string[]; // Array of custom tool file paths
-	skills?: SkillsSettings;
 	terminal?: TerminalSettings;
 }
 
@@ -110,26 +89,6 @@ export class SettingsManager {
 	setQueueMode(mode: "all" | "one-at-a-time"): void {
 		this.settings.queueMode = mode;
 		this.save();
-	}
-
-	getRetryEnabled(): boolean {
-		return this.settings.retry?.enabled ?? true;
-	}
-
-	setRetryEnabled(enabled: boolean): void {
-		if (!this.settings.retry) {
-			this.settings.retry = {};
-		}
-		this.settings.retry.enabled = enabled;
-		this.save();
-	}
-
-	getRetrySettings(): { enabled: boolean; maxRetries: number; baseDelayMs: number } {
-		return {
-			enabled: this.getRetryEnabled(),
-			maxRetries: this.settings.retry?.maxRetries ?? 3,
-			baseDelayMs: this.settings.retry?.baseDelayMs ?? 2000,
-		};
 	}
 
 	getShellPath(): string | undefined {
