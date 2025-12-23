@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
-import { CONFIG_DIR_NAME, getAgentDir } from "../config.js";
+import { getAgentDir } from "../config.js";
 import { Api, Model, OptionsForApi } from "@ank1015/providers";
 
 export interface TerminalSettings {
@@ -16,69 +16,43 @@ export interface Settings {
 	terminal?: TerminalSettings;
 }
 
-/** Deep merge settings: project/overrides take precedence, nested objects merge recursively */
-function deepMergeSettings(base: Settings, overrides: Settings): Settings {
-	const result: Settings = { ...base };
-
-	for (const key of Object.keys(overrides) as (keyof Settings)[]) {
-		const overrideValue = overrides[key];
-		const baseValue = base[key];
-
-		if (overrideValue === undefined) {
-			continue;
-		}
-
-		// For nested objects, merge recursively
-		if (
-			typeof overrideValue === "object" &&
-			overrideValue !== null &&
-			!Array.isArray(overrideValue) &&
-			typeof baseValue === "object" &&
-			baseValue !== null &&
-			!Array.isArray(baseValue)
-		) {
-			(result as Record<string, unknown>)[key] = { ...baseValue, ...overrideValue };
-		} else {
-			// For primitives and arrays, override value wins
-			(result as Record<string, unknown>)[key] = overrideValue;
-		}
-	}
-
-	return result;
-}
+/** Default settings configuration */
+const DEFAULT_SETTINGS: Settings = {
+	queueMode: "one-at-a-time",
+	terminal: {
+		showImages: true,
+	},
+};
 
 export class SettingsManager {
 	private settingsPath: string | null;
-	private projectSettingsPath: string | null;
-	private globalSettings: Settings;
 	private settings: Settings;
 	private persist: boolean;
 
-	private constructor(
-		settingsPath: string | null,
-		projectSettingsPath: string | null,
-		initialSettings: Settings,
-		persist: boolean,
-	) {
+	private constructor(settingsPath: string | null, initialSettings: Settings, persist: boolean) {
 		this.settingsPath = settingsPath;
-		this.projectSettingsPath = projectSettingsPath;
+		this.settings = initialSettings;
 		this.persist = persist;
-		this.globalSettings = initialSettings;
-		const projectSettings = this.loadProjectSettings();
-		this.settings = deepMergeSettings(this.globalSettings, projectSettings);
 	}
 
 	/** Create a SettingsManager that loads from files */
-	static create(cwd: string = process.cwd(), agentDir: string = getAgentDir()): SettingsManager {
+	static create(agentDir: string = getAgentDir()): SettingsManager {
 		const settingsPath = join(agentDir, "settings.json");
-		const projectSettingsPath = join(cwd, CONFIG_DIR_NAME, "settings.json");
-		const globalSettings = SettingsManager.loadFromFile(settingsPath);
-		return new SettingsManager(settingsPath, projectSettingsPath, globalSettings, true);
+		const settings = SettingsManager.loadFromFile(settingsPath);
+		const manager = new SettingsManager(settingsPath, settings, true);
+
+		// If settings file doesn't exist, create it with defaults
+		if (!existsSync(settingsPath)) {
+			manager.settings = { ...DEFAULT_SETTINGS };
+			manager.save();
+		}
+
+		return manager;
 	}
 
 	/** Create an in-memory SettingsManager (no file I/O) */
 	static inMemory(settings: Partial<Settings> = {}): SettingsManager {
-		return new SettingsManager(null, null, settings, false);
+		return new SettingsManager(null, settings, false);
 	}
 
 	private static loadFromFile(path: string): Settings {
@@ -94,25 +68,6 @@ export class SettingsManager {
 		}
 	}
 
-	private loadProjectSettings(): Settings {
-		if (!this.projectSettingsPath || !existsSync(this.projectSettingsPath)) {
-			return {};
-		}
-
-		try {
-			const content = readFileSync(this.projectSettingsPath, "utf-8");
-			return JSON.parse(content);
-		} catch (error) {
-			console.error(`Warning: Could not read project settings file: ${error}`);
-			return {};
-		}
-	}
-
-	/** Apply additional overrides on top of current settings */
-	applyOverrides(overrides: Partial<Settings>): void {
-		this.settings = deepMergeSettings(this.settings, overrides);
-	}
-
 	private save(): void {
 		if (!this.persist || !this.settingsPath) return;
 
@@ -122,12 +77,7 @@ export class SettingsManager {
 				mkdirSync(dir, { recursive: true });
 			}
 
-			// Save only global settings (project settings are read-only)
-			writeFileSync(this.settingsPath, JSON.stringify(this.globalSettings, null, 2), "utf-8");
-
-			// Re-merge project settings into active settings
-			const projectSettings = this.loadProjectSettings();
-			this.settings = deepMergeSettings(this.globalSettings, projectSettings);
+			writeFileSync(this.settingsPath, JSON.stringify(this.settings, null, 2), "utf-8");
 		} catch (error) {
 			console.error(`Warning: Could not save settings file: ${error}`);
 		}
@@ -146,14 +96,14 @@ export class SettingsManager {
 	}
 
 	setDefaultProviderOptions(providerSettings: OptionsForApi<Api>): void {
-		this.globalSettings.defaultProviderOptions = providerSettings;
+		this.settings.defaultProviderOptions = providerSettings;
 		this.save();
 	}
 
 	setDefaultModelAndSettings(model: Model<Api>, providerSettings: OptionsForApi<Api>): void {
-		this.globalSettings.defaultModel = model.id;
-		this.globalSettings.defaultApi = model.api;
-		this.globalSettings.defaultProviderOptions = providerSettings;
+		this.settings.defaultModel = model.id;
+		this.settings.defaultApi = model.api;
+		this.settings.defaultProviderOptions = providerSettings;
 		this.save();
 	}
 
@@ -162,7 +112,7 @@ export class SettingsManager {
 	}
 
 	setQueueMode(mode: "all" | "one-at-a-time"): void {
-		this.globalSettings.queueMode = mode;
+		this.settings.queueMode = mode;
 		this.save();
 	}
 
@@ -171,7 +121,7 @@ export class SettingsManager {
 	}
 
 	setShellPath(path: string | undefined): void {
-		this.globalSettings.shellPath = path;
+		this.settings.shellPath = path;
 		this.save();
 	}
 
@@ -180,10 +130,10 @@ export class SettingsManager {
 	}
 
 	setShowImages(show: boolean): void {
-		if (!this.globalSettings.terminal) {
-			this.globalSettings.terminal = {};
+		if (!this.settings.terminal) {
+			this.settings.terminal = {};
 		}
-		this.globalSettings.terminal.showImages = show;
+		this.settings.terminal.showImages = show;
 		this.save();
 	}
 }

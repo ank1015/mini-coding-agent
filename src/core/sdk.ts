@@ -170,10 +170,10 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 // Settings
 
 /**
- * Load settings from agentDir/settings.json merged with cwd/.pi/settings.json.
+ * Load settings from agentDir/settings.json.
  */
-export function loadSettings(cwd?: string, agentDir?: string): Settings {
-	const manager = SettingsManager.create(cwd ?? process.cwd(), agentDir ?? getDefaultAgentDir());
+export function loadSettings(agentDir?: string): Settings {
+	const manager = SettingsManager.create(agentDir ?? getDefaultAgentDir());
 	return {
 		defaultApi: manager.getDefaultProvider(),
 		defaultModel: manager.getDefaultModel(),
@@ -195,29 +195,13 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	const cwd = options.cwd ?? process.cwd();
 	const agentDir = options.agentDir ?? getDefaultAgentDir();
 
-	const settingsManager = options.settingsManager ?? SettingsManager.create(cwd, agentDir);
-	const sessionManager = options.sessionManager ?? SessionManager.create(cwd, agentDir);
+	const settingsManager = options.settingsManager ?? SettingsManager.create(agentDir);
 
-	// Check if session has existing data to restore
-	const existingSession = sessionManager.loadSession();
-	const hasExistingSession = existingSession.messages.length > 0;
-
+	// Discover model before creating session manager
     let model = options.model;
     let providerOptions = options.providerOptions;
 
-	// If session has data, try to restore model from it
-	if (!model && hasExistingSession && existingSession.model) {
-        const restoredModel = findModel(existingSession.model.api, existingSession.model.modelId);
-		if (restoredModel) {
-			const key = getApiKeyFromEnv(restoredModel.api);
-			if (key) {
-				model = restoredModel
-                providerOptions = existingSession.model.providerOptions;
-			}
-		}
-	}
-
-	// If still no model, try settings default
+	// Try settings default first
 	if (!model) {
 		const defaultProvider = settingsManager.getDefaultProvider();
 		const defaultModelId = settingsManager.getDefaultModel();
@@ -247,6 +231,33 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
         model = available[0];
         providerOptions = {};
     }
+
+	// Create session manager with initial provider
+	const sessionManager = options.sessionManager ?? SessionManager.create(
+		cwd,
+		agentDir,
+		model && providerOptions ? {
+			api: model.api,
+			modelId: model.id,
+			providerOptions: providerOptions
+		} : undefined
+	);
+
+	// Check if session has existing data to restore
+	const existingSession = sessionManager.loadSession();
+	const hasExistingSession = existingSession.messages.length > 0;
+
+	// If session has data, restore model from it (overrides discovered model)
+	if (hasExistingSession && existingSession.model) {
+        const restoredModel = findModel(existingSession.model.api, existingSession.model.modelId);
+		if (restoredModel) {
+			const key = getApiKeyFromEnv(restoredModel.api);
+			if (key) {
+				model = restoredModel
+                providerOptions = existingSession.model.providerOptions;
+			}
+		}
+	}
 
 	const builtInTools = options.tools ?? createCodingTools(cwd);
 

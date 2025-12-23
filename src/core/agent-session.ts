@@ -6,7 +6,7 @@
  * - Agent state access
  * - Event subscription with automatic session persistence
  * - Model and Provider options management
- * - Session switching and branching
+ * - Session switching
  *
  * Modes use this class and add their own I/O layer on top.
  */
@@ -397,74 +397,6 @@ export class AgentSession {
 
 		this._reconnectToAgent();
 		return true;
-	}
-
-	/**
-	 * Create a branch from a specific entry index.
-	 * Emits before_branch/branch session events to hooks.
-	 *
-	 * @param entryIndex Index into session entries to branch from
-	 * @returns Object with:
-	 *   - selectedText: The text of the selected user message (for editor pre-fill)
-	 *   - cancelled: True if a hook cancelled the branch
-	 */
-	async branch(entryIndex: number): Promise<{ selectedText: string; cancelled: boolean }> {
-		const entries = this.sessionManager.loadEntries();
-		const selectedEntry = entries[entryIndex];
-
-		if (!selectedEntry || selectedEntry.type !== "message" || selectedEntry.message.role !== "user") {
-			throw new Error("Invalid entry index for branching");
-		}
-
-		const selectedText = this._extractUserMessageText(selectedEntry.message.content);
-
-		// Create branched session (returns null in --no-session mode)
-		const newSessionFile = this.sessionManager.createBranchedSessionFromEntries(entries, entryIndex);
-
-		// Update session file if we have one (file-based mode)
-		if (newSessionFile !== null) {
-			this.sessionManager.setSessionFile(newSessionFile);
-		}
-
-		// Reload messages from entries (works for both file and in-memory mode)
-		const newEntries = this.sessionManager.loadEntries();
-		const loaded = loadSessionFromEntries(newEntries);
-
-		this.agent.replaceMessages(loaded.messages);
-
-		return { selectedText, cancelled: false };
-	}
-
-	/**
-	 * Get all user messages from session for branch selector.
-	 */
-	getUserMessagesForBranching(): Array<{ entryIndex: number; text: string }> {
-		const entries = this.sessionManager.loadEntries();
-		const result: Array<{ entryIndex: number; text: string }> = [];
-
-		for (let i = 0; i < entries.length; i++) {
-			const entry = entries[i];
-			if (entry.type !== "message") continue;
-			if (entry.message.role !== "user") continue;
-
-			const text = this._extractUserMessageText(entry.message.content);
-			if (text) {
-				result.push({ entryIndex: i, text });
-			}
-		}
-
-		return result;
-	}
-
-	private _extractUserMessageText(content: string | Array<{ type: string; content?: string }>): string {
-		if (typeof content === "string") return content;
-		if (Array.isArray(content)) {
-			return content
-				.filter((c) => c.type === "text")
-				.map((c) => c.content)
-				.join("");
-		}
-		return "";
 	}
 
 	/**

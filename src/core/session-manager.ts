@@ -8,7 +8,10 @@ export interface SessionHeader {
 	id: string;
 	timestamp: string;
 	cwd: string;
-	branchedFrom?: string;
+	// Initial model/provider info
+	api?: string;
+	modelId?: string;
+	providerOptions?: OptionsForApi<Api>;
 }
 
 export interface SessionMessageEntry {
@@ -19,10 +22,10 @@ export interface SessionMessageEntry {
 
 export interface SessionProviderEntry {
 	type: 'provider';
-	modelId: string;
-	api: string;
 	timestamp: string;
-	providerOptions: OptionsForApi<Api>
+	modelId?: string;
+	api?: string;
+	providerOptions?: OptionsForApi<Api>
 }
 
 export type SessionEntry =
@@ -65,12 +68,26 @@ export function parseSessionEntries(content: string): SessionEntry[] {
 export function loadSessionFromEntries(entries: SessionEntry[]): LoadedSession {
 	let model: { api: string; modelId: string, providerOptions: OptionsForApi<Api> } | null = null;
 
+	// 1. Start with model from SessionHeader (if present)
+	const header = entries.find(e => e.type === "session") as SessionHeader | undefined;
+	if (header?.api && header?.modelId && header?.providerOptions) {
+		model = {
+			api: header.api,
+			modelId: header.modelId,
+			providerOptions: header.providerOptions
+		};
+	}
+
+	// 2. Apply provider entries chronologically (later ones override)
 	for (const entry of entries) {
 		if (entry.type === 'provider') {
-			model = {
-				modelId: entry.modelId,
-				api: entry.api,
-				providerOptions: entry.providerOptions
+			// Only set model if all required fields are present
+			if (entry.modelId && entry.api && entry.providerOptions) {
+				model = {
+					modelId: entry.modelId,
+					api: entry.api,
+					providerOptions: entry.providerOptions
+				}
 			}
 		}
 	}
@@ -138,7 +155,13 @@ export class SessionManager {
 	private flushed: boolean = false;
 	private inMemoryEntries: SessionEntry[] = [];
 
-	private constructor(cwd: string, agentDir: string, sessionFile: string | null, persist: boolean) {
+	private constructor(
+		cwd: string,
+		agentDir: string,
+		sessionFile: string | null,
+		persist: boolean,
+		initialProvider?: { api: string; modelId: string; providerOptions: OptionsForApi<Api> }
+	) {
 		this.cwd = cwd;
 		this.sessionDir = getSessionDirectory(cwd, agentDir);
 		this.persist = persist;
@@ -149,12 +172,15 @@ export class SessionManager {
 			this.sessionId = generateUUID();
 			const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 			const sessionFile = join(this.sessionDir, `${timestamp}_${this.sessionId}.jsonl`);
-			this.setSessionFile(sessionFile);
+			this.setSessionFile(sessionFile, initialProvider);
 		}
 	}
 
 	/** Switch to a different session file (used for resume and branching) */
-	setSessionFile(sessionFile: string): void {
+	setSessionFile(
+		sessionFile: string,
+		initialProvider?: { api: string; modelId: string; providerOptions: OptionsForApi<Api> }
+	): void {
 		this.sessionFile = resolve(sessionFile);
 		if (existsSync(this.sessionFile)) {
 			this.inMemoryEntries = loadEntriesFromFile(this.sessionFile);
@@ -170,6 +196,9 @@ export class SessionManager {
 				id: this.sessionId,
 				timestamp: new Date().toISOString(),
 				cwd: this.cwd,
+				api: initialProvider?.api,
+				modelId: initialProvider?.modelId,
+				providerOptions: initialProvider?.providerOptions,
 			};
 			this.inMemoryEntries.push(entry);
 		}
@@ -265,41 +294,13 @@ export class SessionManager {
 		}
 	}
 
-	createBranchedSessionFromEntries(entries: SessionEntry[], branchBeforeIndex: number): string | null {
-		const newSessionId = generateUUID();
-		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-		const newSessionFile = join(this.sessionDir, `${timestamp}_${newSessionId}.jsonl`);
-
-		const newEntries: SessionEntry[] = [];
-		for (let i = 0; i < branchBeforeIndex; i++) {
-			const entry = entries[i];
-
-			if (entry.type === "session") {
-				newEntries.push({
-					...entry,
-					id: newSessionId,
-					timestamp: new Date().toISOString(),
-					branchedFrom: this.persist ? this.sessionFile : undefined,
-				});
-			} else {
-				newEntries.push(entry);
-			}
-		}
-
-		if (this.persist) {
-			for (const entry of newEntries) {
-				appendFileSync(newSessionFile, `${JSON.stringify(entry)}\n`);
-			}
-			return newSessionFile;
-		}
-		this.inMemoryEntries = newEntries;
-		this.sessionId = newSessionId;
-		return null;
-	}
-
 	/** Create a new session for the given directory */
-	static create(cwd: string, agentDir: string = getDefaultAgentDir()): SessionManager {
-		return new SessionManager(cwd, agentDir, null, true);
+	static create(
+		cwd: string,
+		agentDir: string = getDefaultAgentDir(),
+		initialProvider?: { api: string; modelId: string; providerOptions: OptionsForApi<Api> }
+	): SessionManager {
+		return new SessionManager(cwd, agentDir, null, true, initialProvider);
 	}
 
 	/** Open a specific session file */
@@ -312,18 +313,24 @@ export class SessionManager {
 	}
 
 	/** Continue the most recent session for the given directory, or create new if none */
-	static continueRecent(cwd: string, agentDir: string = getDefaultAgentDir()): SessionManager {
+	static continueRecent(
+		cwd: string,
+		agentDir: string = getDefaultAgentDir(),
+		initialProvider?: { api: string; modelId: string; providerOptions: OptionsForApi<Api> }
+	): SessionManager {
 		const sessionDir = getSessionDirectory(cwd, agentDir);
 		const mostRecent = findMostRecentSession(sessionDir);
 		if (mostRecent) {
 			return new SessionManager(cwd, agentDir, mostRecent, true);
 		}
-		return new SessionManager(cwd, agentDir, null, true);
+		return new SessionManager(cwd, agentDir, null, true, initialProvider);
 	}
 
 	/** Create an in-memory session (no file persistence) */
-	static inMemory(): SessionManager {
-		return new SessionManager(process.cwd(), getDefaultAgentDir(), null, false);
+	static inMemory(
+		initialProvider?: { api: string; modelId: string; providerOptions: OptionsForApi<Api> }
+	): SessionManager {
+		return new SessionManager(process.cwd(), getDefaultAgentDir(), null, false, initialProvider);
 	}
 
 	/** List all sessions for a directory */
