@@ -8,7 +8,7 @@ export interface TerminalSettings {
 }
 
 export interface Settings {
-	defaultProvider?: string;
+	defaultApi?: string;
 	defaultModel?: string;
 	defaultProviderSettings?: OptionsForApi<Api>;
 	queueMode?: "all" | "one-at-a-time";
@@ -134,7 +134,7 @@ export class SettingsManager {
 	}
 
 	getDefaultProvider(): string | undefined {
-		return this.settings.defaultProvider;
+		return this.settings.defaultApi;
 	}
 
 	getDefaultModel(): string | undefined {
@@ -150,16 +150,9 @@ export class SettingsManager {
 		this.save();
 	}
 
-
 	setDefaultModel(model: Model<Api>): void {
 		this.globalSettings.defaultModel = model.id;
-		this.globalSettings.defaultProvider = model.api;
-		this.save();
-	}
-
-	setDefaultModelAndProvider(provider: string, modelId: string): void {
-		this.globalSettings.defaultProvider = provider;
-		this.globalSettings.defaultModel = modelId;
+		this.globalSettings.defaultApi = model.api;
 		this.save();
 	}
 
@@ -172,7 +165,6 @@ export class SettingsManager {
 		this.save();
 	}
 
-
 	getShellPath(): string | undefined {
 		return this.settings.shellPath;
 	}
@@ -181,7 +173,6 @@ export class SettingsManager {
 		this.globalSettings.shellPath = path;
 		this.save();
 	}
-
 
 	getShowImages(): boolean {
 		return this.settings.terminal?.showImages ?? true;

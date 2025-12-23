@@ -1,20 +1,13 @@
-import { getAgentDir } from "../config";
-import { join, resolve } from "path";
+import { generateUUID, type Api, type Message, type OptionsForApi } from "@ank1015/providers";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "fs";
-
-// ============================================================================
-// Session entry types
-// ============================================================================
-
-import { AgentState, Api, BaseAssistantEvent, BaseAssistantMessage, generateUUID, Message, UserMessage } from "@ank1015/providers";
+import { join, resolve } from "path";
+import { getAgentDir as getDefaultAgentDir } from "../config.js";
 
 export interface SessionHeader {
 	type: "session";
 	id: string;
 	timestamp: string;
 	cwd: string;
-	provider: string;
-	modelId: string;
 	branchedFrom?: string;
 }
 
@@ -24,24 +17,34 @@ export interface SessionMessageEntry {
 	message: Message;
 }
 
-/** Union of all session entry types */
+export interface SessionProviderEntry {
+	type: 'provider';
+	modelId: string;
+	api: string;
+	timestamp: string;
+	providerOptions: OptionsForApi<Api>
+}
+
 export type SessionEntry =
 	| SessionHeader
+	| SessionProviderEntry
 	| SessionMessageEntry
-
-
-// ============================================================================
-// Session loading with compaction support
-// ============================================================================
 
 export interface LoadedSession {
 	messages: Message[];
-	model: { provider: string; modelId: string } | null;
+	model: { api: string; modelId: string, providerOptions: OptionsForApi<Api> } | null;
 }
 
-/**
- * Parse session file content into entries.
- */
+export interface SessionInfo {
+	path: string;
+	id: string;
+	created: Date;
+	modified: Date;
+	messageCount: number;
+	firstMessage: string;
+	allMessagesText: string;
+}
+
 export function parseSessionEntries(content: string): SessionEntry[] {
 	const entries: SessionEntry[] = [];
 	const lines = content.trim().split("\n");
@@ -60,197 +63,124 @@ export function parseSessionEntries(content: string): SessionEntry[] {
 }
 
 export function loadSessionFromEntries(entries: SessionEntry[]): LoadedSession {
+	let model: { api: string; modelId: string, providerOptions: OptionsForApi<Api> } | null = null;
 
-	let model: { provider: string; modelId: string } | null = null;
-    const sessionEntry = entries.find(entry => entry.type === 'session');
-    if(sessionEntry){
-        model = { provider: sessionEntry.provider, modelId: sessionEntry.modelId };
-    }
+	for (const entry of entries) {
+		if (entry.type === 'provider') {
+			model = {
+				modelId: entry.modelId,
+				api: entry.api,
+				providerOptions: entry.providerOptions
+			}
+		}
+	}
 
-    const messages: Message[] = [];
-    for (const entry of entries) {
-        if (entry.type === "message") {
-            messages.push(entry.message);
-        }
-    }
-
-    return { messages, model };
+	const messages: Message[] = [];
+	for (const entry of entries) {
+		if (entry.type === "message") {
+			messages.push(entry.message);
+		}
+	}
+	return { messages, model };
 }
 
+function getSessionDirectory(cwd: string, agentDir: string): string {
+	const safePath = `--${cwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-")}--`;
+	const sessionDir = join(agentDir, "sessions", safePath);
+	if (!existsSync(sessionDir)) {
+		mkdirSync(sessionDir, { recursive: true });
+	}
+	return sessionDir;
+}
+
+function loadEntriesFromFile(filePath: string): SessionEntry[] {
+	if (!existsSync(filePath)) return [];
+
+	const content = readFileSync(filePath, "utf8");
+	const entries: SessionEntry[] = [];
+	const lines = content.trim().split("\n");
+
+	for (const line of lines) {
+		if (!line.trim()) continue;
+		try {
+			const entry = JSON.parse(line) as SessionEntry;
+			entries.push(entry);
+		} catch {
+			// Skip malformed lines
+		}
+	}
+
+	return entries;
+}
+
+function findMostRecentSession(sessionDir: string): string | null {
+	try {
+		const files = readdirSync(sessionDir)
+			.filter((f) => f.endsWith(".jsonl"))
+			.map((f) => ({
+				path: join(sessionDir, f),
+				mtime: statSync(join(sessionDir, f)).mtime,
+			}))
+			.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+
+		return files[0]?.path || null;
+	} catch {
+		return null;
+	}
+}
 
 export class SessionManager {
-	private sessionId!: string;
-	private sessionFile!: string;
+	private sessionId: string = "";
+	private sessionFile: string = "";
 	private sessionDir: string;
-	private enabled: boolean = true;
-	private sessionInitialized: boolean = false;
-	private pendingEntries: SessionEntry[] = [];
-	// In-memory entries for --no-session mode (when enabled=false)
+	private cwd: string;
+	private persist: boolean;
+	private flushed: boolean = false;
 	private inMemoryEntries: SessionEntry[] = [];
 
-    constructor(continueSession: boolean = false, customSessionPath?: string) {
-		this.sessionDir = this.getSessionDirectory();
+	private constructor(cwd: string, agentDir: string, sessionFile: string | null, persist: boolean) {
+		this.cwd = cwd;
+		this.sessionDir = getSessionDirectory(cwd, agentDir);
+		this.persist = persist;
 
-		if (customSessionPath) {
-			// Use custom session file path
-			this.sessionFile = resolve(customSessionPath);
-			this.loadSessionId();
-
-			// If file doesn't exist, loadSessionId() won't set sessionId, so generate one
-			if (!this.sessionId) {
-				this.sessionId = generateUUID();
-			}
-			// Mark as initialized since we're loading an existing session
-			this.sessionInitialized = existsSync(this.sessionFile);
-			// Load entries into memory
-			if (this.sessionInitialized) {
-				this.inMemoryEntries = this.loadEntriesFromFile();
-			}
-        }else if (continueSession) {
-			const mostRecent = this.findMostRecentlyModifiedSession();
-			if (mostRecent) {
-				this.sessionFile = mostRecent;
-				this.loadSessionId();
-				// Mark as initialized since we're loading an existing session
-				this.sessionInitialized = true;
-				// Load entries into memory
-				this.inMemoryEntries = this.loadEntriesFromFile();
-			} else {
-				this.initNewSession();
-			}
+		if (sessionFile) {
+			this.setSessionFile(sessionFile);
 		} else {
-			this.initNewSession();
-		}
-
-    }
-
-	private initNewSession(): void {
-		this.sessionId = generateUUID();
-		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-		this.sessionFile = join(this.sessionDir, `${timestamp}_${this.sessionId}.jsonl`);
-	}
-
-	/** Reset to a fresh session. Clears pending entries and starts a new session file. */
-	reset(): void {
-		this.pendingEntries = [];
-		this.inMemoryEntries = [];
-		this.sessionInitialized = false;
-		this.initNewSession();
-	}
-
-	/** Disable session saving (for --no-session mode) */
-	disable() {
-		this.enabled = false;
-	}
-
-	/** Check if session persistence is enabled */
-	isEnabled(): boolean {
-		return this.enabled;
-	}
-
-	private getSessionDirectory(): string {
-		const cwd = process.cwd();
-		// Replace all path separators and colons (for Windows drive letters) with dashes
-		const safePath = "--" + cwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-") + "--";
-
-		const configDir = getAgentDir();
-		const sessionDir = join(configDir, "sessions", safePath);
-		if (!existsSync(sessionDir)) {
-			mkdirSync(sessionDir, { recursive: true });
-		}
-		return sessionDir;
-	}
-
-	private loadSessionId(): void {
-		if (!existsSync(this.sessionFile)) return;
-
-		const lines = readFileSync(this.sessionFile, "utf8").trim().split("\n");
-		for (const line of lines) {
-			try {
-				const entry = JSON.parse(line);
-				if (entry.type === "session") {
-					this.sessionId = entry.id;
-					return;
-				}
-			} catch {
-				// Skip malformed lines
-			}
-		}
-		this.sessionId = generateUUID();
-	}
-
-
-	private findMostRecentlyModifiedSession(): string | null {
-		try {
-			const files = readdirSync(this.sessionDir)
-				.filter((f) => f.endsWith(".jsonl"))
-				.map((f) => ({
-					name: f,
-					path: join(this.sessionDir, f),
-					mtime: statSync(join(this.sessionDir, f)).mtime,
-				}))
-				.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
-
-			return files[0]?.path || null;
-		} catch {
-			return null;
+			this.sessionId = generateUUID();
+			const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+			const sessionFile = join(this.sessionDir, `${timestamp}_${this.sessionId}.jsonl`);
+			this.setSessionFile(sessionFile);
 		}
 	}
 
-	startSession(state: AgentState): void {
-		if (this.sessionInitialized) return;
-		this.sessionInitialized = true;
-
-		const entry: SessionHeader = {
-			type: "session",
-			id: this.sessionId,
-			timestamp: new Date().toISOString(),
-			cwd: process.cwd(),
-			provider: state.provider.model.api,
-			modelId: state.provider.model.id,
-		};
-
-		// Always track in memory
-		this.inMemoryEntries.push(entry);
-		for (const pending of this.pendingEntries) {
-			this.inMemoryEntries.push(pending);
-		}
-		this.pendingEntries = [];
-
-		// Write to file only if enabled
-		if (this.enabled) {
-			appendFileSync(this.sessionFile, JSON.stringify(entry) + "\n");
-			for (const memEntry of this.inMemoryEntries.slice(1)) {
-				appendFileSync(this.sessionFile, JSON.stringify(memEntry) + "\n");
-			}
-		}
-	}
-
-	saveMessage(message: any): void {
-		const entry: SessionMessageEntry = {
-			type: "message",
-			timestamp: new Date().toISOString(),
-			message,
-		};
-
-		if (!this.sessionInitialized) {
-			this.pendingEntries.push(entry);
+	/** Switch to a different session file (used for resume and branching) */
+	setSessionFile(sessionFile: string): void {
+		this.sessionFile = resolve(sessionFile);
+		if (existsSync(this.sessionFile)) {
+			this.inMemoryEntries = loadEntriesFromFile(this.sessionFile);
+			const header = this.inMemoryEntries.find((e) => e.type === "session");
+			this.sessionId = header ? (header as SessionHeader).id : generateUUID();
+			this.flushed = true;
 		} else {
-			// Always track in memory
+			this.sessionId = generateUUID();
+			this.inMemoryEntries = [];
+			this.flushed = false;
+			const entry: SessionHeader = {
+				type: "session",
+				id: this.sessionId,
+				timestamp: new Date().toISOString(),
+				cwd: this.cwd,
+			};
 			this.inMemoryEntries.push(entry);
-			// Write to file only if enabled
-			if (this.enabled) {
-				appendFileSync(this.sessionFile, JSON.stringify(entry) + "\n");
-			}
 		}
 	}
 
-	/**
-	 * Load session data (messages, model, thinking level) with compaction support.
-	 */
-	loadSession(): LoadedSession {
-		const entries = this.loadEntries();
-		return loadSessionFromEntries(entries);
+	isPersisted(): boolean {
+		return this.persist;
+	}
+
+	getCwd(): string {
+		return this.cwd;
 	}
 
 	getSessionId(): string {
@@ -261,70 +191,150 @@ export class SessionManager {
 		return this.sessionFile;
 	}
 
-	/**
-	 * Load entries directly from the session file (internal helper).
-	 */
-	private loadEntriesFromFile(): SessionEntry[] {
-		if (!existsSync(this.sessionFile)) return [];
+	reset(): void {
+		this.sessionId = generateUUID();
+		this.flushed = false;
+		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+		this.sessionFile = join(this.sessionDir, `${timestamp}_${this.sessionId}.jsonl`);
+		this.inMemoryEntries = [
+			{
+				type: "session",
+				id: this.sessionId,
+				timestamp: new Date().toISOString(),
+				cwd: this.cwd,
+			},
+		];
+	}
 
-		const content = readFileSync(this.sessionFile, "utf8");
-		const entries: SessionEntry[] = [];
-		const lines = content.trim().split("\n");
+	_persist(entry: SessionEntry): void {
+		if (!this.persist) return;
 
-		for (const line of lines) {
-			if (!line.trim()) continue;
-			try {
-				const entry = JSON.parse(line) as SessionEntry;
-				entries.push(entry);
-			} catch {
-				// Skip malformed lines
+		const hasAssistant = this.inMemoryEntries.some((e) => e.type === "message" && e.message.role === "assistant");
+		if (!hasAssistant) return;
+
+		if (!this.flushed) {
+			for (const e of this.inMemoryEntries) {
+				appendFileSync(this.sessionFile, `${JSON.stringify(e)}\n`);
+			}
+			this.flushed = true;
+		} else {
+			appendFileSync(this.sessionFile, `${JSON.stringify(entry)}\n`);
+		}
+	}
+
+	saveMessage(message: any): void {
+		const entry: SessionMessageEntry = {
+			type: "message",
+			timestamp: new Date().toISOString(),
+			message,
+		};
+		this.inMemoryEntries.push(entry);
+		this._persist(entry);
+	}
+
+	saveProvider(api: string, modelId: string, providerOptions: OptionsForApi<Api>): void {
+		const entry: SessionProviderEntry = {
+			type: "provider",
+			timestamp: new Date().toISOString(),
+			api,
+			modelId,
+			providerOptions
+		};
+		this.inMemoryEntries.push(entry);
+		this._persist(entry);
+	}
+
+	loadSession(): LoadedSession {
+		const entries = this.loadEntries();
+		return loadSessionFromEntries(entries);
+	}
+
+	loadMessages(): Message[] {
+		return this.loadSession().messages;
+	}
+
+	loadModel(): { api: string; modelId: string; providerOptions: OptionsForApi<Api> } | null {
+		return this.loadSession().model;
+	}
+
+	loadEntries(): SessionEntry[] {
+		if (this.inMemoryEntries.length > 0) {
+			return [...this.inMemoryEntries];
+		} else {
+			return loadEntriesFromFile(this.sessionFile);
+		}
+	}
+
+	createBranchedSessionFromEntries(entries: SessionEntry[], branchBeforeIndex: number): string | null {
+		const newSessionId = generateUUID();
+		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+		const newSessionFile = join(this.sessionDir, `${timestamp}_${newSessionId}.jsonl`);
+
+		const newEntries: SessionEntry[] = [];
+		for (let i = 0; i < branchBeforeIndex; i++) {
+			const entry = entries[i];
+
+			if (entry.type === "session") {
+				newEntries.push({
+					...entry,
+					id: newSessionId,
+					timestamp: new Date().toISOString(),
+					branchedFrom: this.persist ? this.sessionFile : undefined,
+				});
+			} else {
+				newEntries.push(entry);
 			}
 		}
 
-		return entries;
-	}
-
-	/**
-	 * Load all entries from the session file or in-memory store.
-	 * When file persistence is enabled, reads from file (source of truth for resumed sessions).
-	 * When disabled (--no-session), returns in-memory entries.
-	 */
-	loadEntries(): SessionEntry[] {
-		// If file persistence is enabled and file exists, read from file
-		if (this.enabled && existsSync(this.sessionFile)) {
-			return this.loadEntriesFromFile();
+		if (this.persist) {
+			for (const entry of newEntries) {
+				appendFileSync(newSessionFile, `${JSON.stringify(entry)}\n`);
+			}
+			return newSessionFile;
 		}
-
-		// Otherwise return in-memory entries (for --no-session mode)
-		return [...this.inMemoryEntries];
+		this.inMemoryEntries = newEntries;
+		this.sessionId = newSessionId;
+		return null;
 	}
 
-	/**
-	 * Load all sessions for the current directory with metadata
-	 */
-	loadAllSessions(): Array<{
-		path: string;
-		id: string;
-		created: Date;
-		modified: Date;
-		messageCount: number;
-		firstMessage: string;
-		allMessagesText: string;
-	}> {
-		const sessions: Array<{
-			path: string;
-			id: string;
-			created: Date;
-			modified: Date;
-			messageCount: number;
-			firstMessage: string;
-			allMessagesText: string;
-		}> = [];
+	/** Create a new session for the given directory */
+	static create(cwd: string, agentDir: string = getDefaultAgentDir()): SessionManager {
+		return new SessionManager(cwd, agentDir, null, true);
+	}
+
+	/** Open a specific session file */
+	static open(path: string, agentDir: string = getDefaultAgentDir()): SessionManager {
+		// Extract cwd from session header if possible, otherwise use process.cwd()
+		const entries = loadEntriesFromFile(path);
+		const header = entries.find((e) => e.type === "session") as SessionHeader | undefined;
+		const cwd = header?.cwd ?? process.cwd();
+		return new SessionManager(cwd, agentDir, path, true);
+	}
+
+	/** Continue the most recent session for the given directory, or create new if none */
+	static continueRecent(cwd: string, agentDir: string = getDefaultAgentDir()): SessionManager {
+		const sessionDir = getSessionDirectory(cwd, agentDir);
+		const mostRecent = findMostRecentSession(sessionDir);
+		if (mostRecent) {
+			return new SessionManager(cwd, agentDir, mostRecent, true);
+		}
+		return new SessionManager(cwd, agentDir, null, true);
+	}
+
+	/** Create an in-memory session (no file persistence) */
+	static inMemory(): SessionManager {
+		return new SessionManager(process.cwd(), getDefaultAgentDir(), null, false);
+	}
+
+	/** List all sessions for a directory */
+	static list(cwd: string, agentDir: string = getDefaultAgentDir()): SessionInfo[] {
+		const sessionDir = getSessionDirectory(cwd, agentDir);
+		const sessions: SessionInfo[] = [];
 
 		try {
-			const files = readdirSync(this.sessionDir)
+			const files = readdirSync(sessionDir)
 				.filter((f) => f.endsWith(".jsonl"))
-				.map((f) => join(this.sessionDir, f));
+				.map((f) => join(sessionDir, f));
 
 			for (const file of files) {
 				try {
@@ -342,20 +352,16 @@ export class SessionManager {
 						try {
 							const entry = JSON.parse(line);
 
-							// Extract session ID from first session entry
 							if (entry.type === "session" && !sessionId) {
 								sessionId = entry.id;
 								created = new Date(entry.timestamp);
 							}
 
-							// Count messages and collect all text
 							if (entry.type === "message") {
 								messageCount++;
+								const message = entry.message as Message;
 
-								// Extract text from user and assistant messages
-								if ((entry.message as Message).role === "user" || (entry.message as Message).role === "assistant") {
-                                    const message = entry.message;
-
+								if (message.role === "user" || message.role === "assistant") {
 									const textContent = message.content
 										.filter((c: any) => c.type === "text")
 										.map((c: any) => c.text)
@@ -363,8 +369,8 @@ export class SessionManager {
 
 									if (textContent) {
 										allMessages.push(textContent);
-										// Get first user message for display
-										if (!firstMessage && entry.message.role === "user") {
+
+										if (!firstMessage && message.role === "user") {
 											firstMessage = textContent;
 										}
 									}
@@ -384,129 +390,16 @@ export class SessionManager {
 						firstMessage: firstMessage || "(no messages)",
 						allMessagesText: allMessages.join(" "),
 					});
-				} catch (error) {
+				} catch {
 					// Skip files that can't be read
-					console.error(`Failed to read session file ${file}:`, error);
 				}
 			}
 
-			// Sort by modified date (most recent first)
 			sessions.sort((a, b) => b.modified.getTime() - a.modified.getTime());
-		} catch (error) {
-			console.error("Failed to load sessions:", error);
+		} catch {
+			// Return empty list on error
 		}
+
 		return sessions;
 	}
-
-	/**
-	 * Set the session file to an existing session
-	 */
-	setSessionFile(path: string): void {
-		this.sessionFile = path;
-		this.loadSessionId();
-		// Mark as initialized since we're loading an existing session
-		this.sessionInitialized = existsSync(path);
-		// Load entries into memory for consistency
-		if (this.sessionInitialized) {
-			this.inMemoryEntries = this.loadEntriesFromFile();
-		} else {
-			this.inMemoryEntries = [];
-		}
-		this.pendingEntries = [];
-	}
-
-	/**
-	 * Check if we should initialize the session based on message history.
-	 * Session is initialized when we have at least 1 user message and 1 assistant message.
-	 */
-	shouldInitializeSession(messages: any[]): boolean {
-		if (this.sessionInitialized) return false;
-
-		const userMessages = messages.filter((m) => m.role === "user");
-		const assistantMessages = messages.filter((m) => m.role === "assistant");
-
-		return userMessages.length >= 1 && assistantMessages.length >= 1;
-	}
-
-	/**
-	 * Create a branched session from a specific message index.
-	 * If branchFromIndex is -1, creates an empty session.
-	 * Returns the new session file path.
-	 */
-	createBranchedSession(state: AgentState, branchFromIndex: number): string {
-		// Create a new session ID for the branch
-		const newSessionId = generateUUID();
-		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-		const newSessionFile = join(this.sessionDir, `${timestamp}_${newSessionId}.jsonl`);
-
-		// Write session header
-		const entry: SessionHeader = {
-			type: "session",
-			id: newSessionId,
-			timestamp: new Date().toISOString(),
-			cwd: process.cwd(),
-			provider: state.provider.model.api,
-			modelId: state.provider.model.id,
-			branchedFrom: this.sessionFile,
-		};
-		appendFileSync(newSessionFile, JSON.stringify(entry) + "\n");
-
-		// Write messages up to and including the branch point (if >= 0)
-		if (branchFromIndex >= 0) {
-			const messagesToWrite = state.messages.slice(0, branchFromIndex + 1);
-			for (const message of messagesToWrite) {
-				const messageEntry: SessionMessageEntry = {
-					type: "message",
-					timestamp: new Date().toISOString(),
-					message,
-				};
-				appendFileSync(newSessionFile, JSON.stringify(messageEntry) + "\n");
-			}
-		}
-		return newSessionFile;
-	}
-
-
-	/**
-	 * Create a branched session from session entries up to (but not including) a specific entry index.
-	 * Returns the new session file path, or null if in --no-session mode (in-memory only).
-	 */
-	createBranchedSessionFromEntries(entries: SessionEntry[], branchBeforeIndex: number): string | null {
-		const newSessionId = generateUUID();
-		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-		const newSessionFile = join(this.sessionDir, `${timestamp}_${newSessionId}.jsonl`);
-
-		// Build new entries list (up to but not including branch point)
-		const newEntries: SessionEntry[] = [];
-		for (let i = 0; i < branchBeforeIndex; i++) {
-			const entry = entries[i];
-
-			if (entry.type === "session") {
-				// Rewrite session header with new ID and branchedFrom
-				newEntries.push({
-					...entry,
-					id: newSessionId,
-					timestamp: new Date().toISOString(),
-					branchedFrom: this.enabled ? this.sessionFile : undefined,
-				});
-			} else {
-				// Copy other entries as-is
-				newEntries.push(entry);
-			}
-		}
-
-		if (this.enabled) {
-			// Write to file
-			for (const entry of newEntries) {
-				appendFileSync(newSessionFile, JSON.stringify(entry) + "\n");
-			}
-			return newSessionFile;
-		} else {
-			// In-memory mode: replace inMemoryEntries, no file created
-			this.inMemoryEntries = newEntries;
-			this.sessionId = newSessionId;
-			return null;
-		}
-	}
-
 }
