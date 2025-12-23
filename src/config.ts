@@ -47,17 +47,17 @@ export function getPackageDir(): string {
 /**
  * Get path to built-in themes directory (shipped with package)
  * - For Bun binary: theme/ next to executable
- * - For Node.js (dist/): dist/cli/theme/
- * - For tsx (src/): src/cli/theme/
+ * - For Node.js (dist/): dist/modes/theme/
+ * - For tsx (src/): src/modes/theme/
  */
 export function getThemesDir(): string {
 	if (isBunBinary) {
 		return join(dirname(process.execPath), "theme");
 	}
-	// Theme is in cli/theme/ relative to src/ or dist/
+	// Theme is in modes/theme/ relative to src/ or dist/
 	const packageDir = getPackageDir();
 	const srcOrDist = existsSync(join(packageDir, "src")) ? "src" : "dist";
-	return join(packageDir, srcOrDist, "cli", "theme");
+	return join(packageDir, srcOrDist, "modes", "theme");
 }
 
 /** Get path to package.json */

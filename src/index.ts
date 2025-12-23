@@ -1,4 +1,4 @@
-import {cli} from './cli/tui.js'
+import {cli} from './modes/tui.js'
 
 // Run the main function
 cli().catch((error) => {

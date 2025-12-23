@@ -26,7 +26,7 @@
 		"start": "clear && node dist/index.js",
 		"clean": "rm -rf dist",
 		"build": "npm run copy-assets && tsc",
-		"copy-assets": "mkdir -p dist/cli/theme && cp src/cli/theme/*.json dist/cli/theme/",
+		"copy-assets": "mkdir -p dist/modes/theme && cp src/modes/theme/*.json dist/modes/theme/",
 		"test": "vitest --run"
 	},
 	"dependencies": {
