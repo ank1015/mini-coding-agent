@@ -364,7 +364,7 @@ export class SessionManager {
 								if (message.role === "user" || message.role === "assistant") {
 									const textContent = message.content
 										.filter((c: any) => c.type === "text")
-										.map((c: any) => c.text)
+										.map((c: any) => c.content)
 										.join(" ");
 
 									if (textContent) {

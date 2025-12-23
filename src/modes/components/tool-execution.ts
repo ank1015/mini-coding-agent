@@ -143,7 +143,7 @@ export class ToolExecutionComponent extends Container {
 
 		let output = textBlocks
 			.map((c: any) => {
-				let text = stripAnsi(c.text || "").replace(/\r/g, "");
+				let text = stripAnsi(c.content || "").replace(/\r/g, "");
 				text = text.replace(/\x1b./g, "");
 				text = text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g, "");
 				return text;

@@ -16,11 +16,11 @@ export interface Settings {
 	terminal?: TerminalSettings;
 }
 
-/** Deep merge settings: project/overrides take precedence, nested objects merge recursively */
-function deepMergeSettings(base: Settings, overrides: Settings): Settings {
-	const result: Settings = { ...base };
+/** Deep merge two objects recursively */
+function deepMerge<T extends Record<string, unknown>>(base: T, overrides: T): T {
+	const result = { ...base } as T;
 
-	for (const key of Object.keys(overrides) as (keyof Settings)[]) {
+	for (const key of Object.keys(overrides) as (keyof T)[]) {
 		const overrideValue = overrides[key];
 		const baseValue = base[key];
 
@@ -37,7 +37,10 @@ function deepMergeSettings(base: Settings, overrides: Settings): Settings {
 			baseValue !== null &&
 			!Array.isArray(baseValue)
 		) {
-			(result as Record<string, unknown>)[key] = { ...baseValue, ...overrideValue };
+			(result as Record<string, unknown>)[key] = deepMerge(
+				baseValue as Record<string, unknown>,
+				overrideValue as Record<string, unknown>
+			);
 		} else {
 			// For primitives and arrays, override value wins
 			(result as Record<string, unknown>)[key] = overrideValue;
@@ -45,6 +48,11 @@ function deepMergeSettings(base: Settings, overrides: Settings): Settings {
 	}
 
 	return result;
+}
+
+/** Deep merge settings: project/overrides take precedence, nested objects merge recursively */
+function deepMergeSettings(base: Settings, overrides: Settings): Settings {
+	return deepMerge(base, overrides);
 }
 
 export class SettingsManager {
@@ -145,14 +153,15 @@ export class SettingsManager {
 		return this.settings.defaultProviderSettings;
 	}
 
-	setDefaultProviderSettings(providerSettings: OptionsForApi<Api>){
+	setDefaultProviderSettings(providerSettings: OptionsForApi<Api>): void {
 		this.globalSettings.defaultProviderSettings = providerSettings;
 		this.save();
 	}
 
-	setDefaultModel(model: Model<Api>): void {
+	setDefaultModelAndSettings(model: Model<Api>, providerSettings: OptionsForApi<Api>): void {
 		this.globalSettings.defaultModel = model.id;
 		this.globalSettings.defaultApi = model.api;
+		this.globalSettings.defaultProviderSettings = providerSettings;
 		this.save();
 	}
 

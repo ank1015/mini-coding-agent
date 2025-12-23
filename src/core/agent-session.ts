@@ -1,12 +1,27 @@
-import { AgentEvent, AgentState, Api, Attachment, BaseAssistantMessage, Conversation, generateUUID, getApiKeyFromEnv, Message, Model, Provider, TextContent } from "@ank1015/providers"
-import { loadSessionFromEntries, SessionManager } from "./session-manager";
-import { SettingsManager } from "./settings-manager";
-import { exportSessionToHtml } from "./export-html";
+/**
+ * AgentSession - Core abstraction for agent lifecycle and session management.
+ *
+ * This class is shared between all run modes (interactive, print, rpc).
+ * It encapsulates:
+ * - Agent state access
+ * - Event subscription with automatic session persistence
+ * - Model and Provider options management
+ * - Session switching and branching
+ *
+ * Modes use this class and add their own I/O layer on top.
+ */
+
+import { Conversation, BaseAssistantMessage, Model, TextContent, AgentEvent, AgentState, Message, Attachment, getApiKeyFromEnv, Api, OptionsForApi, generateUUID, getModel } from "@ank1015/providers";
+import { getModelsPath } from "../config.js";
+import { exportSessionToHtml } from "./export-html.js";
+import { loadSessionFromEntries, type SessionManager } from "./session-manager.js";
+import type { SettingsManager } from "./settings-manager.js";
 
 /** Session-specific events that extend the core AgentEvent */
-export type AgentSessionEvent =
-	| AgentEvent
+export type AgentSessionEvent = AgentEvent
 
+/** Listener function for agent session events */
+export type AgentSessionEventListener = (event: AgentSessionEvent) => void;
 
 // ============================================================================
 // Types
@@ -17,9 +32,6 @@ export interface AgentSessionConfig {
 	sessionManager: SessionManager;
 	settingsManager: SettingsManager;
 }
-
-/** Listener function for agent session events */
-export type AgentSessionEventListener = (event: AgentSessionEvent) => void;
 
 /** Options for AgentSession.prompt() */
 export interface PromptOptions {
@@ -46,12 +58,13 @@ export interface SessionStats {
 	cost: number;
 }
 
+
 // ============================================================================
 // AgentSession Class
 // ============================================================================
 
 export class AgentSession {
-    readonly agent: Conversation;
+	readonly agent: Conversation;
 	readonly sessionManager: SessionManager;
 	readonly settingsManager: SettingsManager;
 
@@ -79,9 +92,6 @@ export class AgentSession {
 		}
 	}
 
-	// Track last assistant message for auto-compaction check
-	private _lastAssistantMessage: BaseAssistantMessage<Api> | null = null;
-
 	/** Internal handler for agent events - shared by subscribe and reconnect */
 	private _handleAgentEvent = async (event: AgentEvent): Promise<void> => {
 		// When a user message starts, check if it's from the queue and remove it BEFORE emitting
@@ -96,7 +106,7 @@ export class AgentSession {
 					this._queuedMessages.splice(index, 1);
 				}
 			}
-        }
+		}
 
 		// Notify all listeners
 		this._emit(event);
@@ -104,15 +114,8 @@ export class AgentSession {
 		// Handle session persistence
 		if (event.type === "message_end") {
 			this.sessionManager.saveMessage(event.message);
-
-			// Track assistant message
-			if (event.message.role === "assistant") {
-				this._lastAssistantMessage = event.message;
-			}
 		}
-
-    }
-
+	};
 
 	/** Extract text content from a message */
 	private _getUserMessageText(message: Message): string {
@@ -201,12 +204,17 @@ export class AgentSession {
 		return this.agent.state.provider.model;
 	}
 
+	/** Current Provider options */
+	get providerOptions(): OptionsForApi<Api> {
+		return this.agent.state.provider.providerOptions;
+	}
+
 	/** Whether agent is currently streaming a response */
 	get isStreaming(): boolean {
 		return this.agent.state.isStreaming;
 	}
 
-	/** All messages including custom types like BashExecutionMessage */
+	/** All messages */
 	get messages(): Message[] {
 		return this.agent.state.messages;
 	}
@@ -218,14 +226,13 @@ export class AgentSession {
 
 	/** Current session file path, or null if sessions are disabled */
 	get sessionFile(): string | null {
-		return this.sessionManager.isEnabled() ? this.sessionManager.getSessionFile() : null;
+		return this.sessionManager.isPersisted() ? this.sessionManager.getSessionFile() : null;
 	}
 
 	/** Current session ID */
 	get sessionId(): string {
 		return this.sessionManager.getSessionId();
 	}
-
 
 	// =========================================================================
 	// Prompting
@@ -243,20 +250,23 @@ export class AgentSession {
 		if (!this.model) {
 			throw new Error(
 				"No model selected.\n\n" +
-					"Set an API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)\n"
+					"Set an API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)\n" +
+					`or create ${getModelsPath()}\n\n` +
+					"Then use /model to select a model.",
 			);
 		}
 
 		// Validate API key
-		const apiKey = await getApiKeyFromEnv(this.model.api);
+		const apiKey = getApiKeyFromEnv(this.model.api);
 		if (!apiKey) {
 			throw new Error(
-				`No API key found for ${this.model.api}.\n\n`
+				`No API key found for ${this.model.api}.\n\n` +
+					`Set the appropriate environment variable or update ${getModelsPath()}`,
 			);
 		}
 
 		await this.agent.prompt(text, options?.attachments);
-    }
+	}
 
 	/**
 	 * Queue a message to be sent after the current response completes.
@@ -268,7 +278,7 @@ export class AgentSession {
 			role: "user",
 			content: [{ type: "text", content: text }],
 			timestamp: Date.now(),
-            id: generateUUID()
+			id: generateUUID()
 		});
 	}
 
@@ -305,19 +315,15 @@ export class AgentSession {
 	 * Reset agent and session to start fresh.
 	 * Clears all messages and starts a new session.
 	 * Listeners are preserved and will continue receiving events.
-	 * @returns true if reset completed
+	 * @returns true if reset completed, false if cancelled by hook
 	 */
 	async reset(): Promise<boolean> {
-		const previousSessionFile = this.sessionFile;
-		const entries = this.sessionManager.loadEntries();
-
 		this._disconnectFromAgent();
 		await this.abort();
 		this.agent.reset();
 		this.sessionManager.reset();
 		this._queuedMessages = [];
 		this._reconnectToAgent();
-
 		return true;
 	}
 
@@ -326,19 +332,34 @@ export class AgentSession {
 	// =========================================================================
 
 	/**
-	 * Set model directly.
+	 * Set model & Provider options directly.
 	 * Validates API key, saves to session and settings.
 	 * @throws Error if no API key available for the model
 	 */
-	async setModel(provider: Provider<Api>): Promise<void> {
-		const apiKey = getApiKeyFromEnv(provider.model.api);
+	async setModel(model: Model<Api>, providerOptions: OptionsForApi<Api>): Promise<void> {
+		const apiKey = getApiKeyFromEnv(model.api);
 		if (!apiKey) {
-			throw new Error(`No API key for ${provider.model.api}/${provider.model.id}`);
+			throw new Error(`No API key for ${model.api}/${model.id}`);
 		}
 
-		this.agent.setProvider(provider);
-		this.settingsManager.setDefaultModelAndProvider(provider.model.api, provider.model.id);
+		this.agent.setProvider({model, providerOptions});
+		this.sessionManager.saveProvider(model.api, model.id, providerOptions);
+		this.settingsManager.setDefaultModelAndSettings(model, providerOptions);
 	}
+
+	// =========================================================================
+	// Queue Mode Management
+	// =========================================================================
+
+	/**
+	 * Set message queue mode.
+	 * Saves to settings.
+	 */
+	setQueueMode(mode: "all" | "one-at-a-time"): void {
+		this.agent.setQueueMode(mode);
+		this.settingsManager.setQueueMode(mode);
+	}
+
 
 	// =========================================================================
 	// Session Management
@@ -348,12 +369,9 @@ export class AgentSession {
 	 * Switch to a different session file.
 	 * Aborts current operation, loads messages, restores model/thinking.
 	 * Listeners are preserved and will continue receiving events.
-	 * @returns true if switch completed, false if cancelled by hook
+	 * @returns true if switch completed, false if cancelled
 	 */
 	async switchSession(sessionPath: string): Promise<boolean> {
-		const previousSessionFile = this.sessionFile;
-		const oldEntries = this.sessionManager.loadEntries();
-
 		this._disconnectFromAgent();
 		await this.abort();
 		this._queuedMessages = [];
@@ -368,17 +386,85 @@ export class AgentSession {
 		this.agent.replaceMessages(loaded.messages);
 
 		// Restore model if saved
-		// const savedModel = this.sessionManager.loadSession().model;
-		// if (savedModel) {
-		// 	const availableModels = (await getAvailableModels()).models;
-		// 	const match = availableModels.find((m) => m.provider === savedModel.provider && m.id === savedModel.modelId);
-		// 	if (match) {
-		// 		this.agent.setModel(match);
-		// 	}
-		// }
+		const savedModel = this.sessionManager.loadModel();
+		if (savedModel) {
+			const model = getModel(savedModel.api as Api, savedModel.modelId);
+			if (!model) {
+				throw new Error(`Model not found: ${savedModel.api}/${savedModel.modelId}`);
+			}
+			this.agent.setProvider({ model, providerOptions: savedModel.providerOptions });
+		}
 
 		this._reconnectToAgent();
 		return true;
+	}
+
+	/**
+	 * Create a branch from a specific entry index.
+	 * Emits before_branch/branch session events to hooks.
+	 *
+	 * @param entryIndex Index into session entries to branch from
+	 * @returns Object with:
+	 *   - selectedText: The text of the selected user message (for editor pre-fill)
+	 *   - cancelled: True if a hook cancelled the branch
+	 */
+	async branch(entryIndex: number): Promise<{ selectedText: string; cancelled: boolean }> {
+		const entries = this.sessionManager.loadEntries();
+		const selectedEntry = entries[entryIndex];
+
+		if (!selectedEntry || selectedEntry.type !== "message" || selectedEntry.message.role !== "user") {
+			throw new Error("Invalid entry index for branching");
+		}
+
+		const selectedText = this._extractUserMessageText(selectedEntry.message.content);
+
+		// Create branched session (returns null in --no-session mode)
+		const newSessionFile = this.sessionManager.createBranchedSessionFromEntries(entries, entryIndex);
+
+		// Update session file if we have one (file-based mode)
+		if (newSessionFile !== null) {
+			this.sessionManager.setSessionFile(newSessionFile);
+		}
+
+		// Reload messages from entries (works for both file and in-memory mode)
+		const newEntries = this.sessionManager.loadEntries();
+		const loaded = loadSessionFromEntries(newEntries);
+
+		this.agent.replaceMessages(loaded.messages);
+
+		return { selectedText, cancelled: false };
+	}
+
+	/**
+	 * Get all user messages from session for branch selector.
+	 */
+	getUserMessagesForBranching(): Array<{ entryIndex: number; text: string }> {
+		const entries = this.sessionManager.loadEntries();
+		const result: Array<{ entryIndex: number; text: string }> = [];
+
+		for (let i = 0; i < entries.length; i++) {
+			const entry = entries[i];
+			if (entry.type !== "message") continue;
+			if (entry.message.role !== "user") continue;
+
+			const text = this._extractUserMessageText(entry.message.content);
+			if (text) {
+				result.push({ entryIndex: i, text });
+			}
+		}
+
+		return result;
+	}
+
+	private _extractUserMessageText(content: string | Array<{ type: string; content?: string }>): string {
+		if (typeof content === "string") return content;
+		if (Array.isArray(content)) {
+			return content
+				.filter((c) => c.type === "text")
+				.map((c) => c.content)
+				.join("");
+		}
+		return "";
 	}
 
 	/**
@@ -436,7 +522,4 @@ export class AgentSession {
 	exportToHtml(outputPath?: string): string {
 		return exportSessionToHtml(this.sessionManager, this.state, outputPath);
 	}
-
-
-
 }

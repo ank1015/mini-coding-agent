@@ -84,11 +84,25 @@ export function getChangelogPath(): string {
 // App Config (from package.json miniConfig)
 // =============================================================================
 
-const pkg = JSON.parse(readFileSync(getPackageJsonPath(), "utf-8"));
+function loadPackageJson(): { miniConfig?: { name?: string; configDir?: string }; version?: string } {
+	try {
+		const packageJsonPath = getPackageJsonPath();
+		if (!existsSync(packageJsonPath)) {
+			console.error(`Warning: package.json not found at ${packageJsonPath}. Using default configuration.`);
+			return {};
+		}
+		return JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+	} catch (error) {
+		console.error(`Warning: Failed to read package.json: ${error}. Using default configuration.`);
+		return {};
+	}
+}
+
+const pkg = loadPackageJson();
 
 export const APP_NAME: string = pkg.miniConfig?.name || "mini";
 export const CONFIG_DIR_NAME: string = pkg.miniConfig?.configDir || ".mini";
-export const VERSION: string = pkg.version;
+export const VERSION: string = pkg.version || "0.0.0";
 
 // e.g., MINI_CODING_AGENT_DIR or TAU_CODING_AGENT_DIR
 export const ENV_AGENT_DIR = `${APP_NAME.toUpperCase()}_CODING_AGENT_DIR`;
