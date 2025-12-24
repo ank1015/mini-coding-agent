@@ -45,8 +45,6 @@ export interface BuildSystemPromptOptions {
 	appendSystemPrompt?: string;
 	/** Working directory. Default: process.cwd() */
 	cwd?: string;
-	/** Agent config directory. Default: from getAgentDir() */
-	agentDir?: string;
 }
 
 /** Build the system prompt with tools, guidelines, and context */
@@ -56,7 +54,6 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 		selectedTools,
 		appendSystemPrompt,
 		cwd,
-		agentDir,
 	} = options;
 	const resolvedCwd = cwd ?? process.cwd();
 	const resolvedCustomPrompt = resolvePromptInput(customPrompt, "system prompt");

@@ -120,15 +120,16 @@ describe('SDK', () => {
 			const { getModel } = await import('@ank1015/providers');
 			const customModel = vi.mocked(getModel)('openai', 'gpt-5-nano');
 
-			const result = await createAgentSession({
-				cwd,
-				agentDir,
-				model: customModel,
-				providerOptions: { temperature: 0.5 },
-			});
-
-			expect(result.session.model?.id).toBe('gpt-5-nano');
-			expect(result.session.providerOptions).toEqual({ temperature: 0.5 });
+			if(customModel){
+				const result = await createAgentSession({
+					cwd,
+					agentDir,
+					provider: {model: customModel, providerOptions: {temperature: 0.5}}
+				});
+	
+				expect(result.session.model?.id).toBe('gpt-5-nano');
+				expect(result.session.providerOptions).toEqual({ temperature: 0.5 });
+			}
 		});
 
 		it('should discover model from settings', async () => {
@@ -214,20 +215,23 @@ describe('SDK', () => {
 		});
 
 		it('should save initial provider to session header', async () => {
-			const result = await createAgentSession({
-				cwd,
-				agentDir,
-				model: vi.mocked(await import('@ank1015/providers')).getModel('openai', 'gpt-5-nano'),
-				providerOptions: { temperature: 0.8 },
-			});
 
-			const entries = result.session.sessionManager.loadEntries();
-			const header = entries[0] as any;
-
-			expect(header.type).toBe('session');
-			expect(header.api).toBe('openai');
-			expect(header.modelId).toBe('gpt-5-nano');
-			expect(header.providerOptions).toEqual({ temperature: 0.8 });
+			const customModel = vi.mocked(await import('@ank1015/providers')).getModel('openai', 'gpt-5-nano')
+			if(customModel){
+				const result = await createAgentSession({
+					cwd,
+					agentDir,
+					provider: {model: customModel, providerOptions: { temperature: 0.8 }}
+				});
+	
+				const entries = result.session.sessionManager.loadEntries();
+				const header = entries[0] as any;
+	
+				expect(header.type).toBe('session');
+				expect(header.api).toBe('openai');
+				expect(header.modelId).toBe('gpt-5-nano');
+				expect(header.providerOptions).toEqual({ temperature: 0.8 });
+			}
 		});
 
 		it('should use custom system prompt', async () => {

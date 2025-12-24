@@ -19,7 +19,7 @@
  * ```
  */
 
-import { Api, Conversation, getApiKeyFromEnv, getAvailableModels, getModel, Model, OptionsForApi } from "@ank1015/providers";
+import { Api, Conversation, getApiKeyFromEnv, getAvailableModels, getModel, Model, OptionsForApi, Provider } from "@ank1015/providers";
 import { SessionManager } from "./session-manager";
 import { Settings, SettingsManager } from "./settings-manager";
 import { AgentSession } from "./agent-session";
@@ -56,11 +56,8 @@ export interface CreateAgentSessionOptions {
 	/** Global config directory. Default: ~/.pi/agent */
 	agentDir?: string;
 
-	/** Model to use. Default: from settings, else first available */
-	model?: Model<Api>;
-
-	/** Provider Options to use. Default: from settings, else {} */
-	providerOptions?: OptionsForApi<Api>;
+	/** Model and provider options together */
+	provider?: Provider<Api>
 
 	/** API key resolver. Default: defaultGetApiKey() */
 	getApiKey?: (model: Model<any>) => Promise<string | undefined>;
@@ -198,38 +195,54 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	const settingsManager = options.settingsManager ?? SettingsManager.create(agentDir);
 
 	// Discover model before creating session manager
-    let model = options.model;
-    let providerOptions = options.providerOptions;
+    let model: Model<Api> | undefined = undefined;
+    let providerOptions: OptionsForApi<Api> | undefined = undefined;
 
-	// Try settings default first
-	if (!model) {
+	// Try provided options first
+	if(options.provider){
+		model = options.provider.model;
+		providerOptions = options.provider.providerOptions;
+	}
+
+	if(options.sessionManager){
+		// Check if session has existing data to restore and find model and provider
+		const existingSession = options.sessionManager.loadSession();
+		const hasExistingSession = existingSession.messages.length > 0;	
+		if(hasExistingSession){
+			const extractedModel = findModel(existingSession.model?.api as Api, existingSession.model?.modelId as any);
+			if(extractedModel){
+				model = extractedModel;
+				providerOptions = existingSession.model?.providerOptions
+			}
+		}
+	}
+
+	// Find the global settings
+	if(!model){
 		const defaultProvider = settingsManager.getDefaultProvider();
 		const defaultModelId = settingsManager.getDefaultModel();
         const defaultProviderOptions = settingsManager.getDefaultProviderOptions();
 
-        if(defaultProviderOptions && defaultModelId && defaultProvider){
-            const settingsModel = findModel(defaultProvider, defaultModelId);
-            if(settingsModel){
-                const key = getApiKeyFromEnv(settingsModel.api);
-                if(key){
-                    model = settingsModel;
-                    providerOptions = defaultProviderOptions;
-                }
-            }
-        }
-    }
+		if(defaultModelId && defaultProvider){
+			const globalModel = findModel(defaultProvider, defaultModelId);
+			if(globalModel){
+				model=  globalModel;
+				providerOptions = defaultProviderOptions ?? {}
+			}
+		}
+	}
 
-	// Fall back to first available
-    if(!model){
-        const available = getAvailableModels();
+	// If still model doesn't exist, find the first in available models 
+	if (!model) {
+		const available = getAvailableModels();
 		if (available.length === 0) {
 			throw new Error(
 				"No models available. Set an API key environment variable " +
 					"(ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) or provide a model explicitly.",
 			);
 		}
-        model = available[0];
-        providerOptions = {};
+		model = available[0];
+		providerOptions = {};
     }
 
 	// Create session manager with initial provider
@@ -247,25 +260,10 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	const existingSession = sessionManager.loadSession();
 	const hasExistingSession = existingSession.messages.length > 0;
 
-	// If session has data, restore model from it (overrides discovered model)
-	if (hasExistingSession && existingSession.model) {
-        const restoredModel = findModel(existingSession.model.api, existingSession.model.modelId);
-		if (restoredModel) {
-			const key = getApiKeyFromEnv(restoredModel.api);
-			if (key) {
-				model = restoredModel
-                providerOptions = existingSession.model.providerOptions;
-			}
-		}
-	}
-
 	const builtInTools = options.tools ?? createCodingTools(cwd);
 
 	let systemPrompt: string;
-	const defaultPrompt = buildSystemPromptInternal({
-		cwd,
-		agentDir
-	});
+	const defaultPrompt = buildSystemPromptInternal({cwd});
 
 	if (options.systemPrompt === undefined) {
 		systemPrompt = defaultPrompt;
