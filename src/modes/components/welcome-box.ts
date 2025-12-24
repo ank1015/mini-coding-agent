@@ -1,7 +1,6 @@
 import type { Component } from "@ank1015/agents-tui";
 import { theme } from "../theme/theme.js";
 import * as os from "node:os";
-import * as path from "node:path";
 
 /**
  * Welcome box component that displays app info, user greeting, and tips

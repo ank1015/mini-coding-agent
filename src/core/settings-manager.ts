@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { getAgentDir } from "../config.js";
-import { Api, Model, OptionsForApi } from "@ank1015/providers";
+import { Api, GoogleThinkingLevel, Model, OptionsForApi } from "@ank1015/providers";
 
 export interface TerminalSettings {
 	showImages?: boolean; // default: true (only relevant if terminal supports images)
@@ -19,6 +19,14 @@ export interface Settings {
 /** Default settings configuration */
 const DEFAULT_SETTINGS: Settings = {
 	queueMode: "one-at-a-time",
+	defaultApi: 'google',
+	defaultModel: 'gemini-3-flash-preview',
+	defaultProviderOptions: {
+		thinkingConfig: {
+			includeThoughts: true,
+			thinkingLevel: GoogleThinkingLevel.MEDIUM
+		}
+	},
 	terminal: {
 		showImages: true,
 	},

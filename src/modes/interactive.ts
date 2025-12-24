@@ -17,20 +17,21 @@ import {
 	TUI,
 	visibleWidth,
 } from "@ank1015/agents-tui";
-import { AgentSession, AgentSessionEvent } from "../core/agent-session";
-import { CustomEditor } from "./components/custom-editor";
-import { FooterComponent } from "./components/footer";
-import { AssistantMessageComponent } from "./components/assistant-message";
-import { ToolExecutionComponent } from "./components/tool-execution";
+import { AgentSession, AgentSessionEvent } from "../core/agent-session.js";
+import { CustomEditor } from "./components/custom-editor.js";
+import { FooterComponent } from "./components/footer.js";
+import { AssistantMessageComponent } from "./components/assistant-message.js";
+import { ToolExecutionComponent } from "./components/tool-execution.js";
 import { getEditorTheme, getMarkdownTheme, onThemeChange, theme } from "./theme/theme.js";
 import { APP_NAME, getDebugLogPath } from "../config.js";
 import { AgentState, Api, BaseAssistantEvent, BaseAssistantMessage, Message } from "@ank1015/providers";
-import { UserMessageComponent } from "./components/user-message";
-import { DynamicBorder } from "./components/dynamic-border";
-import { SessionManager } from "../core/session-manager";
-import { QueueModeSelectorComponent } from "./components/queue-mode-selector";
-import { SessionSelectorComponent } from "./components/session-selector";
-import { ShowImagesSelectorComponent } from "./components/show-images-selector";
+import { UserMessageComponent } from "./components/user-message.js";
+import { DynamicBorder } from "./components/dynamic-border.js";
+import { SessionManager } from "../core/session-manager.js";
+import { QueueModeSelectorComponent } from "./components/queue-mode-selector.js";
+import { SessionSelectorComponent } from "./components/session-selector.js";
+import { ShowImagesSelectorComponent } from "./components/show-images-selector.js";
+import { WelcomeBox } from "./components/welcome-box.js";
 
 export class InteractiveMode {
     private session: AgentSession;
@@ -155,6 +156,8 @@ export class InteractiveMode {
 			theme.fg("dim", "drop files") +
 			theme.fg("muted", " to attach");
 		const header = new Text(`${logo}\n${instructions}`, 1, 0);
+
+		this.ui.addChild(new WelcomeBox())
 
 		// Setup UI layout
 		this.ui.addChild(new Spacer(1));

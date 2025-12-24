@@ -14,7 +14,6 @@ import stripAnsi from "strip-ansi";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize } from "../../core/tools/truncate.js";
 import { getLanguageFromPath, highlightCode, theme } from "../theme/theme.js";
 import { renderDiff } from "./diff.js";
-import { truncateToVisualLines } from "./visual-truncate.js";
 import { Content } from "@ank1015/providers";
 
 // Preview line limit for bash when not expanded

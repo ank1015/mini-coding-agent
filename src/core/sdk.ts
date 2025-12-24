@@ -20,9 +20,9 @@
  */
 
 import { Api, Conversation, getApiKeyFromEnv, getAvailableModels, getModel, Model, OptionsForApi, Provider } from "@ank1015/providers";
-import { SessionManager } from "./session-manager";
-import { Settings, SettingsManager } from "./settings-manager";
-import { AgentSession } from "./agent-session";
+import { SessionManager } from "./session-manager.js";
+import { Settings, SettingsManager } from "./settings-manager.js";
+import { AgentSession } from "./agent-session.js";
 import {
 	buildSystemPrompt as buildSystemPromptInternal,
 } from "./system-prompt.js";
@@ -48,7 +48,7 @@ import {
 	type Tool,
 	writeTool,
 } from "./tools/index.js";
-import { getAgentDir } from "../config";
+import { getAgentDir } from "../config.js";
 
 export interface CreateAgentSessionOptions {
 	/** Working directory for project-local discovery. Default: process.cwd() */
