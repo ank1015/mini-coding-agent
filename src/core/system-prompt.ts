@@ -78,7 +78,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 		}
 
 		// Add date/time and working directory last
-		prompt += `\nCurrent date and time: ${dateTime}`;
+		prompt += `\nToday's date: ${dateTime}`;
 		prompt += `\nCurrent working directory: ${resolvedCwd}`;
 
 		return prompt;
@@ -161,7 +161,7 @@ ${guidelines}
 	}
 
 	// Add date/time and working directory last
-	prompt += `\nCurrent date and time: ${dateTime}`;
+	prompt += `\nToday's date: ${dateTime}`;
 	prompt += `\nCurrent working directory: ${resolvedCwd}`;
 
 	return prompt;
