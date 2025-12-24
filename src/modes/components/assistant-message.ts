@@ -1,4 +1,4 @@
-import type { BaseAssistantMessage, Api, TextContent } from "@ank1015/providers";
+import type { BaseAssistantMessage, Api, TextContent, BaseAssistantEventMessage } from "@ank1015/providers";
 import { Container, Markdown, Spacer, Text } from "@ank1015/agents-tui";
 import { getMarkdownTheme, theme } from "../theme/theme.js";
 
@@ -27,7 +27,7 @@ export class AssistantMessageComponent extends Container {
 		this.hideThinkingBlock = hide;
 	}
 
-	updateContent(message: BaseAssistantMessage<Api>): void {
+	updateContent(message: BaseAssistantEventMessage<Api>): void {
 		// Clear content container
 		this.contentContainer.clear();
 

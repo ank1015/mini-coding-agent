@@ -34,7 +34,7 @@ export function getShellConfig(): { shell: string; args: string[] } {
 		return cachedShellConfig;
 	}
 
-	const settings = new SettingsManager();
+	const settings = SettingsManager.create();
 	const customShellPath = settings.getShellPath();
 
 	// 1. Check user-specified shell path
@@ -44,7 +44,7 @@ export function getShellConfig(): { shell: string; args: string[] } {
 			return cachedShellConfig;
 		}
 		throw new Error(
-			`Custom shell path not found: ${customShellPath}\n` + `Please update shellPath in ~/.mini/agent/settings.json`,
+			`Custom shell path not found: ${customShellPath}\nPlease update shellPath in ~/.pi/agent/settings.json`,
 		);
 	}
 
@@ -78,7 +78,7 @@ export function getShellConfig(): { shell: string; args: string[] } {
 			`No bash shell found. Options:\n` +
 				`  1. Install Git for Windows: https://git-scm.com/download/win\n` +
 				`  2. Add your bash to PATH (Cygwin, MSYS2, etc.)\n` +
-				`  3. Set shellPath in ~/.mini/agent/settings.json\n\n` +
+				`  3. Set shellPath in ~/.pi/agent/settings.json\n\n` +
 				`Searched Git Bash in:\n${paths.map((p) => `  ${p}`).join("\n")}`,
 		);
 	}

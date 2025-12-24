@@ -1,7 +1,7 @@
-import {cli} from './modes/tui.js'
+// import {cli} from './modes/tui.js'
 
-// Run the main function
-cli().catch((error) => {
-	console.error("Error starting TUI:", error);
-	process.exit(1);
-});
+// // Run the main function
+// cli().catch((error) => {
+// 	console.error("Error starting TUI:", error);
+// 	process.exit(1);
+// });

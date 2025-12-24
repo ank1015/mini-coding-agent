@@ -8,11 +8,17 @@ import {
 	imageFallback,
 	Spacer,
 	Text,
+	type TUI,
 } from "@ank1015/agents-tui";
 import stripAnsi from "strip-ansi";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize } from "../../core/tools/truncate.js";
 import { getLanguageFromPath, highlightCode, theme } from "../theme/theme.js";
 import { renderDiff } from "./diff.js";
+import { truncateToVisualLines } from "./visual-truncate.js";
+import { Content } from "@ank1015/providers";
+
+// Preview line limit for bash when not expanded
+const BASH_PREVIEW_LINES = 5;
 
 /**
  * Convert absolute path to tilde notation if it's in home directory
@@ -20,7 +26,7 @@ import { renderDiff } from "./diff.js";
 function shortenPath(path: string): string {
 	const home = os.homedir();
 	if (path.startsWith(home)) {
-		return "~" + path.slice(home.length);
+		return `~${path.slice(home.length)}`;
 	}
 	return path;
 }
@@ -40,31 +46,41 @@ export interface ToolExecutionOptions {
  * Component that renders a tool call with its result (updateable)
  */
 export class ToolExecutionComponent extends Container {
-	private contentBox?: Box; // Only used for custom tools
+	private contentBox: Box; // Used for custom tools and bash visual truncation
 	private contentText: Text; // For built-in tools (with its own padding/bg)
 	private imageComponents: Image[] = [];
+	private imageSpacers: Spacer[] = [];
 	private toolName: string;
 	private args: any;
 	private expanded = false;
 	private showImages: boolean;
 	private isPartial = true;
+	private ui: TUI;
 	private result?: {
-		content: Array<{ type: string; text?: string; data?: string; mimeType?: string }>;
+		content: Content;
 		isError: boolean;
 		details?: any;
 	};
 
-	constructor(toolName: string, args: any, options: ToolExecutionOptions = {}) {
+	constructor(
+		toolName: string,
+		args: any,
+		options: ToolExecutionOptions = {},
+		ui: TUI,
+	) {
 		super();
 		this.toolName = toolName;
 		this.args = args;
 		this.showImages = options.showImages ?? true;
+		this.ui = ui;
 
 		this.addChild(new Spacer(1));
 
-			// Built-in tools use Text directly (has caching, better perf)
-			this.contentText = new Text("", 1, 1, (text: string) => theme.bg("toolPendingBg", text));
-			this.addChild(this.contentText);
+		// Always create both - contentBox for custom tools/bash, contentText for other built-ins
+		this.contentBox = new Box(1, 1, (text: string) => theme.bg("toolPendingBg", text));
+		this.contentText = new Text("", 1, 1, (text: string) => theme.bg("toolPendingBg", text));
+
+		this.addChild(this.contentText);
 
 		this.updateDisplay();
 	}
@@ -76,7 +92,7 @@ export class ToolExecutionComponent extends Container {
 
 	updateResult(
 		result: {
-			content: Array<{ type: string; text?: string; data?: string; mimeType?: string }>;
+			content: Content;
 			details?: any;
 			isError: boolean;
 		},
@@ -105,7 +121,8 @@ export class ToolExecutionComponent extends Container {
 				? (text: string) => theme.bg("toolErrorBg", text)
 				: (text: string) => theme.bg("toolSuccessBg", text);
 
-		// Built-in tools: use Text directly with caching
+
+		// Other built-in tools: use Text directly with caching
 		this.contentText.setCustomBgFn(bgFn);
 		this.contentText.setText(this.formatToolExecution());
 
@@ -114,14 +131,20 @@ export class ToolExecutionComponent extends Container {
 			this.removeChild(img);
 		}
 		this.imageComponents = [];
+		for (const spacer of this.imageSpacers) {
+			this.removeChild(spacer);
+		}
+		this.imageSpacers = [];
 
 		if (this.result) {
-			const imageBlocks = this.result.content?.filter((c: any) => c.type === "image") || [];
+			const imageBlocks = this.result.content?.filter(c => c.type === "image") || [];
 			const caps = getCapabilities();
 
 			for (const img of imageBlocks) {
 				if (caps.images && this.showImages && img.data && img.mimeType) {
-					this.addChild(new Spacer(1));
+					const spacer = new Spacer(1);
+					this.addChild(spacer);
+					this.imageSpacers.push(spacer);
 					const imageComponent = new Image(
 						img.data,
 						img.mimeType,
@@ -138,11 +161,11 @@ export class ToolExecutionComponent extends Container {
 	private getTextOutput(): string {
 		if (!this.result) return "";
 
-		const textBlocks = this.result.content?.filter((c: any) => c.type === "text") || [];
-		const imageBlocks = this.result.content?.filter((c: any) => c.type === "image") || [];
+		const textBlocks = this.result.content?.filter(c => c.type === "text") || [];
+		const imageBlocks = this.result.content?.filter(c => c.type === "image") || [];
 
 		let output = textBlocks
-			.map((c: any) => {
+			.map((c) => {
 				let text = stripAnsi(c.content || "").replace(/\r/g, "");
 				text = text.replace(/\x1b./g, "");
 				text = text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g, "");
@@ -153,7 +176,7 @@ export class ToolExecutionComponent extends Container {
 		const caps = getCapabilities();
 		if (imageBlocks.length > 0 && (!caps.images || !this.showImages)) {
 			const imageIndicators = imageBlocks
-				.map((img: any) => {
+				.map((img) => {
 					const dims = img.data ? (getImageDimensions(img.data, img.mimeType) ?? undefined) : undefined;
 					return imageFallback(img.mimeType, dims);
 				})
@@ -167,46 +190,7 @@ export class ToolExecutionComponent extends Container {
 	private formatToolExecution(): string {
 		let text = "";
 
-		if (this.toolName === "bash") {
-			const command = this.args?.command || "";
-			text = theme.fg("toolTitle", theme.bold(`$ ${command || theme.fg("toolOutput", "...")}`));
-
-			if (this.result) {
-				const output = this.getTextOutput().trim();
-				if (output) {
-					const lines = output.split("\n");
-					const maxLines = this.expanded ? lines.length : 5;
-					const skipped = Math.max(0, lines.length - maxLines);
-					const displayLines = lines.slice(-maxLines);
-
-					if (skipped > 0) {
-						text += theme.fg("toolOutput", `\n\n... (${skipped} earlier lines)`);
-					}
-					text +=
-						(skipped > 0 ? "\n" : "\n\n") +
-						displayLines.map((line: string) => theme.fg("toolOutput", line)).join("\n");
-				}
-
-				const truncation = this.result.details?.truncation;
-				const fullOutputPath = this.result.details?.fullOutputPath;
-				if (truncation?.truncated || fullOutputPath) {
-					const warnings: string[] = [];
-					if (fullOutputPath) {
-						warnings.push(`Full output: ${fullOutputPath}`);
-					}
-					if (truncation?.truncated) {
-						if (truncation.truncatedBy === "lines") {
-							warnings.push(`Truncated: showing ${truncation.outputLines} of ${truncation.totalLines} lines`);
-						} else {
-							warnings.push(
-								`Truncated: ${truncation.outputLines} lines shown (${formatSize(truncation.maxBytes ?? DEFAULT_MAX_BYTES)} limit)`,
-							);
-						}
-					}
-					text += "\n" + theme.fg("warning", `[${warnings.join(". ")}]`);
-				}
-			}
-		} else if (this.toolName === "read") {
+		if (this.toolName === "read") {
 			const path = shortenPath(this.args?.file_path || this.args?.path || "");
 			const offset = this.args?.offset;
 			const limit = this.args?.limit;
@@ -218,7 +202,7 @@ export class ToolExecutionComponent extends Container {
 				pathDisplay += theme.fg("warning", `:${startLine}${endLine ? `-${endLine}` : ""}`);
 			}
 
-			text = theme.fg("toolTitle", theme.bold("read")) + " " + pathDisplay;
+			text = `${theme.fg("toolTitle", theme.bold("read"))} ${pathDisplay}`;
 
 			if (this.result) {
 				const output = this.getTextOutput();
@@ -311,17 +295,17 @@ export class ToolExecutionComponent extends Container {
 				if (this.result.isError) {
 					const errorText = this.getTextOutput();
 					if (errorText) {
-						text += "\n\n" + theme.fg("error", errorText);
+						text += `\n\n${theme.fg("error", errorText)}`;
 					}
 				} else if (this.result.details?.diff) {
-					text += "\n\n" + renderDiff(this.result.details.diff, { filePath: rawPath });
+					text += `\n\n${renderDiff(this.result.details.diff, { filePath: rawPath })}`;
 				}
 			}
 		} else if (this.toolName === "ls") {
 			const path = shortenPath(this.args?.path || ".");
 			const limit = this.args?.limit;
 
-			text = theme.fg("toolTitle", theme.bold("ls")) + " " + theme.fg("accent", path);
+			text = `${theme.fg("toolTitle", theme.bold("ls"))} ${theme.fg("accent", path)}`;
 			if (limit !== undefined) {
 				text += theme.fg("toolOutput", ` (limit ${limit})`);
 			}
@@ -334,7 +318,7 @@ export class ToolExecutionComponent extends Container {
 					const displayLines = lines.slice(0, maxLines);
 					const remaining = lines.length - maxLines;
 
-					text += "\n\n" + displayLines.map((line: string) => theme.fg("toolOutput", line)).join("\n");
+					text += `\n\n${displayLines.map((line: string) => theme.fg("toolOutput", line)).join("\n")}`;
 					if (remaining > 0) {
 						text += theme.fg("toolOutput", `\n... (${remaining} more lines)`);
 					}
@@ -350,7 +334,7 @@ export class ToolExecutionComponent extends Container {
 					if (truncation?.truncated) {
 						warnings.push(`${formatSize(truncation.maxBytes ?? DEFAULT_MAX_BYTES)} limit`);
 					}
-					text += "\n" + theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`);
+					text += `\n${theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)}`;
 				}
 			}
 		} else if (this.toolName === "find") {
@@ -375,7 +359,7 @@ export class ToolExecutionComponent extends Container {
 					const displayLines = lines.slice(0, maxLines);
 					const remaining = lines.length - maxLines;
 
-					text += "\n\n" + displayLines.map((line: string) => theme.fg("toolOutput", line)).join("\n");
+					text += `\n\n${displayLines.map((line: string) => theme.fg("toolOutput", line)).join("\n")}`;
 					if (remaining > 0) {
 						text += theme.fg("toolOutput", `\n... (${remaining} more lines)`);
 					}
@@ -391,7 +375,7 @@ export class ToolExecutionComponent extends Container {
 					if (truncation?.truncated) {
 						warnings.push(`${formatSize(truncation.maxBytes ?? DEFAULT_MAX_BYTES)} limit`);
 					}
-					text += "\n" + theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`);
+					text += `\n${theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)}`;
 				}
 			}
 		} else if (this.toolName === "grep") {
@@ -420,7 +404,7 @@ export class ToolExecutionComponent extends Container {
 					const displayLines = lines.slice(0, maxLines);
 					const remaining = lines.length - maxLines;
 
-					text += "\n\n" + displayLines.map((line: string) => theme.fg("toolOutput", line)).join("\n");
+					text += `\n\n${displayLines.map((line: string) => theme.fg("toolOutput", line)).join("\n")}`;
 					if (remaining > 0) {
 						text += theme.fg("toolOutput", `\n... (${remaining} more lines)`);
 					}
@@ -440,7 +424,7 @@ export class ToolExecutionComponent extends Container {
 					if (linesTruncated) {
 						warnings.push("some lines truncated");
 					}
-					text += "\n" + theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`);
+					text += `\n${theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)}`;
 				}
 			}
 		} else {
@@ -448,10 +432,10 @@ export class ToolExecutionComponent extends Container {
 			text = theme.fg("toolTitle", theme.bold(this.toolName));
 
 			const content = JSON.stringify(this.args, null, 2);
-			text += "\n\n" + content;
+			text += `\n\n${content}`;
 			const output = this.getTextOutput();
 			if (output) {
-				text += "\n" + output;
+				text += `\n${output}`;
 			}
 		}
 
