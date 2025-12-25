@@ -302,6 +302,54 @@ export class SessionManager {
 	}
 
 	/**
+	 * Create a complete copy of the current session.
+	 * Used when changing providers mid-session to preserve history in a new context.
+	 */
+	clone(): string {
+		const entries = this.loadEntries();
+		const historyEntries = entries.slice(1); // Skip original header
+
+		// Find the last message to use as parent anchor
+		let lastMessageId: string | null = null;
+		for (let i = historyEntries.length - 1; i >= 0; i--) {
+			const entry = historyEntries[i];
+			if (entry.type === "message") {
+				lastMessageId = entry.message.id;
+				break;
+			}
+		}
+
+		// Generate new Session ID
+		const newSessionId = generateUUID();
+		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+		const newSessionFile = join(this.sessionDir, `${timestamp}_${newSessionId}.jsonl`);
+
+		// Create new Header
+		const originalHeader = entries.find(e => e.type === "session") as SessionHeader;
+		const newHeader: SessionHeader = {
+			type: "session",
+			id: newSessionId,
+			timestamp: new Date().toISOString(),
+			cwd: this.cwd,
+			api: originalHeader?.api,
+			modelId: originalHeader?.modelId,
+			providerOptions: originalHeader?.providerOptions,
+			parent: {
+				sessionId: this.sessionId,
+				messageId: lastMessageId
+			}
+		};
+
+		// Write to new file
+		appendFileSync(newSessionFile, JSON.stringify(newHeader) + "\n");
+		for (const entry of historyEntries) {
+			appendFileSync(newSessionFile, JSON.stringify(entry) + "\n");
+		}
+
+		return newSessionFile;
+	}
+
+	/**
 	 * Create a branch of the current session starting from the state BEFORE the specified message ID.
 	 * The specified message and all subsequent messages are excluded from the new branch.
 	 */
