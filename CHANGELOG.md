@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.12
+
+### Features
+- **Model Switching**: Added `/model` command to switch models mid-session. Automatically updates in-place or branches to a new session if the provider API changes (e.g., OpenAI to Anthropic).
+- **Session Cloning**: Added `/clone` command to instantly duplicate the current session into a new file and switch to it.
+- **Thinking Control**: Added `/thinking` command to toggle reasoning effort (High/Low) for supported models (OpenAI o-series, Google Gemini 2.0).
+- **UI Enhancements**: 
+  - Added visual selector for available models.
+  - Added selector for thinking levels.
+  - Updated footer to display current thinking level next to the model name.
+
 ## 0.0.11
 
 ### Features
