@@ -366,6 +366,16 @@ export class AgentSession {
 	// =========================================================================
 
 	/**
+	 * Branch session from a specific message ID.
+	 * Creates a new session file up to that message, then switches to it.
+	 * @returns true if branch completed
+	 */
+	async branchSession(messageId: string): Promise<boolean> {
+		const newSessionPath = this.sessionManager.branch(messageId);
+		return this.switchSession(newSessionPath);
+	}
+
+	/**
 	 * Switch to a different session file.
 	 * Aborts current operation, loads messages, restores model/thinking.
 	 * Listeners are preserved and will continue receiving events.

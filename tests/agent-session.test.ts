@@ -52,6 +52,8 @@ describe('AgentSession', () => {
 		};
 
 		// Create in-memory managers for testing
+		// Using a real (non-in-memory) session manager for branching tests because branching requires file operations
+		// But for general tests we can use inMemory
 		sessionManager = SessionManager.inMemory({
 			api: 'openai',
 			modelId: 'gpt-4',
@@ -495,6 +497,66 @@ describe('AgentSession', () => {
 			await session.switchSession('/path/to/session.jsonl');
 
 			expect(mockAgent.replaceMessages).toHaveBeenCalled();
+		});
+	});
+
+	describe('branchSession()', () => {
+		let realSessionManager: SessionManager;
+		let testDir: string;
+		let agentDir: string;
+		let cwd: string;
+
+		beforeEach(() => {
+			// Setup real file system for branching tests
+			const { tmpdir } = require('os');
+			const { join } = require('path');
+			const { mkdirSync } = require('fs');
+			
+			testDir = join(tmpdir(), `agent-session-test-${Date.now()}-${Math.random()}`);
+			agentDir = join(testDir, 'agent');
+			cwd = join(testDir, 'project');
+			mkdirSync(agentDir, { recursive: true });
+			mkdirSync(cwd, { recursive: true });
+
+			realSessionManager = SessionManager.create(cwd, agentDir, {
+				api: 'openai',
+				modelId: 'gpt-4',
+				providerOptions: { temperature: 0.7 }
+			});
+
+			// Save some messages to branch from
+			realSessionManager.saveMessage({ role: 'user', id: 'msg-1', content: [{ type: 'text', content: '1' }] });
+			realSessionManager.saveMessage({ role: 'assistant', id: 'msg-2', content: [{ type: 'text', content: '2' }] });
+			realSessionManager.saveMessage({ role: 'user', id: 'msg-3', content: [{ type: 'text', content: '3' }] });
+		});
+
+		it('should branch session and switch to it', async () => {
+			const session = new AgentSession({
+				agent: mockAgent as Conversation,
+				sessionManager: realSessionManager,
+				settingsManager,
+			});
+
+			const originalSessionId = session.sessionId;
+
+			// Spy on sessionManager.branch to ensure it's called
+			const branchSpy = vi.spyOn(realSessionManager, 'branch');
+			const switchSpy = vi.spyOn(session, 'switchSession');
+
+			await session.branchSession('msg-3');
+
+			expect(branchSpy).toHaveBeenCalledWith('msg-3');
+			expect(switchSpy).toHaveBeenCalled();
+			
+			// Verify current session ID changed
+			expect(session.sessionId).not.toBe(originalSessionId);
+		});
+
+		afterEach(() => {
+			const { rmSync, existsSync } = require('fs');
+			if (existsSync(testDir)) {
+				rmSync(testDir, { recursive: true, force: true });
+			}
 		});
 	});
 
