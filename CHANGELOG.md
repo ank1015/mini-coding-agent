@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.0.11
+
+### Features
+- **Session Branching**: Introduced the ability to branch sessions, allowing users to explore different paths without affecting the main session history.
+- **Interactive Mode Updates**: Integrated branching capabilities directly into the interactive TUI.
+
+### Fixes
+- **Session Switching**: Resolved cache consistency issues when switching between sessions.
+- **TUI Stability**: Fixed issues related to screen clearing and rendering in the terminal interface.
+
+### Technical
+- Updated `SessionManager` and `AgentSession` to support branching logic.
+- Added comprehensive unit tests for session branching functionality.
+
 ## 0.0.1
 
 ### Core Features
