@@ -694,15 +694,20 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 </head>
 <body>
     <div id="cache-view" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:${COLORS.bodyBg}; z-index:1000; overflow:auto; padding:20px;">
-        <div class="container" style="max-width:1200px; height: 90vh;">
+        <div class="container" style="max-width:1200px; height: 90vh; display: flex; flex-direction: column;">
             <div class="header">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h1>Context & Caching Analysis</h1>
                     <button onclick="hideCacheView()" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">Close</button>
                 </div>
             </div>
-            <div style="position: relative; height: 80vh; width: 100%;">
+            <div style="position: relative; flex: 1; width: 100%; min-height: 0;">
                 <canvas id="cacheChart"></canvas>
+            </div>
+            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px; padding-bottom: 20px;">
+                <button id="prevBtn" onclick="moveWindow(-5)" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">&larr; Previous</button>
+                <span id="chartRange" style="display: flex; align-items: center; color: ${COLORS.textDim}; font-family: monospace;"></span>
+                <button id="nextBtn" onclick="moveWindow(5)" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">Next &rarr;</button>
             </div>
         </div>
     </div>
@@ -766,6 +771,8 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     <script>
         const usageData = ${JSON.stringify(assistantUsage)};
         let chartInstance = null;
+        let windowStart = 0;
+        const windowSize = 10;
 
         function showCacheView() {
             document.getElementById('cache-view').style.display = 'block';
@@ -778,20 +785,72 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
             document.getElementById('cache-view').style.display = 'none';
         }
 
+        function moveWindow(step) {
+            const newStart = windowStart + step;
+            // Prevent going below 0 or beyond data length (unless it's a small overlap)
+            // We allow moving until the end of the window hits the end of data roughly
+            if (newStart < 0) {
+                windowStart = 0;
+            } else if (newStart < usageData.length) {
+                windowStart = newStart;
+            }
+            updateChartData();
+        }
+
+        function getVisibleData() {
+            return usageData.slice(windowStart, windowStart + windowSize);
+        }
+
+        function updateChartControls() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const rangeLabel = document.getElementById('chartRange');
+            
+            // Disable prev if we are at the start
+            prevBtn.disabled = windowStart <= 0;
+            prevBtn.style.opacity = windowStart <= 0 ? 0.5 : 1;
+            
+            // Disable next if we are showing the last item
+            const hasMore = (windowStart + windowSize) < usageData.length;
+            nextBtn.disabled = !hasMore;
+            nextBtn.style.opacity = !hasMore ? 0.5 : 1;
+
+            const end = Math.min(windowStart + windowSize, usageData.length);
+            const total = usageData.length;
+            if (total === 0) {
+                rangeLabel.innerText = 'No data';
+            } else {
+                rangeLabel.innerText = \`\${windowStart + 1} - \${end} of \${total}\`;
+            }
+        }
+
+        function updateChartData() {
+            if (!chartInstance) return;
+            
+            const visible = getVisibleData();
+            chartInstance.data.labels = visible.map(d => d.id);
+            chartInstance.data.datasets[0].data = visible.map(d => d.cacheRead);
+            chartInstance.data.datasets[1].data = visible.map(d => d.input);
+            chartInstance.data.datasets[2].data = visible.map(d => d.cacheWrite);
+            chartInstance.data.datasets[3].data = visible.map(d => d.output);
+            
+            chartInstance.update();
+            updateChartControls();
+        }
+
         function renderChart() {
             const ctx = document.getElementById('cacheChart').getContext('2d');
+            const visible = getVisibleData();
             
-            // Prepare datasets (bottom to top: cacheRead, input, cacheWrite, output)
-            const labels = usageData.map(d => d.id);
-            const cacheReadData = usageData.map(d => d.cacheRead);
-            const inputData = usageData.map(d => d.input);
-            const cacheWriteData = usageData.map(d => d.cacheWrite);
-            const outputData = usageData.map(d => d.output);
+            const cacheReadData = visible.map(d => d.cacheRead);
+            const inputData = visible.map(d => d.input);
+            const cacheWriteData = visible.map(d => d.cacheWrite);
+            const outputData = visible.map(d => d.output);
 
             chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    labels: visible.map(d => d.id),
                     datasets: [
                         {
                             label: 'Cache Read',
@@ -802,7 +861,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                         {
                             label: 'Input',
                             data: inputData,
-                            backgroundColor: '${COLORS.textDim}', // Grey for normal input
+                            backgroundColor: '${COLORS.textDim}', 
                             stack: 'Stack 0',
                         },
                         {
@@ -860,6 +919,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                     }
                 }
             });
+            updateChartControls();
         }
     </script>
 </body>
