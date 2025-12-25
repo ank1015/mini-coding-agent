@@ -14,11 +14,12 @@
 import { appendFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { Conversation, BaseAssistantMessage, Model, TextContent, AgentEvent, AgentState, Message, Attachment, getApiKeyFromEnv, Api, OptionsForApi, generateUUID, getModel } from "@ank1015/providers";
+import { Conversation, BaseAssistantMessage, Model, TextContent, AgentEvent, AgentState, Message, Attachment, getApiKeyFromEnv, Api, OptionsForApi, generateUUID, getModel, OpenAIProviderOptions, GoogleProviderOptions, GoogleThinkingLevel } from "@ank1015/providers";
 import { getModelsPath } from "../config.js";
 import { exportSessionToHtml } from "./export-html.js";
 import { loadSessionFromEntries, type SessionManager } from "./session-manager.js";
 import type { SettingsManager } from "./settings-manager.js";
+import { getDefaultProviderOption } from "../utils/default-provider-options.js";
 
 /** Session-specific events that extend the core AgentEvent */
 export type AgentSessionEvent = AgentEvent
@@ -347,7 +348,71 @@ export class AgentSession {
 
 		this.agent.setProvider({model, providerOptions});
 		this.sessionManager.saveProvider(model.api, model.id, providerOptions);
-		this.settingsManager.setDefaultModelAndSettings(model, providerOptions);
+		// this.settingsManager.setDefaultModelAndSettings(model, providerOptions);
+	}
+
+	/**
+	 * Smartly change the model.
+	 * - If no messages or same API: Update in-place.
+	 * - If messages exist AND different API: Branch session first, then update.
+	 */
+	async smartChangeModel(model: Model<Api>): Promise<void> {
+		const hasMessages = this.messages.length > 0;
+		const currentApi = this.model?.api;
+		const isDifferentApi = currentApi !== model.api;
+
+		if (hasMessages && isDifferentApi) {
+			// Branch and switch
+			const newSessionPath = this.sessionManager.clone();
+			await this.switchSession(newSessionPath);
+			
+			// For new provider/API, use default options
+			const newOptions = getDefaultProviderOption(model.api);
+			await this.setModel(model, newOptions);
+		} else {
+			// Update in-place
+			// If staying on same API, preserve current options.
+			// If API changed (only possible here if !hasMessages), use default options.
+			const options = (!isDifferentApi) 
+				? this.providerOptions 
+				: getDefaultProviderOption(model.api);
+				
+			await this.setModel(model, options);
+		}
+	}
+
+	/**
+	 * Update the thinking level for the current model.
+	 * Supports OpenAI (reasoning.effort) and Google (thinkingConfig.thinkingLevel).
+	 */
+	async updateThinkingLevel(level: 'low' | 'high'): Promise<void> {
+		if (!this.model) return;
+		
+		const api = this.model.api;
+		// Deep clone would be better but shallow copy + specific object copy is fine for now
+		const currentOptions = JSON.parse(JSON.stringify(this.providerOptions));
+
+		let updated = false;
+
+		if (api === 'openai') {
+			const opts = currentOptions as OpenAIProviderOptions;
+			if (!opts.reasoning) opts.reasoning = {};
+			opts.reasoning.effort = level; // 'low' | 'high' (medium is also valid but selector only has 2)
+			updated = true;
+		} else if (api === 'google') {
+			const opts = currentOptions as GoogleProviderOptions;
+			if (!opts.thinkingConfig) {
+				opts.thinkingConfig = { includeThoughts: true, thinkingLevel: GoogleThinkingLevel.LOW };
+			}
+			opts.thinkingConfig.thinkingLevel = level === 'high' ? GoogleThinkingLevel.HIGH : GoogleThinkingLevel.LOW;
+			updated = true;
+		}
+
+		if (updated) {
+			await this.setModel(this.model, currentOptions);
+		} else {
+			throw new Error(`Thinking level configuration not supported for ${api}`);
+		}
 	}
 
 	// =========================================================================
