@@ -33,7 +33,7 @@
 	},
 	"dependencies": {
 		"@ank1015/agents-tui": "^0.0.21",
-		"@ank1015/providers": "^0.0.31",
+		"@ank1015/providers": "^0.0.32",
 		"@sinclair/typebox": "^0.34.41",
 		"chalk": "^5.5.0",
 		"cli-highlight": "^2.1.11",
