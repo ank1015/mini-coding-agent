@@ -556,6 +556,117 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
             };
         });
 
+    // ========================================================================
+    // Context Analysis - Character-based Token Estimation
+    // ========================================================================
+    //
+    // Estimate tokens for each message using chars / 4 (rough approximation).
+    // This is more stable than delta-based approach which breaks when context
+    // size fluctuates due to caching behavior.
+    //
+    // - User/ToolResult messages: estimate from character count
+    // - Assistant messages: use actual usage.output (accurate from API)
+
+    interface ContextDataPoint {
+        id: string; // "Turn 1", "Turn 2"
+        user: number;
+        assistant: number;
+        tools: { [toolName: string]: number };
+        total: number;
+    }
+
+    // Build toolCallId -> toolName mapping
+    const toolIdToName = new Map<string, string>();
+    for (const msg of data.messages) {
+        if (msg.role === 'assistant') {
+            const am = msg as BaseAssistantMessage<Api>;
+            am.content.forEach(c => {
+                if (c.type === 'toolCall') {
+                    toolIdToName.set(c.toolCallId, c.name);
+                }
+            });
+        }
+    }
+
+    // Helper to count chars in a message
+    const countChars = (msg: Message): number => {
+        if (Array.isArray(msg.content)) {
+            return msg.content.reduce((acc, part) => {
+                if (part.type === 'text') return acc + part.content.length;
+                return acc;
+            }, 0);
+        }
+        return 0;
+    };
+
+    // Estimate tokens from chars (rough: 1 token ≈ 4 chars)
+    const estimateTokens = (chars: number): number => Math.ceil(chars / 4);
+
+    // Build messageId -> { tokens, category } map
+    interface MessageTokenInfo {
+        tokens: number;
+        category: 'user' | 'assistant' | string;
+    }
+    const messageTokensMap = new Map<string, MessageTokenInfo>();
+
+    for (const msg of data.messages) {
+        if (msg.role === 'user') {
+            const tokens = estimateTokens(countChars(msg));
+            messageTokensMap.set(msg.id, { tokens, category: 'user' });
+        } else if (msg.role === 'toolResult') {
+            const tr = msg as ToolResultMessage;
+            const toolName = toolIdToName.get(tr.toolCallId) || 'unknown';
+            const tokens = estimateTokens(countChars(msg));
+            messageTokensMap.set(msg.id, { tokens, category: toolName });
+        } else if (msg.role === 'assistant') {
+            // Use actual output tokens from API (accurate)
+            const am = msg as BaseAssistantMessage<Api>;
+            const tokens = am.usage?.output || 0;
+            messageTokensMap.set(msg.id, { tokens, category: 'assistant' });
+        }
+    }
+
+    // Build cumulative data points for each turn
+    const contextAnalysis: ContextDataPoint[] = [];
+    const toolStats: { [toolName: string]: number } = {};
+    let cumulativeUser = 0;
+    let cumulativeAssistant = 0;
+    const cumulativeTools: { [toolName: string]: number } = {};
+    let turnCount = 0;
+
+    for (const msg of data.messages) {
+        const tokenInfo = messageTokensMap.get(msg.id);
+        if (tokenInfo) {
+            if (tokenInfo.category === 'user') {
+                cumulativeUser += tokenInfo.tokens;
+            } else if (tokenInfo.category === 'assistant') {
+                // Don't add yet - assistant output is part of NEXT turn's context
+            } else {
+                // Tool
+                cumulativeTools[tokenInfo.category] = (cumulativeTools[tokenInfo.category] || 0) + tokenInfo.tokens;
+                toolStats[tokenInfo.category] = (toolStats[tokenInfo.category] || 0) + tokenInfo.tokens;
+            }
+        }
+
+        // Record data point at each assistant message
+        if (msg.role === 'assistant') {
+            const am = msg as BaseAssistantMessage<Api>;
+            turnCount++;
+            const currentContextSize = (am.usage?.input || 0) + (am.usage?.cacheRead || 0);
+
+            contextAnalysis.push({
+                id: `Turn ${turnCount}`,
+                user: cumulativeUser,
+                assistant: cumulativeAssistant,
+                tools: { ...cumulativeTools },
+                total: currentContextSize
+            });
+
+            // NOW add assistant output (it becomes part of context for next turn)
+            cumulativeAssistant += tokenInfo?.tokens || 0;
+        }
+    }
+
 	const systemPromptHtml = data.systemPrompt
 		? `<div class="system-prompt">
             <div class="system-prompt-header">System Prompt</div>
@@ -712,6 +823,39 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         </div>
     </div>
 
+    <div id="context-view" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:${COLORS.bodyBg}; z-index:1000; overflow:auto; padding:20px;">
+        <div class="container" style="max-width:1200px; min-height: 90vh;">
+             <div class="header">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h1>Context Composition Analysis</h1>
+                    <button onclick="hideContextView()" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">Close</button>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div style="background: ${COLORS.containerBg}; padding: 15px; border-radius: 4px; height: 400px;">
+                    <h3 style="color:${COLORS.cyan}; margin-bottom: 10px;">Context Growth Timeline</h3>
+                    <div style="position: relative; height: 350px; width: 100%;">
+                        <canvas id="contextGrowthChart"></canvas>
+                    </div>
+                </div>
+                <div style="background: ${COLORS.containerBg}; padding: 15px; border-radius: 4px; height: 400px;">
+                     <h3 style="color:${COLORS.cyan}; margin-bottom: 10px;">Current Composition</h3>
+                     <div style="position: relative; height: 350px; width: 100%;">
+                        <canvas id="compositionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: ${COLORS.containerBg}; padding: 15px; border-radius: 4px; height: 400px;">
+                 <h3 style="color:${COLORS.cyan}; margin-bottom: 10px;">Tool Cost Analysis (Tokens)</h3>
+                 <div style="position: relative; height: 350px; width: 100%;">
+                    <canvas id="toolStatsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>${APP_NAME} v${VERSION}</h1>
@@ -727,10 +871,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         </div>
 
         <div class="header">
-            <div style="display:flex; align-items:center; justify-content:space-between;">
-                <h1>Messages</h1>
-                <a onclick="showCacheView()" class="view-link">View caching details</a>
-            </div>
+            <h1>Messages</h1>
             <div class="header-info">
                 <div class="info-item"><span class="info-label">User:</span><span class="info-value">${userMessages}</span></div>
                 <div class="info-item"><span class="info-label">Assistant:</span><span class="info-value">${assistantMessages}</span></div>
@@ -739,7 +880,13 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         </div>
 
         <div class="header">
-            <h1>Tokens & Cost</h1>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <h1>Tokens & Cost</h1>
+                <div style="display:flex; gap: 15px;">
+                    <a onclick="showContextView()" class="view-link">Visualize Context</a>
+                    <a onclick="showCacheView()" class="view-link">View caching details</a>
+                </div>
+            </div>
             <div class="header-info">
                 <div class="info-item"><span class="info-label">Input:</span><span class="info-value">${data.tokenStats.input.toLocaleString()} tokens</span></div>
                 <div class="info-item"><span class="info-label">Output:</span><span class="info-value">${data.tokenStats.output.toLocaleString()} tokens</span></div>
@@ -770,7 +917,11 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 
     <script>
         const usageData = ${JSON.stringify(assistantUsage)};
+        const contextData = ${JSON.stringify(contextAnalysis)};
+        const toolData = ${JSON.stringify(toolStats)};
+
         let chartInstance = null;
+        let contextCharts = { growth: null, composition: null, tools: null };
         let windowStart = 0;
         const windowSize = 10;
 
@@ -783,6 +934,17 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 
         function hideCacheView() {
             document.getElementById('cache-view').style.display = 'none';
+        }
+
+        function showContextView() {
+             document.getElementById('context-view').style.display = 'block';
+             if (!contextCharts.growth && contextData.length > 0) {
+                 renderContextCharts();
+             }
+        }
+
+        function hideContextView() {
+            document.getElementById('context-view').style.display = 'none';
         }
 
         function moveWindow(step) {
@@ -920,6 +1082,127 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                 }
             });
             updateChartControls();
+        }
+
+        function renderContextCharts() {
+            // 1. Stacked Area Chart (Timeline)
+            const ctxGrowth = document.getElementById('contextGrowthChart').getContext('2d');
+            
+            // Extract all tool names found
+            const toolNames = new Set();
+            contextData.forEach(d => Object.keys(d.tools).forEach(k => toolNames.add(k)));
+            const toolsList = Array.from(toolNames);
+            
+            // Generate datasets
+            const datasets = [
+                {
+                    label: 'User',
+                    data: contextData.map(d => d.user),
+                    backgroundColor: 'rgba(52, 53, 65, 0.8)', // User BG
+                    borderColor: 'rgba(52, 53, 65, 1)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Assistant',
+                    data: contextData.map(d => d.assistant),
+                    backgroundColor: 'rgba(34, 197, 94, 0.2)', // Green alpha
+                    borderColor: 'rgba(34, 197, 94, 1)',
+                    fill: true,
+                    tension: 0.3
+                }
+            ];
+
+            // Assign colors to tools dynamically (cycling through a palette)
+            const palette = ['#eab308', '#f97316', '#ef4444', '#ec4899', '#8b5cf6', '#3b82f6', '#06b6d4'];
+            toolsList.forEach((tool, i) => {
+                const color = palette[i % palette.length];
+                datasets.push({
+                    label: 'Tool: ' + tool,
+                    data: contextData.map(d => d.tools[tool] || 0),
+                    backgroundColor: color + '40', // alpha
+                    borderColor: color,
+                    fill: true,
+                    tension: 0.3
+                });
+            });
+
+            contextCharts.growth = new Chart(ctxGrowth, {
+                type: 'line',
+                data: {
+                    labels: contextData.map(d => d.id),
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    },
+                    scales: {
+                         x: { ticks: { color: '${COLORS.textDim}' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                         y: { 
+                             stacked: true, 
+                             ticks: { color: '${COLORS.textDim}' }, 
+                             grid: { color: 'rgba(255,255,255,0.1)' },
+                             title: { display: true, text: 'Cumulative Tokens', color: '${COLORS.textDim}' }
+                         }
+                    },
+                    plugins: { legend: { labels: { color: '${COLORS.text}' } } }
+                }
+            });
+
+            // 2. Composition (Doughnut)
+            // Use the LAST data point for current composition
+            const lastPoint = contextData[contextData.length - 1];
+            if (lastPoint) {
+                 const ctxComp = document.getElementById('compositionChart').getContext('2d');
+                 const labels = ['User', 'Assistant', ...toolsList];
+                 const data = [lastPoint.user, lastPoint.assistant, ...toolsList.map(t => lastPoint.tools[t] || 0)];
+                 const bgColors = ['rgb(52, 53, 65)', 'rgb(34, 197, 94)', ...toolsList.map((_, i) => palette[i % palette.length])];
+
+                 contextCharts.composition = new Chart(ctxComp, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{ data: data, backgroundColor: bgColors, borderColor: '${COLORS.containerBg}' }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { color: '${COLORS.text}' } } }
+                    }
+                 });
+            }
+
+            // 3. Tool Breakdown (Bar)
+            const ctxTools = document.getElementById('toolStatsChart').getContext('2d');
+            const toolLabels = Object.keys(toolData);
+            const toolValues = Object.values(toolData);
+            
+            contextCharts.tools = new Chart(ctxTools, {
+                type: 'bar',
+                data: {
+                    labels: toolLabels,
+                    datasets: [{
+                        label: 'Tokens Consumed',
+                        data: toolValues,
+                        backgroundColor: toolLabels.map((_, i) => palette[i % palette.length]),
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // Horizontal bar chart
+                    scales: {
+                        x: { ticks: { color: '${COLORS.textDim}' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                        y: { ticks: { color: '${COLORS.text}' }, grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
         }
     </script>
 </body>
