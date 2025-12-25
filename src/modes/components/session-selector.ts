@@ -107,7 +107,8 @@ class SessionList implements Component {
 			// Second line: metadata (dimmed) - also truncate for safety
 			const modified = formatDate(session.modified);
 			const msgCount = `${session.messageCount} message${session.messageCount !== 1 ? "s" : ""}`;
-			const metadata = `  ${modified} · ${msgCount}`;
+			const branchInfo = session.parentId ? " ↳ Branched" : "";
+			const metadata = `  ${modified} · ${msgCount}${branchInfo}`;
 			const metadataLine = theme.fg("dim", truncateToWidth(metadata, width, ""));
 
 			lines.push(messageLine);
