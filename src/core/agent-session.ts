@@ -14,7 +14,7 @@
 import { appendFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { Conversation, BaseAssistantMessage, Model, TextContent, AgentEvent, AgentState, Message, Attachment, getApiKeyFromEnv, Api, OptionsForApi, generateUUID, getModel } from "@ank1015/providers";
+import { Conversation, BaseAssistantMessage, Model, TextContent, AgentEvent, AgentState, Message, Attachment, getApiKeyFromEnv, Api, OptionsForApi, generateUUID, getModel, OpenAIProviderOptions, GoogleProviderOptions, GoogleThinkingLevel } from "@ank1015/providers";
 import { getModelsPath } from "../config.js";
 import { exportSessionToHtml } from "./export-html.js";
 import { loadSessionFromEntries, type SessionManager } from "./session-manager.js";
@@ -378,6 +378,40 @@ export class AgentSession {
 				: getDefaultProviderOption(model.api);
 				
 			await this.setModel(model, options);
+		}
+	}
+
+	/**
+	 * Update the thinking level for the current model.
+	 * Supports OpenAI (reasoning.effort) and Google (thinkingConfig.thinkingLevel).
+	 */
+	async updateThinkingLevel(level: 'low' | 'high'): Promise<void> {
+		if (!this.model) return;
+		
+		const api = this.model.api;
+		// Deep clone would be better but shallow copy + specific object copy is fine for now
+		const currentOptions = JSON.parse(JSON.stringify(this.providerOptions));
+
+		let updated = false;
+
+		if (api === 'openai') {
+			const opts = currentOptions as OpenAIProviderOptions;
+			if (!opts.reasoning) opts.reasoning = {};
+			opts.reasoning.effort = level; // 'low' | 'high' (medium is also valid but selector only has 2)
+			updated = true;
+		} else if (api === 'google') {
+			const opts = currentOptions as GoogleProviderOptions;
+			if (!opts.thinkingConfig) {
+				opts.thinkingConfig = { includeThoughts: true, thinkingLevel: GoogleThinkingLevel.LOW };
+			}
+			opts.thinkingConfig.thinkingLevel = level === 'high' ? GoogleThinkingLevel.HIGH : GoogleThinkingLevel.LOW;
+			updated = true;
+		}
+
+		if (updated) {
+			await this.setModel(this.model, currentOptions);
+		} else {
+			throw new Error(`Thinking level configuration not supported for ${api}`);
 		}
 	}
 

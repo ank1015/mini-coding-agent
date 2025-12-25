@@ -33,9 +33,10 @@ import { QueueModeSelectorComponent } from "./components/queue-mode-selector.js"
 import { SessionSelectorComponent } from "./components/session-selector.js";
 import { MessageSelectorComponent } from "./components/message-selector.js";
 import { ModelSelectorComponent } from "./components/model-selector.js";
+import { ThinkingSelectorComponent } from "./components/thinking-selector.js";
 import { ShowImagesSelectorComponent } from "./components/show-images-selector.js";
 import { WelcomeBox } from "./components/welcome-box.js";
-import { Model } from "@ank1015/providers";
+import { Model, GoogleThinkingLevel, OpenAIProviderOptions, GoogleProviderOptions } from "@ank1015/providers";
 
 export class InteractiveMode {
     private session: AgentSession;
@@ -110,6 +111,7 @@ export class InteractiveMode {
 			{ name: "resume", description: "Resume a different session" },
 			{ name: "model", description: "Switch model (branches session if API changes)" },
 			{ name: "clone", description: "Clone current session to a new file" },
+			{ name: "thinking", description: "Set thinking level (low/high) for supported models" },
 		];
 
 		// Add image toggle command only if terminal supports images
@@ -285,6 +287,11 @@ export class InteractiveMode {
 			}
 			if (text === "/clone") {
 				await this.handleCloneCommand();
+				this.editor.setText("");
+				return;
+			}
+			if (text === "/thinking") {
+				this.showThinkingSelector();
 				this.editor.setText("");
 				return;
 			}
@@ -837,6 +844,55 @@ export class InteractiveMode {
 			);
 			return { component: selector, focus: selector.getModelList() };
 		});
+	}
+
+	private showThinkingSelector(): void {
+		const model = this.session.model;
+		if (!model || (model.api !== "openai" && model.api !== "google")) {
+			this.showWarning("Thinking level only supported for OpenAI and Google models");
+			return;
+		}
+
+		let currentLevel: 'low' | 'high' | undefined;
+		const opts = this.session.providerOptions;
+
+		if (model.api === "openai") {
+			const o = opts as OpenAIProviderOptions;
+			const effort = o.reasoning?.effort;
+			if (effort === 'low' || effort === 'high') {
+				currentLevel = effort;
+			}
+		} else if (model.api === "google") {
+			const o = opts as GoogleProviderOptions;
+			const level = o.thinkingConfig?.thinkingLevel;
+			if (level === GoogleThinkingLevel.HIGH) currentLevel = 'high';
+			else if (level === GoogleThinkingLevel.LOW) currentLevel = 'low';
+		}
+
+		this.showSelector((done) => {
+			const selector = new ThinkingSelectorComponent(
+				currentLevel,
+				async (level) => {
+					done();
+					await this.handleThinkingChange(level);
+				},
+				() => {
+					done();
+					this.ui.requestRender();
+				}
+			);
+			return { component: selector, focus: selector.getSelectList() };
+		});
+	}
+
+	private async handleThinkingChange(level: 'low' | 'high'): Promise<void> {
+		try {
+			await this.session.updateThinkingLevel(level);
+			this.showStatus(`Thinking level set to: ${level}`);
+			this.footer.updateState(this.session.state);
+		} catch (error) {
+			this.showError(`Failed to set thinking level: ${error instanceof Error ? error.message : "Unknown error"}`);
+		}
 	}
 
 	private async handleModelChange(model: Model<Api>): Promise<void> {
