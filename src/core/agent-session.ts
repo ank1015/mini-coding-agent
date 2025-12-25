@@ -19,6 +19,7 @@ import { getModelsPath } from "../config.js";
 import { exportSessionToHtml } from "./export-html.js";
 import { loadSessionFromEntries, type SessionManager } from "./session-manager.js";
 import type { SettingsManager } from "./settings-manager.js";
+import { getDefaultProviderOption } from "../utils/default-provider-options.js";
 
 /** Session-specific events that extend the core AgentEvent */
 export type AgentSessionEvent = AgentEvent
@@ -347,7 +348,37 @@ export class AgentSession {
 
 		this.agent.setProvider({model, providerOptions});
 		this.sessionManager.saveProvider(model.api, model.id, providerOptions);
-		this.settingsManager.setDefaultModelAndSettings(model, providerOptions);
+		// this.settingsManager.setDefaultModelAndSettings(model, providerOptions);
+	}
+
+	/**
+	 * Smartly change the model.
+	 * - If no messages or same API: Update in-place.
+	 * - If messages exist AND different API: Branch session first, then update.
+	 */
+	async smartChangeModel(model: Model<Api>): Promise<void> {
+		const hasMessages = this.messages.length > 0;
+		const currentApi = this.model?.api;
+		const isDifferentApi = currentApi !== model.api;
+
+		if (hasMessages && isDifferentApi) {
+			// Branch and switch
+			const newSessionPath = this.sessionManager.clone();
+			await this.switchSession(newSessionPath);
+			
+			// For new provider/API, use default options
+			const newOptions = getDefaultProviderOption(model.api);
+			await this.setModel(model, newOptions);
+		} else {
+			// Update in-place
+			// If staying on same API, preserve current options.
+			// If API changed (only possible here if !hasMessages), use default options.
+			const options = (!isDifferentApi) 
+				? this.providerOptions 
+				: getDefaultProviderOption(model.api);
+				
+			await this.setModel(model, options);
+		}
 	}
 
 	// =========================================================================
