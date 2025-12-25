@@ -1,4 +1,4 @@
-import type { BaseAssistantMessage, AgentState, Api } from "@ank1015/providers";
+import { type BaseAssistantMessage, type AgentState, type Api, GoogleThinkingLevel } from "@ank1015/providers";
 import { type Component, visibleWidth } from "@ank1015/agents-tui";
 import { existsSync, type FSWatcher, readFileSync, watch } from "fs";
 import { dirname, join } from "path";
@@ -228,9 +228,23 @@ export class FooterComponent implements Component {
 
 		// Add model name on the right side, plus thinking level if model supports it
 		const modelName = this.state.provider.model?.id || "no-model";
+		
+		// Add thinking level hint
+		let thinkingHint = "";
+		const model = this.state.provider.model;
+		const options = this.state.provider.providerOptions;
+		if (model?.api === "openai") {
+			const level = (options as any).reasoning?.effort;
+			if (level) thinkingHint = ` [${level}]`;
+		} else if (model?.api === "google") {
+			const level = (options as any).thinkingConfig?.thinkingLevel;
+			if (level !== undefined && level !== null) {
+				const label = level === GoogleThinkingLevel.HIGH ? 'high' : 'low';
+				thinkingHint = ` [${label}]`;
+			}
+		}
 
-		// Add thinking level hint if model supports reasoning and thinking is enabled
-		let rightSide = modelName;
+		let rightSide = modelName + thinkingHint;
 
 		let statsLeftWidth = visibleWidth(statsLeft);
 		const rightSideWidth = visibleWidth(rightSide);

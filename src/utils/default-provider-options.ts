@@ -4,7 +4,7 @@ export function getDefaultProviderOption(api: Api): OptionsForApi<Api>{
     if(api === 'openai'){
         const defaultOpenAiProviderOptions: OpenAIProviderOptions = {
             reasoning: {
-                effort: 'medium',
+                effort: 'low',
                 summary: 'auto'
             }
         }

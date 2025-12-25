@@ -888,8 +888,8 @@ export class InteractiveMode {
 	private async handleThinkingChange(level: 'low' | 'high'): Promise<void> {
 		try {
 			await this.session.updateThinkingLevel(level);
-			this.showStatus(`Thinking level set to: ${level}`);
 			this.footer.updateState(this.session.state);
+			this.showStatus(`Thinking level set to: ${level}`);
 		} catch (error) {
 			this.showError(`Failed to set thinking level: ${error instanceof Error ? error.message : "Unknown error"}`);
 		}
