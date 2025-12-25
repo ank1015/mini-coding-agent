@@ -18,6 +18,7 @@ import {
 	visibleWidth,
 } from "@ank1015/agents-tui";
 import { AgentSession, AgentSessionEvent } from "../core/agent-session.js";
+import { discoverAvailableModels } from "../core/sdk.js";
 import { CustomEditor } from "./components/custom-editor.js";
 import { FooterComponent } from "./components/footer.js";
 import { AssistantMessageComponent } from "./components/assistant-message.js";
@@ -31,8 +32,10 @@ import { SessionManager } from "../core/session-manager.js";
 import { QueueModeSelectorComponent } from "./components/queue-mode-selector.js";
 import { SessionSelectorComponent } from "./components/session-selector.js";
 import { MessageSelectorComponent } from "./components/message-selector.js";
+import { ModelSelectorComponent } from "./components/model-selector.js";
 import { ShowImagesSelectorComponent } from "./components/show-images-selector.js";
 import { WelcomeBox } from "./components/welcome-box.js";
+import { Model } from "@ank1015/providers";
 
 export class InteractiveMode {
     private session: AgentSession;
@@ -105,6 +108,7 @@ export class InteractiveMode {
 			{ name: "queue", description: "Select message queue mode (opens selector UI)" },
 			{ name: "clear", description: "Clear context and start a fresh session" },
 			{ name: "resume", description: "Resume a different session" },
+			{ name: "model", description: "Switch model (branches session if API changes)" },
 		];
 
 		// Add image toggle command only if terminal supports images
@@ -270,6 +274,11 @@ export class InteractiveMode {
 			}
 			if (text === "/resume") {
 				this.showSessionSelector();
+				this.editor.setText("");
+				return;
+			}
+			if (text === "/model") {
+				this.showModelSelector();
 				this.editor.setText("");
 				return;
 			}
@@ -801,6 +810,62 @@ export class InteractiveMode {
 			);
 			return { component: selector, focus: selector.getSessionList() };
 		});
+	}
+
+	private showModelSelector(): void {
+		const models = discoverAvailableModels();
+		this.showSelector((done) => {
+			const selector = new ModelSelectorComponent(
+				models,
+				async (model) => {
+					done();
+					await this.handleModelChange(model);
+				},
+				() => {
+					done();
+					this.ui.requestRender();
+				},
+				() => {
+					void this.shutdown();
+				},
+			);
+			return { component: selector, focus: selector.getModelList() };
+		});
+	}
+
+	private async handleModelChange(model: Model<Api>): Promise<void> {
+		const oldSessionId = this.session.sessionId;
+		
+		try {
+			await this.session.smartChangeModel(model);
+			
+			const newSessionId = this.session.sessionId;
+			const branched = oldSessionId !== newSessionId;
+			
+			if (branched) {
+				// Clear UI state as we have a new session (even if content is same)
+				this.pendingMessagesContainer.clear();
+				this.streamingComponent = null;
+				this.pendingTools.clear();
+				this.isFirstUserMessage = true; // Reset spacers
+				
+				// Re-render chat
+				this.chatContainer.clear();
+				this.ui.fullRefresh();
+				this.renderInitialMessages(this.session.state);
+				
+				this.showStatus(`Branched to new session for ${model.api}`);
+			} else {
+				this.showStatus(`Switched to ${model.id}`);
+			}
+			
+			// Update footer to show new model
+			this.footer.updateState(this.session.state);
+			this.ui.requestRender();
+			
+		} catch (error) {
+			this.showError(`Failed to change model: ${error instanceof Error ? error.message : "Unknown error"}`);
+		}
 	}
 
 	private async handleResumeSession(sessionPath: string): Promise<void> {
