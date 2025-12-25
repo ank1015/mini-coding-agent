@@ -109,6 +109,7 @@ export class InteractiveMode {
 			{ name: "clear", description: "Clear context and start a fresh session" },
 			{ name: "resume", description: "Resume a different session" },
 			{ name: "model", description: "Switch model (branches session if API changes)" },
+			{ name: "clone", description: "Clone current session to a new file" },
 		];
 
 		// Add image toggle command only if terminal supports images
@@ -279,6 +280,11 @@ export class InteractiveMode {
 			}
 			if (text === "/model") {
 				this.showModelSelector();
+				this.editor.setText("");
+				return;
+			}
+			if (text === "/clone") {
+				await this.handleCloneCommand();
 				this.editor.setText("");
 				return;
 			}
@@ -865,6 +871,38 @@ export class InteractiveMode {
 			
 		} catch (error) {
 			this.showError(`Failed to change model: ${error instanceof Error ? error.message : "Unknown error"}`);
+		}
+	}
+
+	private async handleCloneCommand(): Promise<void> {
+		try {
+			// Stop loading animation if running (unlikely for a command, but good safety)
+			if (this.loadingAnimation) {
+				this.loadingAnimation.stop();
+				this.loadingAnimation = null;
+			}
+			this.statusContainer.clear();
+
+			// Clone session
+			const newSessionPath = this.sessionManager.clone();
+
+			// Clear UI state
+			this.pendingMessagesContainer.clear();
+			this.streamingComponent = null;
+			this.pendingTools.clear();
+			this.isFirstUserMessage = true;
+
+			// Switch to new session
+			await this.session.switchSession(newSessionPath);
+
+			// Re-render chat
+			this.chatContainer.clear();
+			this.ui.fullRefresh();
+			this.renderInitialMessages(this.session.state);
+
+			this.showStatus("Session cloned");
+		} catch (error) {
+			this.showError(`Failed to clone session: ${error instanceof Error ? error.message : "Unknown error"}`);
 		}
 	}
 
