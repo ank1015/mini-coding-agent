@@ -557,36 +557,13 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         });
 
     // ========================================================================
-    // Context Analysis - Character-based Token Estimation
+    // Context Analysis - Three Message Types
     // ========================================================================
     //
-    // Estimate tokens for each message using chars / 4 (rough approximation).
-    // This is more stable than delta-based approach which breaks when context
-    // size fluctuates due to caching behavior.
-    //
-    // - User/ToolResult messages: estimate from character count
-    // - Assistant messages: use actual usage.output (accurate from API)
-
-    interface ContextDataPoint {
-        id: string; // "Turn 1", "Turn 2"
-        user: number;
-        assistant: number;
-        tools: { [toolName: string]: number };
-        total: number;
-    }
-
-    // Build toolCallId -> toolName mapping
-    const toolIdToName = new Map<string, string>();
-    for (const msg of data.messages) {
-        if (msg.role === 'assistant') {
-            const am = msg as BaseAssistantMessage<Api>;
-            am.content.forEach(c => {
-                if (c.type === 'toolCall') {
-                    toolIdToName.set(c.toolCallId, c.name);
-                }
-            });
-        }
-    }
+    // Context is made up of three types of messages:
+    // 1. User messages - what the user types
+    // 2. Assistant messages - what the assistant outputs (thinking, response, tool calls)
+    // 3. Tool Results - what tools return (read content, bash output, etc.)
 
     // Helper to count chars in a message
     const countChars = (msg: Message): number => {
@@ -602,54 +579,160 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     // Estimate tokens from chars (rough: 1 token ≈ 4 chars)
     const estimateTokens = (chars: number): number => Math.ceil(chars / 4);
 
-    // Build messageId -> { tokens, category } map
-    interface MessageTokenInfo {
-        tokens: number;
-        category: 'user' | 'assistant' | string;
+    // Build toolCallId -> toolName mapping
+    const toolIdToName = new Map<string, string>();
+    for (const msg of data.messages) {
+        if (msg.role === 'assistant') {
+            const am = msg as BaseAssistantMessage<Api>;
+            am.content.forEach(c => {
+                if (c.type === 'toolCall') {
+                    toolIdToName.set(c.toolCallId, c.name);
+                }
+            });
+        }
     }
-    const messageTokensMap = new Map<string, MessageTokenInfo>();
+
+    // ========================================================================
+    // 1. User Messages Analysis
+    // ========================================================================
+
+    interface UserStats {
+        count: number;
+        totalTokens: number;
+    }
+
+    const userStats: UserStats = { count: 0, totalTokens: 0 };
 
     for (const msg of data.messages) {
         if (msg.role === 'user') {
-            const tokens = estimateTokens(countChars(msg));
-            messageTokensMap.set(msg.id, { tokens, category: 'user' });
-        } else if (msg.role === 'toolResult') {
-            const tr = msg as ToolResultMessage;
-            const toolName = toolIdToName.get(tr.toolCallId) || 'unknown';
-            const tokens = estimateTokens(countChars(msg));
-            messageTokensMap.set(msg.id, { tokens, category: toolName });
-        } else if (msg.role === 'assistant') {
-            // Use actual output tokens from API (accurate)
-            const am = msg as BaseAssistantMessage<Api>;
-            const tokens = am.usage?.output || 0;
-            messageTokensMap.set(msg.id, { tokens, category: 'assistant' });
+            userStats.count++;
+            userStats.totalTokens += estimateTokens(countChars(msg));
         }
     }
 
-    // Build cumulative data points for each turn
+    // ========================================================================
+    // 2. Assistant Messages Analysis
+    // ========================================================================
+
+    interface AssistantStats {
+        // Content type breakdown
+        thinkingTokens: number;
+        thinkingCount: number;
+        responseTokens: number;
+        responseCount: number;
+        toolCallTokens: number;
+        toolCallCount: number;
+        totalOutputTokens: number; // Actual from API
+    }
+
+    const assistantStats: AssistantStats = {
+        thinkingTokens: 0,
+        thinkingCount: 0,
+        responseTokens: 0,
+        responseCount: 0,
+        toolCallTokens: 0,
+        toolCallCount: 0,
+        totalOutputTokens: 0,
+    };
+
+    // Tool calls breakdown (assistant calling tools)
+    const toolCallCounts: { [toolName: string]: number } = {};
+    const toolCallTokensByTool: { [toolName: string]: number } = {};
+    const readFilePaths: { path: string; turnNumber: number }[] = [];
+
+    let turnNum = 0;
+    for (const msg of data.messages) {
+        if (msg.role === 'assistant') {
+            turnNum++;
+            const am = msg as BaseAssistantMessage<Api>;
+            assistantStats.totalOutputTokens += am.usage?.output || 0;
+
+            for (const content of am.content) {
+                if (content.type === 'thinking') {
+                    const chars = content.thinkingText?.length || 0;
+                    assistantStats.thinkingTokens += estimateTokens(chars);
+                    assistantStats.thinkingCount++;
+                } else if (content.type === 'response') {
+                    let responseChars = 0;
+                    if (Array.isArray(content.content)) {
+                        for (const block of content.content) {
+                            if (block.type === 'text') {
+                                responseChars += block.content?.length || 0;
+                            }
+                        }
+                    }
+                    assistantStats.responseTokens += estimateTokens(responseChars);
+                    assistantStats.responseCount++;
+                } else if (content.type === 'toolCall') {
+                    const argsStr = JSON.stringify(content.arguments || {});
+                    const toolCallChars = (content.name?.length || 0) + argsStr.length;
+                    const tokens = estimateTokens(toolCallChars);
+                    assistantStats.toolCallTokens += tokens;
+                    assistantStats.toolCallCount++;
+
+                    const toolName = content.name || 'unknown';
+                    toolCallCounts[toolName] = (toolCallCounts[toolName] || 0) + 1;
+                    toolCallTokensByTool[toolName] = (toolCallTokensByTool[toolName] || 0) + tokens;
+
+                    // Track read file paths
+                    if (toolName === 'read') {
+                        const args = content.arguments as Record<string, unknown>;
+                        const filePath = (args?.file_path as string) || (args?.path as string) || 'unknown';
+                        readFilePaths.push({ path: filePath, turnNumber: turnNum });
+                    }
+                }
+            }
+        }
+    }
+
+    // ========================================================================
+    // 3. Tool Results Analysis
+    // ========================================================================
+
+    interface ToolResultStats {
+        totalTokens: number;
+        byTool: { [toolName: string]: number };
+    }
+
+    const toolResultStats: ToolResultStats = {
+        totalTokens: 0,
+        byTool: {},
+    };
+
+    for (const msg of data.messages) {
+        if (msg.role === 'toolResult') {
+            const tr = msg as ToolResultMessage;
+            const toolName = toolIdToName.get(tr.toolCallId) || 'unknown';
+            const tokens = estimateTokens(countChars(msg));
+            toolResultStats.totalTokens += tokens;
+            toolResultStats.byTool[toolName] = (toolResultStats.byTool[toolName] || 0) + tokens;
+        }
+    }
+
+    // ========================================================================
+    // Context Growth Data (for charts) - 3 categories: User, Assistant, ToolResults
+    // ========================================================================
+
+    interface ContextDataPoint {
+        id: string;
+        user: number;
+        assistant: number;
+        toolResults: number;
+        total: number;
+    }
+
     const contextAnalysis: ContextDataPoint[] = [];
-    const toolStats: { [toolName: string]: number } = {};
     let cumulativeUser = 0;
     let cumulativeAssistant = 0;
-    const cumulativeTools: { [toolName: string]: number } = {};
+    let cumulativeToolResults = 0;
     let turnCount = 0;
 
     for (const msg of data.messages) {
-        const tokenInfo = messageTokensMap.get(msg.id);
-        if (tokenInfo) {
-            if (tokenInfo.category === 'user') {
-                cumulativeUser += tokenInfo.tokens;
-            } else if (tokenInfo.category === 'assistant') {
-                // Don't add yet - assistant output is part of NEXT turn's context
-            } else {
-                // Tool
-                cumulativeTools[tokenInfo.category] = (cumulativeTools[tokenInfo.category] || 0) + tokenInfo.tokens;
-                toolStats[tokenInfo.category] = (toolStats[tokenInfo.category] || 0) + tokenInfo.tokens;
-            }
-        }
-
-        // Record data point at each assistant message
-        if (msg.role === 'assistant') {
+        if (msg.role === 'user') {
+            cumulativeUser += estimateTokens(countChars(msg));
+        } else if (msg.role === 'toolResult') {
+            cumulativeToolResults += estimateTokens(countChars(msg));
+        } else if (msg.role === 'assistant') {
             const am = msg as BaseAssistantMessage<Api>;
             turnCount++;
             const currentContextSize = (am.usage?.input || 0) + (am.usage?.cacheRead || 0);
@@ -658,12 +741,12 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                 id: `Turn ${turnCount}`,
                 user: cumulativeUser,
                 assistant: cumulativeAssistant,
-                tools: { ...cumulativeTools },
+                toolResults: cumulativeToolResults,
                 total: currentContextSize
             });
 
-            // NOW add assistant output (it becomes part of context for next turn)
-            cumulativeAssistant += tokenInfo?.tokens || 0;
+            // Assistant output becomes part of context for next turn
+            cumulativeAssistant += am.usage?.output || 0;
         }
     }
 
@@ -825,32 +908,148 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 
     <div id="context-view" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:${COLORS.bodyBg}; z-index:1000; overflow:auto; padding:20px;">
         <div class="container" style="max-width:1200px; min-height: 90vh;">
-             <div class="header">
+            <div class="header">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h1>Context Composition Analysis</h1>
                     <button onclick="hideContextView()" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">Close</button>
                 </div>
             </div>
-            
+
+            <!-- Top Charts: Context Growth & Composition (3 categories) -->
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
-                <div style="background: ${COLORS.containerBg}; padding: 15px; border-radius: 4px; height: 400px;">
+                <div style="background: ${COLORS.containerBg}; padding: 15px; border-radius: 4px; height: 350px;">
                     <h3 style="color:${COLORS.cyan}; margin-bottom: 10px;">Context Growth Timeline</h3>
-                    <div style="position: relative; height: 350px; width: 100%;">
+                    <div style="position: relative; height: 300px; width: 100%;">
                         <canvas id="contextGrowthChart"></canvas>
                     </div>
                 </div>
-                <div style="background: ${COLORS.containerBg}; padding: 15px; border-radius: 4px; height: 400px;">
-                     <h3 style="color:${COLORS.cyan}; margin-bottom: 10px;">Current Composition</h3>
-                     <div style="position: relative; height: 350px; width: 100%;">
+                <div style="background: ${COLORS.containerBg}; padding: 15px; border-radius: 4px; height: 350px;">
+                    <h3 style="color:${COLORS.cyan}; margin-bottom: 10px;">Current Composition</h3>
+                    <div style="position: relative; height: 300px; width: 100%;">
                         <canvas id="compositionChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <div style="background: ${COLORS.containerBg}; padding: 15px; border-radius: 4px; height: 400px;">
-                 <h3 style="color:${COLORS.cyan}; margin-bottom: 10px;">Tool Cost Analysis (Tokens)</h3>
-                 <div style="position: relative; height: 350px; width: 100%;">
-                    <canvas id="toolStatsChart"></canvas>
+            <!-- Section 1: User Messages -->
+            <div style="background: ${COLORS.containerBg}; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                <h3 style="color:${COLORS.cyan}; margin-bottom: 15px;">User Messages</h3>
+                <div style="display: flex; gap: 40px; font-family: monospace; font-size: 14px;">
+                    <div>
+                        <span style="color: ${COLORS.textDim};">Count:</span>
+                        <span style="color: ${COLORS.text}; font-weight: bold; margin-left: 8px;">${userStats.count}</span>
+                    </div>
+                    <div>
+                        <span style="color: ${COLORS.textDim};">Total Tokens:</span>
+                        <span style="color: ${COLORS.text}; font-weight: bold; margin-left: 8px;">~${userStats.totalTokens.toLocaleString()}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Assistant Messages Analysis -->
+            <div style="background: ${COLORS.containerBg}; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                <h3 style="color:${COLORS.cyan}; margin-bottom: 15px;">Assistant Messages Analysis</h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- Output Breakdown -->
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 4px;">
+                        <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Output Breakdown</h4>
+                        <div style="font-family: monospace; font-size: 12px;">
+                            <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <span style="color: ${COLORS.text};">Thinking</span>
+                                <span style="color: ${COLORS.textDim};">~${assistantStats.thinkingTokens.toLocaleString()} tokens (${assistantStats.thinkingCount} blocks)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <span style="color: ${COLORS.text};">Response</span>
+                                <span style="color: ${COLORS.green};">~${assistantStats.responseTokens.toLocaleString()} tokens (${assistantStats.responseCount} blocks)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <span style="color: ${COLORS.text};">Tool Calls</span>
+                                <span style="color: ${COLORS.yellow};">~${assistantStats.toolCallTokens.toLocaleString()} tokens (${assistantStats.toolCallCount} calls)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
+                                <span style="color: ${COLORS.text};">Actual Output (API)</span>
+                                <span style="color: ${COLORS.cyan};">${assistantStats.totalOutputTokens.toLocaleString()} tokens</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tool Call Counts -->
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 4px;">
+                        <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Tool Calls Summary</h4>
+                        <div style="font-family: monospace; font-size: 12px;">
+                            ${Object.entries(toolCallCounts)
+                                .sort((a, b) => b[1] - a[1])
+                                .map(([tool, count]) => `
+                                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                        <span style="color: ${COLORS.text};">${escapeHtml(tool)}</span>
+                                        <span style="color: ${COLORS.cyan};">${count} calls</span>
+                                    </div>
+                                `).join('')}
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
+                                <span style="color: ${COLORS.text};">Total</span>
+                                <span style="color: ${COLORS.green};">${Object.values(toolCallCounts).reduce((a, b) => a + b, 0)} calls</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tool Calls Token Chart -->
+                <div style="margin-top: 20px; height: 250px;">
+                    <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Tool Calls Tokens (Assistant Output)</h4>
+                    <div style="position: relative; height: 200px; width: 100%;">
+                        <canvas id="toolCallsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Read Files List -->
+                ${readFilePaths.length > 0 ? `
+                <div style="margin-top: 20px;">
+                    <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Files Read (${readFilePaths.length} total)</h4>
+                    <div style="font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 10px;">
+                        ${readFilePaths.map((item, idx) => `
+                            <div style="display: flex; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <span style="color: ${COLORS.textDim}; min-width: 25px;">${idx + 1}.</span>
+                                <span style="color: ${COLORS.textDim}; min-width: 55px;">Turn ${item.turnNumber}</span>
+                                <span style="color: ${COLORS.text}; word-break: break-all;">${escapeHtml(shortenPath(item.path))}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+
+            <!-- Section 3: Tool Results Analysis -->
+            <div style="background: ${COLORS.containerBg}; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                <h3 style="color:${COLORS.cyan}; margin-bottom: 15px;">Tool Results Analysis (Context Input)</h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+                    <!-- Tool Results Summary -->
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 4px;">
+                        <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Tokens by Tool</h4>
+                        <div style="font-family: monospace; font-size: 12px;">
+                            ${Object.entries(toolResultStats.byTool)
+                                .sort((a, b) => b[1] - a[1])
+                                .map(([tool, tokens]) => `
+                                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                        <span style="color: ${COLORS.text};">${escapeHtml(tool)}</span>
+                                        <span style="color: ${COLORS.yellow};">~${tokens.toLocaleString()}</span>
+                                    </div>
+                                `).join('')}
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
+                                <span style="color: ${COLORS.text};">Total</span>
+                                <span style="color: ${COLORS.cyan};">~${toolResultStats.totalTokens.toLocaleString()} tokens</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tool Results Chart -->
+                    <div style="height: 250px;">
+                        <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Tool Results Token Distribution</h4>
+                        <div style="position: relative; height: 200px; width: 100%;">
+                            <canvas id="toolResultsChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -918,10 +1117,11 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     <script>
         const usageData = ${JSON.stringify(assistantUsage)};
         const contextData = ${JSON.stringify(contextAnalysis)};
-        const toolData = ${JSON.stringify(toolStats)};
+        const toolCallData = ${JSON.stringify(toolCallTokensByTool)};
+        const toolResultData = ${JSON.stringify(toolResultStats.byTool)};
 
         let chartInstance = null;
-        let contextCharts = { growth: null, composition: null, tools: null };
+        let contextCharts = { growth: null, composition: null, toolCalls: null, toolResults: null };
         let windowStart = 0;
         const windowSize = 10;
 
@@ -1085,47 +1285,37 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         }
 
         function renderContextCharts() {
-            // 1. Stacked Area Chart (Timeline)
+            const palette = ['#eab308', '#f97316', '#ef4444', '#ec4899', '#8b5cf6', '#3b82f6', '#06b6d4'];
+
+            // 1. Stacked Area Chart (Timeline) - 3 categories: User, Assistant, Tool Results
             const ctxGrowth = document.getElementById('contextGrowthChart').getContext('2d');
-            
-            // Extract all tool names found
-            const toolNames = new Set();
-            contextData.forEach(d => Object.keys(d.tools).forEach(k => toolNames.add(k)));
-            const toolsList = Array.from(toolNames);
-            
-            // Generate datasets
+
             const datasets = [
                 {
                     label: 'User',
                     data: contextData.map(d => d.user),
-                    backgroundColor: 'rgba(52, 53, 65, 0.8)', // User BG
-                    borderColor: 'rgba(52, 53, 65, 1)',
+                    backgroundColor: 'rgba(103, 232, 249, 0.3)', // Cyan
+                    borderColor: 'rgba(103, 232, 249, 1)',
                     fill: true,
                     tension: 0.3
                 },
                 {
                     label: 'Assistant',
                     data: contextData.map(d => d.assistant),
-                    backgroundColor: 'rgba(34, 197, 94, 0.2)', // Green alpha
+                    backgroundColor: 'rgba(34, 197, 94, 0.3)', // Green
                     borderColor: 'rgba(34, 197, 94, 1)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Tool Results',
+                    data: contextData.map(d => d.toolResults),
+                    backgroundColor: 'rgba(234, 179, 8, 0.3)', // Yellow
+                    borderColor: 'rgba(234, 179, 8, 1)',
                     fill: true,
                     tension: 0.3
                 }
             ];
-
-            // Assign colors to tools dynamically (cycling through a palette)
-            const palette = ['#eab308', '#f97316', '#ef4444', '#ec4899', '#8b5cf6', '#3b82f6', '#06b6d4'];
-            toolsList.forEach((tool, i) => {
-                const color = palette[i % palette.length];
-                datasets.push({
-                    label: 'Tool: ' + tool,
-                    data: contextData.map(d => d.tools[tool] || 0),
-                    backgroundColor: color + '40', // alpha
-                    borderColor: color,
-                    fill: true,
-                    tension: 0.3
-                });
-            });
 
             contextCharts.growth = new Chart(ctxGrowth, {
                 type: 'line',
@@ -1143,9 +1333,9 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                     },
                     scales: {
                          x: { ticks: { color: '${COLORS.textDim}' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                         y: { 
-                             stacked: true, 
-                             ticks: { color: '${COLORS.textDim}' }, 
+                         y: {
+                             stacked: true,
+                             ticks: { color: '${COLORS.textDim}' },
                              grid: { color: 'rgba(255,255,255,0.1)' },
                              title: { display: true, text: 'Cumulative Tokens', color: '${COLORS.textDim}' }
                          }
@@ -1154,14 +1344,13 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                 }
             });
 
-            // 2. Composition (Doughnut)
-            // Use the LAST data point for current composition
+            // 2. Composition (Doughnut) - 3 categories
             const lastPoint = contextData[contextData.length - 1];
             if (lastPoint) {
                  const ctxComp = document.getElementById('compositionChart').getContext('2d');
-                 const labels = ['User', 'Assistant', ...toolsList];
-                 const data = [lastPoint.user, lastPoint.assistant, ...toolsList.map(t => lastPoint.tools[t] || 0)];
-                 const bgColors = ['rgb(52, 53, 65)', 'rgb(34, 197, 94)', ...toolsList.map((_, i) => palette[i % palette.length])];
+                 const labels = ['User', 'Assistant', 'Tool Results'];
+                 const data = [lastPoint.user, lastPoint.assistant, lastPoint.toolResults];
+                 const bgColors = ['rgb(103, 232, 249)', 'rgb(34, 197, 94)', 'rgb(234, 179, 8)'];
 
                  contextCharts.composition = new Chart(ctxComp, {
                     type: 'doughnut',
@@ -1177,32 +1366,63 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                  });
             }
 
-            // 3. Tool Breakdown (Bar)
-            const ctxTools = document.getElementById('toolStatsChart').getContext('2d');
-            const toolLabels = Object.keys(toolData);
-            const toolValues = Object.values(toolData);
-            
-            contextCharts.tools = new Chart(ctxTools, {
-                type: 'bar',
-                data: {
-                    labels: toolLabels,
-                    datasets: [{
-                        label: 'Tokens Consumed',
-                        data: toolValues,
-                        backgroundColor: toolLabels.map((_, i) => palette[i % palette.length]),
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y', // Horizontal bar chart
-                    scales: {
-                        x: { ticks: { color: '${COLORS.textDim}' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-                        y: { ticks: { color: '${COLORS.text}' }, grid: { display: false } }
+            // 3. Tool Calls Chart (Assistant output - what assistant requested)
+            const ctxToolCalls = document.getElementById('toolCallsChart').getContext('2d');
+            const toolCallLabels = Object.keys(toolCallData);
+            const toolCallValues = Object.values(toolCallData);
+
+            if (toolCallLabels.length > 0) {
+                contextCharts.toolCalls = new Chart(ctxToolCalls, {
+                    type: 'bar',
+                    data: {
+                        labels: toolCallLabels,
+                        datasets: [{
+                            label: 'Tokens (estimated)',
+                            data: toolCallValues,
+                            backgroundColor: toolCallLabels.map((_, i) => palette[i % palette.length]),
+                        }]
                     },
-                    plugins: { legend: { display: false } }
-                }
-            });
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: {
+                            x: { ticks: { color: '${COLORS.textDim}' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                            y: { ticks: { color: '${COLORS.text}' }, grid: { display: false } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            // 4. Tool Results Chart (Context input - what tools returned)
+            const ctxToolResults = document.getElementById('toolResultsChart').getContext('2d');
+            const toolResultLabels = Object.keys(toolResultData);
+            const toolResultValues = Object.values(toolResultData);
+
+            if (toolResultLabels.length > 0) {
+                contextCharts.toolResults = new Chart(ctxToolResults, {
+                    type: 'bar',
+                    data: {
+                        labels: toolResultLabels,
+                        datasets: [{
+                            label: 'Tokens (estimated)',
+                            data: toolResultValues,
+                            backgroundColor: toolResultLabels.map((_, i) => palette[i % palette.length]),
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: {
+                            x: { ticks: { color: '${COLORS.textDim}' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                            y: { ticks: { color: '${COLORS.text}' }, grid: { display: false } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
         }
     </script>
 </body>
