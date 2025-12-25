@@ -11,6 +11,9 @@
  * Modes use this class and add their own I/O layer on top.
  */
 
+import { appendFileSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import { Conversation, BaseAssistantMessage, Model, TextContent, AgentEvent, AgentState, Message, Attachment, getApiKeyFromEnv, Api, OptionsForApi, generateUUID, getModel } from "@ank1015/providers";
 import { getModelsPath } from "../config.js";
 import { exportSessionToHtml } from "./export-html.js";
@@ -370,9 +373,9 @@ export class AgentSession {
 	 * Creates a new session file up to that message, then switches to it.
 	 * @returns true if branch completed
 	 */
-	async branchSession(messageId: string): Promise<boolean> {
+	branchSession(messageId: string): string {
 		const newSessionPath = this.sessionManager.branch(messageId);
-		return this.switchSession(newSessionPath);
+		return newSessionPath;
 	}
 
 	/**
@@ -382,6 +385,7 @@ export class AgentSession {
 	 * @returns true if switch completed, false if cancelled
 	 */
 	async switchSession(sessionPath: string): Promise<boolean> {
+
 		this._disconnectFromAgent();
 		await this.abort();
 		this._queuedMessages = [];
@@ -393,7 +397,9 @@ export class AgentSession {
 		const entries = this.sessionManager.loadEntries();
 		const loaded = loadSessionFromEntries(entries);
 
+
 		this.agent.replaceMessages(loaded.messages);
+
 
 		// Restore model if saved
 		const savedModel = this.sessionManager.loadModel();

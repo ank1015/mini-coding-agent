@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { exec, spawnSync } from "child_process";
+import { spawnSync } from "child_process";
 import {
 	CombinedAutocompleteProvider,
 	type Component,
@@ -482,6 +482,7 @@ export class InteractiveMode {
 		messages: readonly (Message)[],
 		options: { updateFooter?: boolean; populateHistory?: boolean } = {},
 	): void {
+
 		this.isFirstUserMessage = true;
 		this.pendingTools.clear();
 
@@ -744,15 +745,21 @@ export class InteractiveMode {
 		this.statusContainer.clear();
 
 		// Branch session via AgentSession (emits hook and tool session events)
-		await this.session.branchSession(messageId);
+		const newSessionPath = this.session.branchSession(messageId);
 
 		// Clear UI state
-		this.chatContainer.clear();
 		this.pendingMessagesContainer.clear();
 		this.streamingComponent = null;
 		this.pendingTools.clear();
-		this.isFirstUserMessage = true;
 
+		// Switch session via AgentSession (emits hook and tool session events)
+		await this.session.switchSession(newSessionPath);
+
+		// Clear and re-render the chat
+		this.chatContainer.clear();
+		this.ui.fullRefresh();
+
+		this.isFirstUserMessage = true;
 		this.renderInitialMessages(this.session.state);
 		this.showStatus("Branched session");
 	}
@@ -797,6 +804,7 @@ export class InteractiveMode {
 	}
 
 	private async handleResumeSession(sessionPath: string): Promise<void> {
+
 		// Stop loading animation
 		if (this.loadingAnimation) {
 			this.loadingAnimation.stop();
@@ -814,8 +822,12 @@ export class InteractiveMode {
 
 		// Clear and re-render the chat
 		this.chatContainer.clear();
+		this.ui.fullRefresh();
+
+
 		this.isFirstUserMessage = true;
 		this.renderInitialMessages(this.session.state);
+
 		this.showStatus("Resumed session");
 	}
 
