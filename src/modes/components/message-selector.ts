@@ -122,7 +122,11 @@ class MessageList implements Component {
 			const cursor = isSelected ? theme.fg("accent", "› ") : "  ";
 			const maxMsgWidth = width - 2;
 			const truncatedMsg = truncateToWidth(normalizedMessage, maxMsgWidth, "...");
-			const messageLine = cursor + (isSelected ? theme.bold(truncatedMsg) : truncatedMsg);
+			let messageText = isSelected ? theme.bold(truncatedMsg) : truncatedMsg;
+			if (msg.disabled) {
+				messageText = theme.fg("dim", messageText);
+			}
+			const messageLine = cursor + messageText;
 
 			// Second line: metadata
 			const time = formatDate(msg.timestamp);
