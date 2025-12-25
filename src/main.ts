@@ -64,6 +64,8 @@ export async function main(args: string[]) {
 			console.log(chalk.dim("No session selected"));
 			return;
 		}
+		// Clear screen after session selection
+		process.stdout.write("\x1b[3J\x1b[2J\x1b[H");
 		sessionManager = SessionManager.open(selectedPath);
     }
 

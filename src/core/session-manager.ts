@@ -12,6 +12,11 @@ export interface SessionHeader {
 	api?: string;
 	modelId?: string;
 	providerOptions?: OptionsForApi<Api>;
+	// Branching info
+	parent?: {
+		sessionId: string;
+		messageId: string | null;
+	};
 }
 
 export interface SessionMessageEntry {
@@ -41,6 +46,8 @@ export interface LoadedSession {
 export interface SessionInfo {
 	path: string;
 	id: string;
+	parentId?: string;
+	parentMessageId?: string | null;
 	created: Date;
 	modified: Date;
 	messageCount: number;
@@ -294,6 +301,69 @@ export class SessionManager {
 		}
 	}
 
+	/**
+	 * Create a branch of the current session starting from the state BEFORE the specified message ID.
+	 * The specified message and all subsequent messages are excluded from the new branch.
+	 */
+	branch(messageId: string): string {
+		const entries = this.loadEntries();
+
+		// Find index of the target message
+		const splitIndex = entries.findIndex(e => e.type === "message" && e.message.id === messageId);
+
+		if (splitIndex === -1) {
+			throw new Error(`Message with ID ${messageId} not found in current session.`);
+		}
+
+		// Slice entries: everything before the target message
+		// We skip the original header (index 0) because we'll make a new one
+		// We start slice at 1 to skip original header
+		const historyEntries = entries.slice(1, splitIndex);
+
+		// Find the anchor (last message in the sliced history)
+		let parentMessageId: string | null = null;
+		for (let i = historyEntries.length - 1; i >= 0; i--) {
+			const entry = historyEntries[i];
+			if (entry.type === "message") {
+				parentMessageId = entry.message.id;
+				break;
+			}
+		}
+
+		// Generate new Session ID
+		const newSessionId = generateUUID();
+		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+		const newSessionFile = join(this.sessionDir, `${timestamp}_${newSessionId}.jsonl`);
+
+		// Create new Header
+		// We need the original header to get cwd and initial provider info
+		const originalHeader = entries.find(e => e.type === "session") as SessionHeader;
+
+		const newHeader: SessionHeader = {
+			type: "session",
+			id: newSessionId,
+			timestamp: new Date().toISOString(),
+			cwd: this.cwd, // or originalHeader.cwd
+			api: originalHeader?.api,
+			modelId: originalHeader?.modelId,
+			providerOptions: originalHeader?.providerOptions,
+			parent: {
+				sessionId: this.sessionId,
+				messageId: parentMessageId
+			}
+		};
+
+		// Write new file
+		// 1. Header
+		appendFileSync(newSessionFile, JSON.stringify(newHeader) + "\n");
+		// 2. History
+		for (const entry of historyEntries) {
+			appendFileSync(newSessionFile, JSON.stringify(entry) + "\n");
+		}
+
+		return newSessionFile;
+	}
+
 	/** Create a new session for the given directory */
 	static create(
 		cwd: string,
@@ -350,6 +420,8 @@ export class SessionManager {
 					const lines = content.trim().split("\n");
 
 					let sessionId = "";
+					let parentId: string | undefined;
+					let parentMessageId: string | null | undefined;
 					let created = stats.birthtime;
 					let messageCount = 0;
 					let firstMessage = "";
@@ -360,8 +432,13 @@ export class SessionManager {
 							const entry = JSON.parse(line);
 
 							if (entry.type === "session" && !sessionId) {
-								sessionId = entry.id;
-								created = new Date(entry.timestamp);
+								const sessionEntry = entry as SessionHeader;
+								sessionId = sessionEntry.id;
+								created = new Date(sessionEntry.timestamp);
+								if (sessionEntry.parent) {
+									parentId = sessionEntry.parent.sessionId;
+									parentMessageId = sessionEntry.parent.messageId;
+								}
 							}
 
 							if (entry.type === "message") {
@@ -391,6 +468,8 @@ export class SessionManager {
 					sessions.push({
 						path: file,
 						id: sessionId || "unknown",
+						parentId,
+						parentMessageId,
 						created,
 						modified: stats.mtime,
 						messageCount,

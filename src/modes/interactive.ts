@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { exec, spawnSync } from "child_process";
+import { spawnSync } from "child_process";
 import {
 	CombinedAutocompleteProvider,
 	type Component,
@@ -30,6 +30,7 @@ import { DynamicBorder } from "./components/dynamic-border.js";
 import { SessionManager } from "../core/session-manager.js";
 import { QueueModeSelectorComponent } from "./components/queue-mode-selector.js";
 import { SessionSelectorComponent } from "./components/session-selector.js";
+import { MessageSelectorComponent } from "./components/message-selector.js";
 import { ShowImagesSelectorComponent } from "./components/show-images-selector.js";
 import { WelcomeBox } from "./components/welcome-box.js";
 
@@ -239,6 +240,11 @@ export class InteractiveMode {
 			}
 			if (text === "/hotkeys") {
 				this.handleHotkeysCommand();
+				this.editor.setText("");
+				return;
+			}
+			if (text === "/branch") {
+				this.showBranchSelector();
 				this.editor.setText("");
 				return;
 			}
@@ -476,6 +482,7 @@ export class InteractiveMode {
 		messages: readonly (Message)[],
 		options: { updateFooter?: boolean; populateHistory?: boolean } = {},
 	): void {
+
 		this.isFirstUserMessage = true;
 		this.pendingTools.clear();
 
@@ -709,6 +716,54 @@ export class InteractiveMode {
 		this.ui.requestRender();
 	}
 
+	private showBranchSelector(): void {
+		this.showSelector((done) => {
+			const selector = new MessageSelectorComponent(
+				this.session.messages,
+				async (messageId) => {
+					done();
+					await this.handleBranchSession(messageId);
+				},
+				() => {
+					done();
+					this.ui.requestRender();
+				},
+				() => {
+					void this.shutdown();
+				},
+			);
+			return { component: selector, focus: selector.getMessageList() };
+		});
+	}
+
+	private async handleBranchSession(messageId: string): Promise<void> {
+		// Stop loading animation
+		if (this.loadingAnimation) {
+			this.loadingAnimation.stop();
+			this.loadingAnimation = null;
+		}
+		this.statusContainer.clear();
+
+		// Branch session via AgentSession (emits hook and tool session events)
+		const newSessionPath = this.session.branchSession(messageId);
+
+		// Clear UI state
+		this.pendingMessagesContainer.clear();
+		this.streamingComponent = null;
+		this.pendingTools.clear();
+
+		// Switch session via AgentSession (emits hook and tool session events)
+		await this.session.switchSession(newSessionPath);
+
+		// Clear and re-render the chat
+		this.chatContainer.clear();
+		this.ui.fullRefresh();
+
+		this.isFirstUserMessage = true;
+		this.renderInitialMessages(this.session.state);
+		this.showStatus("Branched session");
+	}
+
 	private showQueueModeSelector(): void {
 		this.showSelector((done) => {
 			const selector = new QueueModeSelectorComponent(
@@ -749,6 +804,7 @@ export class InteractiveMode {
 	}
 
 	private async handleResumeSession(sessionPath: string): Promise<void> {
+
 		// Stop loading animation
 		if (this.loadingAnimation) {
 			this.loadingAnimation.stop();
@@ -766,8 +822,12 @@ export class InteractiveMode {
 
 		// Clear and re-render the chat
 		this.chatContainer.clear();
+		this.ui.fullRefresh();
+
+
 		this.isFirstUserMessage = true;
 		this.renderInitialMessages(this.session.state);
+
 		this.showStatus("Resumed session");
 	}
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { SessionManager, loadSessionFromEntries } from '../src/core/session-manager';
+import { SessionManager, loadSessionFromEntries, type SessionHeader } from '../src/core/session-manager';
 import { existsSync, mkdirSync, readFileSync, rmSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -611,6 +611,84 @@ describe('SessionManager', () => {
 
 			expect(sessions[0].id).toBe(manager2.getSessionId());
 			expect(sessions[1].id).toBe(manager1.getSessionId());
+		});
+	});
+
+	describe('branch()', () => {
+		let originalManager: SessionManager;
+		let messages: any[];
+
+		beforeEach(() => {
+			originalManager = SessionManager.create(cwd, agentDir, {
+				api: 'openai',
+				modelId: 'gpt-4',
+				providerOptions: { temperature: 0.7 }
+			});
+
+			messages = [
+				{ role: 'user', id: 'msg-1', content: [{ type: 'text', content: 'Message 1' }] },
+				{ role: 'assistant', id: 'msg-2', content: [{ type: 'text', content: 'Response 1' }] },
+				{ role: 'user', id: 'msg-3', content: [{ type: 'text', content: 'Message 2' }] },
+				{ role: 'assistant', id: 'msg-4', content: [{ type: 'text', content: 'Response 2' }] }
+			];
+
+			// Save all messages
+			messages.forEach(msg => originalManager.saveMessage(msg));
+		});
+
+		it('should create new session file', () => {
+			const newSessionFile = originalManager.branch('msg-3');
+			expect(existsSync(newSessionFile)).toBe(true);
+			expect(newSessionFile).not.toBe(originalManager.getSessionFile());
+		});
+
+		it('should copy history up to target message', () => {
+			const newSessionFile = originalManager.branch('msg-3');
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+			const newMessages = newManager.loadMessages();
+
+			// Should contain msg-1 and msg-2, but not msg-3 or msg-4
+			expect(newMessages).toHaveLength(2);
+			expect(newMessages[0].id).toBe('msg-1');
+			expect(newMessages[1].id).toBe('msg-2');
+		});
+
+		it('should link new session to parent', () => {
+			const newSessionFile = originalManager.branch('msg-3');
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+			const entries = newManager.loadEntries();
+			const header = entries.find(e => e.type === 'session') as SessionHeader;
+
+			expect(header.parent).toBeDefined();
+			expect(header.parent?.sessionId).toBe(originalManager.getSessionId());
+			expect(header.parent?.messageId).toBe('msg-2'); // Last message before branch
+		});
+
+		it('should list parent info in list()', () => {
+			const newSessionFile = originalManager.branch('msg-3');
+			
+			// Get info from list
+			const sessions = SessionManager.list(cwd, agentDir);
+			const branchedSession = sessions.find(s => s.path === newSessionFile);
+
+			expect(branchedSession).toBeDefined();
+			expect(branchedSession?.parentId).toBe(originalManager.getSessionId());
+			expect(branchedSession?.parentMessageId).toBe('msg-2');
+		});
+
+		it('should throw error if message not found', () => {
+			expect(() => {
+				originalManager.branch('non-existent-id');
+			}).toThrow(/not found/);
+		});
+
+		it('should preserve provider settings', () => {
+			const newSessionFile = originalManager.branch('msg-3');
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+			const session = newManager.loadSession();
+
+			expect(session.model?.api).toBe('openai');
+			expect(session.model?.modelId).toBe('gpt-4');
 		});
 	});
 });
