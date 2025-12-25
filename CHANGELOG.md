@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.13
+
+### Features
+- **Enhanced HTML Export Visualization**:
+  - **Caching Analysis**: Added a "View caching details" overlay in session exports showing a Stacked Bar Chart of token usage (Input, Output, Cache Read/Write) per assistant message.
+  - **Context Analysis**: Added a "Visualize Context" dashboard with:
+    - **Context Growth Timeline**: Stacked Area Chart visualizing how User, Assistant, and Tool usage accumulate over time.
+    - **Composition Analysis**: Doughnut chart showing the final breakdown of context usage.
+    - **Tool Cost Analysis**: Charts breaking down token consumption by specific tools.
+  - **Interactive Controls**: Added pagination and interactive elements to explore long session histories.
+
 ## 0.0.12
 
 ### Features
