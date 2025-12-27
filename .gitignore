@@ -34,8 +34,8 @@ yarn-error.log*
 
 .logs
 
-./.evals-cache/
-./.evals-cache
-.evals-cache/repos
+evals-cache
+evals-cache/
+./evals-cache
 
 test-results/

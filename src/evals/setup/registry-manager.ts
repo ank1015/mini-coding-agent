@@ -11,7 +11,7 @@ export class RegistryManager {
 	private registryUrl: string;
 	private cacheDir: string;
 
-	constructor(registryUrl: string = "https://raw.githubusercontent.com/laude-institute/harbor/refs/heads/main/registry.json", cacheDir: string = ".evals-cache") {
+	constructor(registryUrl: string = "https://raw.githubusercontent.com/laude-institute/harbor/refs/heads/main/registry.json", cacheDir: string = "evals-cache") {
 		this.registryUrl = registryUrl;
 		this.cacheDir = cacheDir;
 		if (!existsSync(this.cacheDir)) {

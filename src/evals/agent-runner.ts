@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { createAgentSession, findModel } from "../core/sdk.js";
-import { AgentEvent, getApiKeyFromEnv, getModel } from "@ank1015/providers";
+import { createAgentSession } from "../core/sdk.js";
+import { AgentEvent, getModel, Api } from "@ank1015/providers";
 import { getDefaultProviderOption } from "../utils/default-provider-options.js";
 
 async function main() {
@@ -24,22 +24,35 @@ async function main() {
 		const instructions = readFileSync(instructionsFile, "utf-8");
 
 		// 3. Initialize Agent
-        // We use the default settings, but ensure the session file is saved to the output directory
-        // The SDK's createAgentSession uses SessionManager which saves to <agentDir>/sessions by default.
-        // We want to force it to use our output directory or copy it later. 
-        // A cleaner way for this headless mode is to let it save normally, and then we copy the file to /results at the end.
-        // OR we can pass a custom SessionManager. 
-        
-        // Let's use the standard creation, it will use process.cwd() (which is /workspace) or agentDir settings.
-        // To ensure we capture the specific session file, we'll grab the path from the session object.
+        let providerConfig: any = {
+             model: getModel('google', 'gemini-3-flash-preview')!,
+             providerOptions: getDefaultProviderOption('google')
+        };
+
+        if (process.env.AGENT_PROVIDER_CONFIG) {
+            try {
+                console.log("Found AGENT_PROVIDER_CONFIG env var, parsing...");
+                const parsed = JSON.parse(process.env.AGENT_PROVIDER_CONFIG);
+                if (parsed.api && parsed.modelId) {
+                    const model = getModel(parsed.api as Api, parsed.modelId);
+                    if (model) {
+                         providerConfig = {
+                             model,
+                             providerOptions: parsed.providerOptions || getDefaultProviderOption(parsed.api)
+                         };
+                         console.log(`Using configured provider: ${model.api}/${model.id}`);
+                    } else {
+                        console.warn(`Model not found for ${parsed.api}/${parsed.modelId}, using default.`);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to parse AGENT_PROVIDER_CONFIG", e);
+            }
+        }
 
 		const { session } = await createAgentSession({
             cwd: workDir,
-            // We assume API keys are passed as Env Vars (OPENAI_API_KEY, etc.)
-            provider: {
-                model: getModel('google', 'gemini-3-flash-preview')!,
-                providerOptions: getDefaultProviderOption('google')
-            }
+            provider: providerConfig
         });
 
 		console.log(`Agent Session Initialized. ID: ${session.sessionId}`);
@@ -60,15 +73,6 @@ async function main() {
                 event
             });
             eventLogStream.push(entry);
-            // Append to file immediately for safety
-            try {
-                 // Using fs.appendFileSync for simplicity in this runner
-                 // import { appendFileSync } from "fs"; -- need to add to imports if using
-                 // For now, let's just write at the end or use a simple flush?
-                 // Real-time logging is safer against crashes.
-            } catch (e) {
-                console.error("Failed to log event", e);
-            }
         });
 
         // We will use appendFileSync for real-time logging
