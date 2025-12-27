@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.14
+
+### Features
+- **Evaluation Framework**: Introduced a comprehensive evaluation framework for the agent.
+  - **Orchestrator**: Added `Orchestrator` to manage the evaluation process.
+  - **Task Execution**: Implemented `TaskExecutor` to run tasks, supporting Docker environments.
+  - **Environment Setup**: Added `EnvironmentManager` and `RegistryManager` for handling setup requirements.
+  - **Harbor Tasks Support**: Added support for setting up and evaluating Harbor tasks.
+
 ## 0.0.13
 
 ### Features
