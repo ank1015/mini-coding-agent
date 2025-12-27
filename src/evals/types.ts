@@ -42,3 +42,9 @@ export interface TaskEnvironment {
 	dockerImageId: string;
 	config: TaskConfig;
 }
+
+export interface VerificationResult {
+    score: number; // 1 for pass, 0 for fail
+    passed: boolean;
+    rewardFileContent: string | null;
+}

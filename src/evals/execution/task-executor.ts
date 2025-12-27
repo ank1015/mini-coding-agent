@@ -1,8 +1,8 @@
 import { exec } from "child_process";
-import { existsSync, mkdirSync, readFileSync } from "fs";
+import { cpSync, existsSync, mkdirSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 import { promisify } from "util";
-import { TaskConfig } from "../types.js";
+import { TaskConfig, VerificationResult } from "../types.js";
 
 const execAsync = promisify(exec);
 
@@ -17,83 +17,155 @@ export class TaskExecutor {
     }
 
     /**
-     * Runs the agent on the prepared environment.
-     * @param imageId The Docker image ID to run
-     * @param taskPath Local path to the task (for checking instructions existence, though they are inside image too if we copied or mounted)
-     * @param taskName Name of the task (for result folder naming)
-     * @param envVars API keys and other env vars
+     * Start the container in detached mode with required mounts.
      */
-    async runTask(imageId: string, taskPath: string, taskName: string, envVars: Record<string, string>): Promise<string> {
-        // 1. Prepare Result Directory for this specific run
+    async startContainer(imageId: string, taskPath: string, taskName: string, envVars: Record<string, string>): Promise<{ containerId: string, resultDir: string }> {
+        // 1. Prepare Result Directory
         const runId = new Date().toISOString().replace(/[:.]/g, "-");
         const taskResultDir = join(this.resultsDir, taskName, runId);
         mkdirSync(taskResultDir, { recursive: true });
+        
+        // Prepare sub-folders
+        mkdirSync(join(taskResultDir, "logs"), { recursive: true });
 
-        // Ensure paths are absolute for Docker volume mounting
+        // Ensure paths are absolute
         const absoluteTaskPath = resolve(taskPath);
         const absoluteResultDir = resolve(taskResultDir);
+        const absoluteLogsDir = join(absoluteResultDir, "logs");
 
-        // 2. Check for instructions (Host side check)
-        // In our setup, the task repo (including instruction.md) is checked out at taskPath.
-        // We need to make sure the agent inside the container can access it.
-        // Option A: We COPY the whole task repo into /workspace during 'docker build'. (We did not explicitly do this in EnvironmentManager yet!)
-        // Option B: We bind mount the taskPath to /workspace.
-        
-        // Let's look at EnvironmentManager again. 
-        // It sets WORKDIR /workspace. 
-        // It does NOT copy the task code into /workspace in the wrapper Dockerfile.
-        // So we MUST mount taskPath -> /workspace.
-
+        // 2. Check for instructions
         const instructionsPath = join(absoluteTaskPath, "instruction.md");
         if (!existsSync(instructionsPath)) {
             throw new Error(`instruction.md not found at ${instructionsPath}`);
         }
 
         // 3. Construct Docker Command
-        // - Mount task code to /workspace
-        // - Mount results dir to /results
-        // - Pass Env Vars
-        // - Command: node /opt/agent/dist/evals/agent-runner.js
-        
         const envFlags = Object.entries(envVars)
             .map(([k, v]) => `-e ${k}="${v}"`)
             .join(" ");
 
         const containerName = `eval-${taskName}-${runId}`;
 
-        // Note: We use the absolute path for taskPath and taskResultDir
+        // Mounts:
+        // - /workspace: The task code (instructions, source, tests)
+        // - /results: Where agent writes session/events
+        // - /logs/verifier: Where test.sh writes reward.txt. We map this to our local logs dir.
+        // - /tests: We map taskPath/tests to /tests because test.sh expects absolute /tests/test_state.py
+        
         const cmd = `docker run -d \
             --name ${containerName} \
             ${envFlags} \
             -v "${absoluteTaskPath}:/workspace" \
             -v "${absoluteResultDir}:/results" \
+            -v "${absoluteLogsDir}:/logs/verifier" \
+            -v "${join(absoluteTaskPath, 'tests')}:/tests" \
             ${imageId} \
-            node /opt/agent/dist/evals/agent-runner.js`;
+            tail -f /dev/null`;
 
-        console.log(`Starting execution container ${containerName}...`);
+        console.log(`Starting container ${containerName}...`);
         const { stdout: containerId } = await execAsync(cmd);
-        const trimmedId = containerId.trim();
-        
-        // 4. Wait for completion
-        // We can poll 'docker inspect' or 'docker wait'
-        console.log(`Waiting for container ${trimmedId} to finish...`);
-        await execAsync(`docker wait ${trimmedId}`);
+        return { containerId: containerId.trim(), resultDir: absoluteResultDir };
+    }
 
-        // Capture logs for debugging/audit
-        console.log(`Fetching logs for container ${trimmedId}...`);
+    /**
+     * Run the agent inside the running container.
+     */
+    async runAgent(containerId: string): Promise<void> {
+        console.log(`Running Agent in container ${containerId}...`);
+        
+        // We use docker exec. 
+        // Note: 'node' needs to be in PATH. Our wrapper image ensures it is installed.
+        // We run the agent runner script.
+        const cmd = `docker exec ${containerId} node /opt/agent/dist/evals/agent-runner.js`;
+        
+        // This will block until agent finishes (or crashes)
+        // We capture stdout/stderr to console
         try {
-            const { stdout: logs, stderr: errLogs } = await execAsync(`docker logs ${trimmedId}`);
-            if (logs) console.log("--- Container Logs (stdout) ---\n", logs);
-            if (errLogs) console.error("--- Container Logs (stderr) ---\n", errLogs);
-        } catch (e) {
-            console.error("Failed to fetch logs:", e);
+            await execAsync(cmd);
+        } catch (error: any) {
+            console.error("Agent execution failed:", error.message);
+            // Fetch logs to see what happened
+            // We can't fetch "docker logs" here easily because the main process is tail -f /dev/null.
+            // But 'docker exec' output is captured in error.stdout/stderr if available.
+            if (error.stdout) console.log("Agent Stdout:", error.stdout);
+            if (error.stderr) console.error("Agent Stderr:", error.stderr);
+            
+            // We don't throw immediately, we might want to proceed to verify (which will likely fail, but good for data)
+            // Actually, if agent crashes, we definitely want to try verifying to see if partial work was done? 
+            // Or just mark as failed. Let's throw for now.
+            throw error;
+        }
+        console.log("Agent execution finished.");
+    }
+
+    /**
+     * Run the verification script inside the container.
+     */
+    async verify(containerId: string, resultDir: string): Promise<VerificationResult> {
+        console.log(`Running Verification in container ${containerId}...`);
+        
+        // 1. Run test.sh
+        // It is located at /workspace/tests/test.sh
+        // We assume it exists.
+        
+        // We wrap in try/catch because if tests fail, the exit code might be non-zero (depending on script).
+        // The example script: 
+        // if [ $? -eq 0 ]; then echo 1 > ... else echo 0 > ... fi
+        // So the script itself might exit 0 even if tests fail? 
+        // We'll see. If it exits non-zero, execAsync throws.
+        
+        const testCmd = `docker exec ${containerId} bash /workspace/tests/test.sh`;
+        
+        try {
+            await execAsync(testCmd);
+        } catch (e: any) {
+            console.log("Verification script exited with error (this might be normal if tests failed):", e.message);
         }
 
-        console.log(`Task execution finished. Results in ${taskResultDir}`);
+        // 2. Read Reward File
+        // It should be in resultDir/logs/reward.txt (since we mounted resultDir/logs -> /logs/verifier)
+        const rewardTxtPath = join(resultDir, "logs", "reward.txt");
+        const rewardJsonPath = join(resultDir, "logs", "reward.json");
         
-        // We don't remove the container automatically here, allowing for post-run analysis/debugging.
-        // The orchestrator can cleanup later.
-        
-        return containerId.trim();
+        let score = 0;
+        let content: string | null = null;
+
+        if (existsSync(rewardTxtPath)) {
+            content = readFileSync(rewardTxtPath, "utf-8").trim();
+            score = parseFloat(content);
+        } else if (existsSync(rewardJsonPath)) {
+            content = readFileSync(rewardJsonPath, "utf-8");
+            try {
+                const json = JSON.parse(content);
+                // Assume standard CTRF or simple json { score: 1 }?
+                // The prompt said "fallback to this". Let's assume generic structure or simple score.
+                // For now, look for a score field or assume content is the score?
+                // Let's safe guess: if it's JSON, we might need specific parsing logic later.
+                // For now, just store content.
+            } catch {}
+        }
+
+        // Calculate boolean pass
+        const passed = score === 1; // Assuming 1 is pass, 0 is fail
+
+        return {
+            score,
+            passed,
+            rewardFileContent: content
+        };
+    }
+
+    async stopContainer(containerId: string): Promise<void> {
+        console.log(`Stopping container ${containerId}...`);
+        await execAsync(`docker stop ${containerId} && docker rm ${containerId}`);
+    }
+
+    async archiveSolution(taskPath: string, resultDir: string): Promise<void> {
+        const solutionSrc = join(taskPath, "solution");
+        if (existsSync(solutionSrc)) {
+            const dest = join(resultDir, "solution");
+            cpSync(solutionSrc, dest, { recursive: true });
+            console.log(`Archived solution to ${dest}`);
+        }
     }
 }

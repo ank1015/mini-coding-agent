@@ -8,7 +8,7 @@ async function main() {
 	try {
         // 0. Check Keys
         if (!process.env.GEMINI_API_KEY) {
-            console.error("Error: GEMINI_API_KEY must be set.");
+            console.error("Error: API KEY must be set.");
             process.exit(1);
         }
 
@@ -28,20 +28,38 @@ async function main() {
 		const imageId = await envManager.setupEnvironment(taskPath, config);
 		console.log(`Environment Ready: ${imageId}`);
 
-        console.log("\n=== 2. Execution Phase ===");
+        console.log("\n=== 2. Execution & Verification Phase ===");
         const executor = new TaskExecutor("test-results");
         
         // Pass API keys to the container
         const envVars: Record<string, string> = {};
         if (process.env.GEMINI_API_KEY) envVars.GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-        // For testing, we might want to force a specific model if needed, but agent picks default.
 
-        await executor.runTask(imageId, taskPath, taskEntry.name, envVars);
+        // 1. Start
+        const { containerId, resultDir } = await executor.startContainer(imageId, taskPath, taskEntry.name, envVars);
 
-        console.log("\n=== 3. Verification ===");
-        // Check if results exist
-        // We know TaskExecutor creates results/task/runId
-        // We can just list the latest
+        try {
+            // 2. Run Agent
+            await executor.runAgent(containerId);
+            
+            // 3. Archive Solution (Host side)
+            await executor.archiveSolution(taskPath, resultDir);
+
+            // 4. Verify
+            const verification = await executor.verify(containerId, resultDir);
+            console.log("\n=== Verification Results ===");
+            console.log("Passed:", verification.passed);
+            console.log("Score:", verification.score);
+            console.log("Reward Content:", verification.rewardFileContent);
+
+        } catch (e) {
+            console.error("Execution failed:", e);
+        } finally {
+            // 5. Cleanup
+            // await executor.stopContainer(containerId);
+        }
+
+        console.log(`\nFull results archived in: ${resultDir}`);
         
 	} catch (error) {
 		console.error("Error:", error);

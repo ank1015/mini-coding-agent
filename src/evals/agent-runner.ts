@@ -10,6 +10,7 @@ async function main() {
 		const taskPath = process.env.TASK_PATH || "/workspace";
 		const outputDir = process.env.OUTPUT_DIR || "/results";
 		const instructionsFile = join(taskPath, "instruction.md");
+        const workDir = '/app'
 
 		console.log(`Starting Agent Runner...`);
 		console.log(`Task Path: ${taskPath}`);
@@ -33,7 +34,7 @@ async function main() {
         // To ensure we capture the specific session file, we'll grab the path from the session object.
 
 		const { session } = await createAgentSession({
-            cwd: taskPath,
+            cwd: workDir,
             // We assume API keys are passed as Env Vars (OPENAI_API_KEY, etc.)
             provider: {
                 model: getModel('google', 'gemini-3-flash-preview')!,
