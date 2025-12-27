@@ -35,3 +35,5 @@ yarn-error.log*
 .logs
 
 .evals-cache/
+
+test-results/
