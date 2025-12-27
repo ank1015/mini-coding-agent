@@ -49,3 +49,5 @@ export { SettingsManager } from "./core/settings-manager.js";
 
 // Re-export provider types for convenience
 export type { Api, Model, Provider, Message, Attachment, OptionsForApi } from "@ank1015/providers";
+
+export * from './evals/index.js'

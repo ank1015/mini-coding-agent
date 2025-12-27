@@ -33,3 +33,9 @@ yarn-error.log*
 .turbo/
 
 .logs
+
+evals-cache
+evals-cache/
+./evals-cache
+
+test-results/

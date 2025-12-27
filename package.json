@@ -33,7 +33,7 @@
 	},
 	"dependencies": {
 		"@ank1015/agents-tui": "^0.0.21",
-		"@ank1015/providers": "^0.0.32",
+		"@ank1015/providers": "^0.0.34",
 		"@sinclair/typebox": "^0.34.41",
 		"chalk": "^5.5.0",
 		"cli-highlight": "^2.1.11",
@@ -41,7 +41,8 @@
 		"file-type": "^21.1.1",
 		"glob": "^11.0.3",
 		"jiti": "^2.6.1",
-		"strip-ansi": "^7.1.2"
+		"strip-ansi": "^7.1.2",
+		"toml": "^3.0.0"
 	},
 	"devDependencies": {
 		"@types/diff": "^7.0.2",
