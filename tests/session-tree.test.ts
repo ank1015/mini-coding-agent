@@ -449,9 +449,14 @@ describe('SessionTree', () => {
 
 			// Create and populate branch-b from msg-0
 			tree.switchBranch('main');
+			// Since createBranch with fromNodeId now branches from the parent of msg-0 (which is null),
+			// this is effectively branching from root.
 			tree.createBranch('branch-b', 'msg-0');
 			tree.switchBranch('branch-b');
 			tree.appendMessage({ role: 'user', id: 'msg-2', content: [] } as Message);
+
+			// Switch back to main to test merging a into b from outside
+			tree.switchBranch('main');
 
 			const merge = tree.merge('branch-a', 'Merge A into B', 'branch-b');
 
@@ -570,7 +575,7 @@ describe('SessionTree', () => {
 			const msg1 = tree.appendMessage({ role: 'user', id: 'msg-1', content: [] } as Message);
 			const msg2 = tree.appendMessage({ role: 'assistant', id: 'msg-2', content: [] } as Message);
 
-			tree.createBranch('feature', msg1.id);
+			tree.createBranch('feature', msg2.id); // Branch from msg2 (which means parent is msg1)
 			tree.switchBranch('feature');
 
 			const newMsg = tree.appendMessage({ role: 'user', id: 'msg-3', content: [] } as Message);
@@ -737,15 +742,24 @@ describe('SessionTree', () => {
 
 			const msg1 = tree.appendMessage({ role: 'user', id: 'msg-1', content: [] } as Message);
 
-			tree.createBranch('feature', msg1.id);
+			// createBranch now creates the branch starting *after* parent of msg1,
+			// or if using msg1 ID as reference, it starts after msg1's parent (null).
+			// Let's use appendMessage to create a child first so we can branch properly.
+			
+			const msg2 = tree.appendMessage({ role: 'assistant', id: 'msg-2', content: [] } as Message);
+			
+			// Branch from msg2. This means new branch starts after msg2's parent (msg1).
+			tree.createBranch('feature', msg2.id);
 			tree.switchBranch('feature');
-			const msg2 = tree.appendMessage({ role: 'user', id: 'msg-2', content: [] } as Message);
+			
+			// Append first message to feature branch. Parent should be msg1.
+			const featureMsg = tree.appendMessage({ role: 'user', id: 'feature-msg', content: [] } as Message);
 
-			const lineage = tree.getLineage(msg2.id);
+			const lineage = tree.getLineage(featureMsg.id);
 
-			expect(lineage).toHaveLength(2);
+			expect(lineage).toHaveLength(2); // msg1 -> featureMsg
 			expect(lineage[0].id).toBe(msg1.id);
-			expect(lineage[1].id).toBe(msg2.id);
+			expect(lineage[1].id).toBe(featureMsg.id);
 		});
 	});
 
@@ -756,7 +770,8 @@ describe('SessionTree', () => {
 			const parent = tree.appendMessage({ role: 'user', id: 'msg-1', content: [] } as Message);
 			const child1 = tree.appendMessage({ role: 'assistant', id: 'msg-2', content: [] } as Message);
 
-			tree.createBranch('feature', parent.id);
+			// To create a sibling of child1 (another child of parent), we branch from child1
+			tree.createBranch('feature', child1.id);
 			tree.switchBranch('feature');
 			const child2 = tree.appendMessage({ role: 'user', id: 'msg-3', content: [] } as Message);
 

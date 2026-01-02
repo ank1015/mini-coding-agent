@@ -194,8 +194,8 @@ export class SessionTree {
 	private _persist: boolean;
 	private _flushed: boolean = false;
 
-	// Track pending branch creation (branch name -> parent node ID)
-	private _pendingBranches: Map<string, string> = new Map();
+	// Track pending branch creation (branch name -> parent node ID or null for root)
+	private _pendingBranches: Map<string, string | null> = new Map();
 
 	private constructor(
 		file: string,
@@ -387,7 +387,8 @@ export class SessionTree {
 	private _getParentIdForBranch(branch: string): string | null {
 		// Check if there's a pending branch start point
 		const pendingParent = this._pendingBranches.get(branch);
-		if (pendingParent) {
+		// Explicitly check for undefined to allow null (which means root)
+		if (pendingParent !== undefined) {
 			this._pendingBranches.delete(branch);
 			return pendingParent;
 		}
@@ -534,9 +535,8 @@ export class SessionTree {
 		}
 
 		// Store pending parent for when first node is added to this branch
-		if (parentId) {
-			this._pendingBranches.set(name, parentId);
-		}
+		// Allow null to signify branching from root
+		this._pendingBranches.set(name, parentId);
 	}
 
 	// =========================================================================
