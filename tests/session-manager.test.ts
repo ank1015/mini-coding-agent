@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { SessionManager, loadSessionFromEntries, type SessionHeader } from '../src/core/session-manager';
-import { existsSync, mkdirSync, readFileSync, rmSync, readdirSync } from 'fs';
+import { SessionManager, loadSessionFromEntries, parseSessionEntries, type SessionHeader } from '../src/core/session-manager';
+import { existsSync, mkdirSync, readFileSync, rmSync, readdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -666,7 +666,7 @@ describe('SessionManager', () => {
 
 		it('should list parent info in list()', () => {
 			const newSessionFile = originalManager.branch('msg-3');
-			
+
 			// Get info from list
 			const sessions = SessionManager.list(cwd, agentDir);
 			const branchedSession = sessions.find(s => s.path === newSessionFile);
@@ -689,6 +689,423 @@ describe('SessionManager', () => {
 
 			expect(session.model?.api).toBe('openai');
 			expect(session.model?.modelId).toBe('gpt-4');
+		});
+
+		it('should branch from first message', () => {
+			const newSessionFile = originalManager.branch('msg-1');
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+			const newMessages = newManager.loadMessages();
+
+			// Should be empty - branching before first message
+			expect(newMessages).toHaveLength(0);
+		});
+
+		it('should preserve provider entries in branch', () => {
+			// Add a provider switch
+			originalManager.saveProvider('google', 'gemini-3-flash', { temperature: 0.5 });
+			originalManager.saveMessage({
+				role: 'user',
+				id: 'msg-5',
+				content: [{ type: 'text', content: 'After provider switch' }]
+			});
+
+			const newSessionFile = originalManager.branch('msg-5');
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+			const entries = newManager.loadEntries();
+
+			// Should include the provider entry
+			const providerEntry = entries.find(e => e.type === 'provider');
+			expect(providerEntry).toBeDefined();
+			expect((providerEntry as any).api).toBe('google');
+		});
+
+		it('should handle branching with no parent message', () => {
+			// Branch from first message means no parent message
+			const newSessionFile = originalManager.branch('msg-1');
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+			const entries = newManager.loadEntries();
+			const header = entries.find(e => e.type === 'session') as SessionHeader;
+
+			expect(header.parent?.messageId).toBeNull();
+			expect(header.parent?.sessionId).toBe(originalManager.getSessionId());
+		});
+	});
+
+	describe('clone()', () => {
+		let originalManager: SessionManager;
+
+		beforeEach(() => {
+			originalManager = SessionManager.create(cwd, agentDir, {
+				api: 'openai',
+				modelId: 'gpt-4',
+				providerOptions: { temperature: 0.7 }
+			});
+
+			// Add some messages
+			originalManager.saveMessage({
+				role: 'user',
+				id: 'msg-1',
+				content: [{ type: 'text', content: 'Message 1' }]
+			});
+			originalManager.saveMessage({
+				role: 'assistant',
+				id: 'msg-2',
+				content: [{ type: 'text', content: 'Response 1' }]
+			} as any);
+		});
+
+		it('should create new session file', () => {
+			const newSessionFile = originalManager.clone();
+			expect(existsSync(newSessionFile)).toBe(true);
+			expect(newSessionFile).not.toBe(originalManager.getSessionFile());
+		});
+
+		it('should copy all messages', () => {
+			const newSessionFile = originalManager.clone();
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+			const newMessages = newManager.loadMessages();
+			const originalMessages = originalManager.loadMessages();
+
+			expect(newMessages).toHaveLength(originalMessages.length);
+			expect(newMessages[0].id).toBe('msg-1');
+			expect(newMessages[1].id).toBe('msg-2');
+		});
+
+		it('should link to parent at last message', () => {
+			const newSessionFile = originalManager.clone();
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+			const entries = newManager.loadEntries();
+			const header = entries.find(e => e.type === 'session') as SessionHeader;
+
+			expect(header.parent).toBeDefined();
+			expect(header.parent?.sessionId).toBe(originalManager.getSessionId());
+			expect(header.parent?.messageId).toBe('msg-2'); // Last message
+		});
+
+		it('should preserve provider settings', () => {
+			const newSessionFile = originalManager.clone();
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+			const session = newManager.loadSession();
+
+			expect(session.model?.api).toBe('openai');
+			expect(session.model?.modelId).toBe('gpt-4');
+		});
+
+		it('should preserve provider entries', () => {
+			// Add provider switch
+			originalManager.saveProvider('google', 'gemini-3-flash', { temperature: 0.2 });
+
+			const newSessionFile = originalManager.clone();
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+			const entries = newManager.loadEntries();
+
+			const providerEntry = entries.find(e => e.type === 'provider');
+			expect(providerEntry).toBeDefined();
+			expect((providerEntry as any).api).toBe('google');
+		});
+
+		it('should handle session with no messages', () => {
+			const emptyManager = SessionManager.create(cwd, agentDir);
+			const newSessionFile = emptyManager.clone();
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+			const entries = newManager.loadEntries();
+			const header = entries.find(e => e.type === 'session') as SessionHeader;
+
+			expect(header.parent?.messageId).toBeNull();
+		});
+
+		it('should generate unique session ID', () => {
+			const newSessionFile = originalManager.clone();
+			const newManager = SessionManager.open(newSessionFile, agentDir);
+
+			expect(newManager.getSessionId()).not.toBe(originalManager.getSessionId());
+		});
+	});
+
+	describe('setSessionFile()', () => {
+		it('should switch to existing session file', () => {
+			// Create first session
+			const manager1 = SessionManager.create(cwd, agentDir);
+			manager1.saveMessage({
+				role: 'assistant',
+				id: 'msg-1',
+				content: []
+			} as any);
+			const sessionFile1 = manager1.getSessionFile();
+
+			// Create second session
+			const manager2 = SessionManager.create(cwd, agentDir);
+			const originalSessionId = manager2.getSessionId();
+
+			// Switch manager2 to manager1's session
+			manager2.setSessionFile(sessionFile1);
+
+			expect(manager2.getSessionFile()).toBe(sessionFile1);
+			expect(manager2.getSessionId()).toBe(manager1.getSessionId());
+			expect(manager2.getSessionId()).not.toBe(originalSessionId);
+		});
+
+		it('should load entries from existing file', () => {
+			const manager1 = SessionManager.create(cwd, agentDir);
+			manager1.saveMessage({
+				role: 'user',
+				id: 'msg-1',
+				content: [{ type: 'text', content: 'Test' }]
+			});
+			manager1.saveMessage({
+				role: 'assistant',
+				id: 'msg-2',
+				content: []
+			} as any);
+
+			const manager2 = SessionManager.create(cwd, agentDir);
+			manager2.setSessionFile(manager1.getSessionFile());
+
+			const messages = manager2.loadMessages();
+			expect(messages).toHaveLength(2);
+			expect(messages[0].id).toBe('msg-1');
+		});
+
+		it('should create new session for non-existent file', () => {
+			const manager = SessionManager.create(cwd, agentDir);
+			const newFile = join(agentDir, 'sessions', 'new-session.jsonl');
+
+			manager.setSessionFile(newFile);
+
+			expect(manager.getSessionFile()).toBe(newFile);
+			expect(existsSync(newFile)).toBe(false); // Not created yet (lazy)
+		});
+
+		it('should support initial provider for new file', () => {
+			const manager = SessionManager.create(cwd, agentDir);
+			const newFile = join(agentDir, 'sessions', 'new-session.jsonl');
+
+			manager.setSessionFile(newFile, {
+				api: 'google',
+				modelId: 'gemini-3-flash',
+				providerOptions: { temperature: 0.5 }
+			});
+
+			const session = manager.loadSession();
+			expect(session.model?.api).toBe('google');
+			expect(session.model?.modelId).toBe('gemini-3-flash');
+		});
+
+		it('should mark session as flushed when loading existing file', () => {
+			const manager1 = SessionManager.create(cwd, agentDir);
+			manager1.saveMessage({ role: 'assistant', id: 'msg-1', content: [] } as any);
+
+			const manager2 = SessionManager.create(cwd, agentDir);
+			manager2.setSessionFile(manager1.getSessionFile());
+
+			// Add new message - should append to existing file
+			manager2.saveMessage({
+				role: 'user',
+				id: 'msg-2',
+				content: [{ type: 'text', content: 'New message' }]
+			});
+
+			const content = readFileSync(manager2.getSessionFile(), 'utf-8');
+			const lines = content.trim().split('\n');
+			expect(lines.length).toBeGreaterThan(2);
+		});
+	});
+
+	describe('parseSessionEntries()', () => {
+		it('should parse valid JSONL content', () => {
+			const content = `{"type":"session","id":"s1","timestamp":"2024-01-01","cwd":"/path"}
+{"type":"message","timestamp":"2024-01-01","message":{"role":"user","id":"m1","content":[]}}
+{"type":"provider","timestamp":"2024-01-01","api":"openai","modelId":"gpt-4","providerOptions":{}}`;
+
+			const entries = parseSessionEntries(content);
+
+			expect(entries).toHaveLength(3);
+			expect(entries[0].type).toBe('session');
+			expect(entries[1].type).toBe('message');
+			expect(entries[2].type).toBe('provider');
+		});
+
+		it('should skip empty lines', () => {
+			const content = `{"type":"session","id":"s1","timestamp":"2024-01-01","cwd":"/path"}
+
+{"type":"message","timestamp":"2024-01-01","message":{"role":"user","id":"m1","content":[]}}
+
+`;
+
+			const entries = parseSessionEntries(content);
+
+			expect(entries).toHaveLength(2);
+		});
+
+		it('should skip malformed JSON lines', () => {
+			const content = `{"type":"session","id":"s1","timestamp":"2024-01-01","cwd":"/path"}
+{invalid json}
+{"type":"message","timestamp":"2024-01-01","message":{"role":"user","id":"m1","content":[]}}`;
+
+			const entries = parseSessionEntries(content);
+
+			expect(entries).toHaveLength(2);
+			expect(entries[0].type).toBe('session');
+			expect(entries[1].type).toBe('message');
+		});
+
+		it('should handle empty content', () => {
+			const entries = parseSessionEntries('');
+			expect(entries).toEqual([]);
+		});
+
+		it('should handle whitespace-only content', () => {
+			const entries = parseSessionEntries('   \n  \n  ');
+			expect(entries).toEqual([]);
+		});
+	});
+
+	describe('multiple provider switches', () => {
+		it('should track provider changes chronologically', () => {
+			const manager = SessionManager.create(cwd, agentDir, {
+				api: 'openai',
+				modelId: 'gpt-4',
+				providerOptions: { temperature: 0.7 }
+			});
+
+			// First provider switch
+			manager.saveProvider('google', 'gemini-3-flash', { temperature: 0.5 });
+
+			// Second provider switch
+			manager.saveProvider('anthropic', 'claude-3', { temperature: 0.3 });
+
+			const session = manager.loadSession();
+
+			// Should use the most recent provider
+			expect(session.model?.api).toBe('anthropic');
+			expect(session.model?.modelId).toBe('claude-3');
+			expect(session.model?.providerOptions).toEqual({ temperature: 0.3 });
+		});
+
+		it('should persist all provider entries', () => {
+			const manager = SessionManager.create(cwd, agentDir);
+
+			manager.saveMessage({ role: 'assistant', id: 'msg-1', content: [] } as any);
+			manager.saveProvider('openai', 'gpt-4', { temperature: 0.7 });
+			manager.saveProvider('google', 'gemini-3-flash', { temperature: 0.5 });
+
+			const content = readFileSync(manager.getSessionFile(), 'utf-8');
+			const lines = content.trim().split('\n');
+
+			const providerEntries = lines
+				.map(line => JSON.parse(line))
+				.filter(entry => entry.type === 'provider');
+
+			expect(providerEntries).toHaveLength(2);
+			expect(providerEntries[0].api).toBe('openai');
+			expect(providerEntries[1].api).toBe('google');
+		});
+	});
+
+	describe('edge cases and error handling', () => {
+		it('should handle session files with only header', () => {
+			const manager = SessionManager.create(cwd, agentDir);
+			const session = manager.loadSession();
+
+			expect(session.messages).toEqual([]);
+			expect(session.model).toBeNull();
+		});
+
+		it('should handle loadMessages on empty session', () => {
+			const manager = SessionManager.inMemory();
+			const messages = manager.loadMessages();
+
+			expect(messages).toEqual([]);
+		});
+
+		it('should handle loadModel on session without provider', () => {
+			const manager = SessionManager.create(cwd, agentDir);
+			const model = manager.loadModel();
+
+			expect(model).toBeNull();
+		});
+
+		it('should handle corrupted session file gracefully', () => {
+			const sessionFile = join(agentDir, 'sessions', 'test-session.jsonl');
+			mkdirSync(join(agentDir, 'sessions'), { recursive: true });
+			writeFileSync(sessionFile, '{broken json\n{more broken');
+
+			const manager = SessionManager.open(sessionFile, agentDir);
+			const entries = manager.loadEntries();
+
+			// Should return empty array for malformed content
+			expect(entries).toEqual([]);
+		});
+
+		it('should handle list() with corrupted files', () => {
+			const sessionDir = join(agentDir, 'sessions', `--${cwd.replace(/^\//, '').replace(/\//g, '-')}--`);
+			mkdirSync(sessionDir, { recursive: true });
+
+			// Create valid session
+			const manager1 = SessionManager.create(cwd, agentDir);
+			manager1.saveMessage({ role: 'assistant', id: 'msg-1', content: [] } as any);
+
+			// Create corrupted file
+			const corruptedFile = join(sessionDir, 'corrupted.jsonl');
+			writeFileSync(corruptedFile, '{invalid json');
+
+			const sessions = SessionManager.list(cwd, agentDir);
+
+			// Should still list valid sessions
+			expect(sessions.length).toBeGreaterThanOrEqual(1);
+		});
+
+		it('should handle messages with no text content', () => {
+			const manager = SessionManager.create(cwd, agentDir);
+			manager.saveMessage({
+				role: 'user',
+				id: 'msg-1',
+				content: [] // No content
+			});
+			manager.saveMessage({
+				role: 'assistant',
+				id: 'msg-2',
+				content: []
+			} as any);
+
+			const sessions = SessionManager.list(cwd, agentDir);
+			const session = sessions[0];
+
+			expect(session.firstMessage).toBe('(no messages)');
+			expect(session.allMessagesText).toBe('');
+		});
+
+		it('should handle header without provider info', () => {
+			const entries = [
+				{
+					type: 'session' as const,
+					id: 's1',
+					timestamp: '2024-01-01',
+					cwd: '/path'
+					// No api, modelId, providerOptions
+				}
+			];
+
+			const session = loadSessionFromEntries(entries);
+
+			expect(session.model).toBeNull();
+		});
+
+		it('should handle partial provider info in header', () => {
+			const entries = [
+				{
+					type: 'session' as const,
+					id: 's1',
+					timestamp: '2024-01-01',
+					cwd: '/path',
+					api: 'openai'
+					// Missing modelId and providerOptions
+				}
+			];
+
+			const session = loadSessionFromEntries(entries);
+
+			expect(session.model).toBeNull();
 		});
 	});
 });
