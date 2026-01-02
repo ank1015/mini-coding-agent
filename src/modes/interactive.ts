@@ -106,10 +106,11 @@ export class InteractiveMode {
 			{ name: "export", description: "Export session to HTML file" },
 			{ name: "session", description: "Show session info and stats" },
 			{ name: "hotkeys", description: "Show all keyboard shortcuts" },
+			{ name: "compact", description: "Compact conversation history" },
 			{ name: "branch", description: "Create a new branch from a previous message" },
 			{ name: "branches", description: "List all branches in current session" },
 			{ name: "switch-branch", description: "Switch to a different branch" },
-			{ name: "merge", description: "Merge another branch into the current one" },
+			{ name: "merge", description: "Merge current branch into another branch" },
 			{ name: "checkpoint", description: "Create a named checkpoint" },
 			{ name: "queue", description: "Select message queue mode (opens selector UI)" },
 			{ name: "clear", description: "Clear context and start a fresh session" },
@@ -251,6 +252,11 @@ export class InteractiveMode {
 			}
 			if (text === "/hotkeys") {
 				this.handleHotkeysCommand();
+				this.editor.setText("");
+				return;
+			}
+			if (text.startsWith("/compact")) {
+				await this.handleCompactCommand(text);
 				this.editor.setText("");
 				return;
 			}
@@ -716,6 +722,27 @@ export class InteractiveMode {
 	// UI helpers
 	// =========================================================================
 
+	private startLoader(message: string): void {
+		this.stopLoader();
+		this.loadingAnimation = new Loader(
+			this.ui,
+			(spinner) => theme.fg("accent", spinner),
+			(text) => theme.fg("muted", text),
+			message,
+		);
+		this.statusContainer.addChild(this.loadingAnimation);
+		this.ui.requestRender();
+	}
+
+	private stopLoader(): void {
+		if (this.loadingAnimation) {
+			this.loadingAnimation.stop();
+			this.loadingAnimation = null;
+		}
+		this.statusContainer.clear();
+		this.ui.requestRender();
+	}
+
 	clearEditor(): void {
 		this.editor.setText("");
 		this.ui.requestRender();
@@ -1006,12 +1033,17 @@ export class InteractiveMode {
 	}
 
 	private showMergeSelector(): void {
+		if (this.session.activeBranch === this.session.sessionTree.defaultBranch) {
+			this.showWarning("Cannot merge the default branch into another branch.");
+			return;
+		}
+
 		const branches = this.session.listBranches();
 		// Filter out current branch
 		const mergeableBranches = branches.filter(b => b.name !== this.session.activeBranch);
 
 		if (mergeableBranches.length === 0) {
-			this.showWarning("No other branches available to merge.");
+			this.showWarning("No other branches available to merge into.");
 			return;
 		}
 
@@ -1035,18 +1067,44 @@ export class InteractiveMode {
 		});
 	}
 
-	private async handleMergeCommand(fromBranch: string): Promise<void> {
+	private async handleMergeCommand(targetBranch: string): Promise<void> {
+		const sourceBranch = this.session.activeBranch;
 		try {
-			// Ideally we'd prompt the user for a summary, but for now we'll auto-generate one
-			const summary = `Merged changes from ${fromBranch}`;
+			this.startLoader(`Merging ${sourceBranch} into ${targetBranch} (generating summary)...`);
+			await this.session.switchBranch(targetBranch);
+			await this.session.smartMergeBranch(sourceBranch);
 			
-			this.session.mergeBranch(fromBranch, summary);
-			this.showStatus(`Merged branch ${fromBranch} into ${this.session.activeBranch}`);
-			
+			this.stopLoader();
+
 			// Reload context to see merge message
 			this.rebuildChatFromMessages();
+			this.showStatus(`Successfully merged ${sourceBranch} into ${targetBranch}`);
 		} catch (error) {
+			this.stopLoader();
 			this.showError(`Failed to merge branch: ${error instanceof Error ? error.message : "Unknown error"}`);
+		}
+	}
+
+	private async handleCompactCommand(text: string): Promise<void> {
+		const args = text.split(/\s+/).slice(1);
+		const keepRecent = args.length > 0 ? parseInt(args[0], 10) : 10;
+		
+		if (isNaN(keepRecent) || keepRecent < 0) {
+			this.showError("Invalid number for keepRecent (must be >= 0)");
+			return;
+		}
+
+		try {
+			this.startLoader("Compacting history (generating summary)...");
+			await this.session.compactHistory({ keepRecent });
+			
+			this.stopLoader();
+			
+			this.rebuildChatFromMessages();
+			this.showStatus(`Conversation compacted (kept last ${keepRecent} messages)`);
+		} catch (error) {
+			this.stopLoader();
+			this.showError(`Failed to compact history: ${error instanceof Error ? error.message : "Unknown error"}`);
 		}
 	}
 
