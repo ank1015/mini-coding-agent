@@ -590,6 +590,43 @@ export class SessionTree {
 	}
 
 	/**
+	 * Find the lowest common ancestor node between two nodes.
+	 * Returns null if they share no history (unlikely if valid tree) or if IDs invalid.
+	 */
+	findLowestCommonAncestor(nodeId1: string, nodeId2: string): TreeNode | null {
+		const lineage1 = this.getLineage(nodeId1);
+		const lineage2 = this.getLineage(nodeId2);
+
+		let lca: TreeNode | null = null;
+		// Iterate until paths diverge
+		const len = Math.min(lineage1.length, lineage2.length);
+		for (let i = 0; i < len; i++) {
+			if (lineage1[i].id === lineage2[i].id) {
+				lca = lineage1[i];
+			} else {
+				break;
+			}
+		}
+
+		return lca;
+	}
+
+	/**
+	 * Get a segment of the lineage from ancestor to descendant (inclusive).
+	 * Throws if ancestor is not in descendant's lineage.
+	 */
+	getLineageSegment(ancestorId: string, descendantId: string): TreeNode[] {
+		const lineage = this.getLineage(descendantId);
+		const startIndex = lineage.findIndex(n => n.id === ancestorId);
+
+		if (startIndex === -1) {
+			throw new Error(`Node ${ancestorId} is not an ancestor of ${descendantId}`);
+		}
+
+		return lineage.slice(startIndex);
+	}
+
+	/**
 	 * Get direct children of a node.
 	 */
 	getChildren(nodeId: string): TreeNode[] {
