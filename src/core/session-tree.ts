@@ -520,10 +520,13 @@ export class SessionTree {
 
 		if (fromNodeId) {
 			// Verify node exists
-			if (!this._nodeMap.has(fromNodeId)) {
+			const node = this._nodeMap.get(fromNodeId);
+			if (!node) {
 				throw new Error(`Node '${fromNodeId}' does not exist.`);
 			}
-			parentId = fromNodeId;
+			// When branching from a specific node, we want to start *before* that node
+			// (i.e., try a different path from the same parent)
+			parentId = node.parentId;
 		} else {
 			// Use current head
 			const head = this.getHeadNode();
