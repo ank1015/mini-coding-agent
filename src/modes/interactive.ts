@@ -100,6 +100,7 @@ export class InteractiveMode {
 		this.editorContainer = new Container();
 		this.editorContainer.addChild(this.editor);
 		this.footer = new FooterComponent(session.state);
+		this.footer.updateState(session.state, session.activeBranch);
 
 		// Define slash commands for autocomplete
 		const slashCommands: SlashCommand[] = [
@@ -357,7 +358,7 @@ export class InteractiveMode {
 			await this.init();
 		}
 		try {
-			this.footer.updateState(state);
+			this.footer.updateState(state, this.session.activeBranch);
 
 			switch (event.type) {
 				case "agent_start":
@@ -541,7 +542,7 @@ export class InteractiveMode {
 		this.pendingTools.clear();
 
 		if (options.updateFooter) {
-			this.footer.updateState(this.session.state);
+			this.footer.updateState(this.session.state, this.session.activeBranch);
 			this.updateEditorBorderColor();
 		}
 
@@ -1120,7 +1121,7 @@ export class InteractiveMode {
 	private async handleThinkingChange(level: 'low' | 'high'): Promise<void> {
 		try {
 			await this.session.updateThinkingLevel(level);
-			this.footer.updateState(this.session.state);
+			this.footer.updateState(this.session.state, this.session.activeBranch);
 			this.showStatus(`Thinking level set to: ${level}`);
 		} catch (error) {
 			this.showError(`Failed to set thinking level: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -1134,7 +1135,7 @@ export class InteractiveMode {
 			this.showStatus(`Switched to ${model.id}`);
 
 			// Update footer to show new model
-			this.footer.updateState(this.session.state);
+			this.footer.updateState(this.session.state, this.session.activeBranch);
 			this.ui.requestRender();
 
 		} catch (error) {

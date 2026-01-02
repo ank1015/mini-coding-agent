@@ -29,6 +29,7 @@ function findGitHeadPath(): string | null {
  */
 export class FooterComponent implements Component {
 	private state: AgentState;
+	private activeBranch: string = "main"; // Default
 	private cachedBranch: string | null | undefined = undefined; // undefined = not checked yet, null = not in git repo, string = branch name
 	private gitWatcher: FSWatcher | null = null;
 	private onBranchChange: (() => void) | null = null;
@@ -85,8 +86,11 @@ export class FooterComponent implements Component {
 		}
 	}
 
-	updateState(state: AgentState): void {
+	updateState(state: AgentState, activeBranch?: string): void {
 		this.state = state;
+		if (activeBranch) {
+			this.activeBranch = activeBranch;
+		}
 	}
 
 	invalidate(): void {
@@ -224,6 +228,9 @@ export class FooterComponent implements Component {
 		}
 		statsParts.push(contextPercentStr);
 
+		// Add active branch name
+		statsParts.push(`[${this.activeBranch}]`);
+
 		let statsLeft = statsParts.join(" ");
 
 		// Add model name on the right side, plus thinking level if model supports it
@@ -246,6 +253,16 @@ export class FooterComponent implements Component {
 
 		let rightSide = modelName + thinkingHint;
 
+        // Add current session branch
+        const session = (this.state as any).sessionTree; // Hack: state does not have session tree access directly here usually?
+        // Wait, the FooterComponent constructor only takes state.
+        // We need to pass the active branch name to the footer or let it access it.
+        // Since we can't easily change the constructor without refactoring InteractiveMode deeply (or maybe we can?),
+        // let's look at how InteractiveMode passes data.
+        // InteractiveMode has `this.footer = new FooterComponent(session.state);`
+        // We should add a method to update the active branch or pass it in updateState.
+        // Actually, state.activeBranch isn't a thing on AgentState.
+        
 		let statsLeftWidth = visibleWidth(statsLeft);
 		const rightSideWidth = visibleWidth(rightSide);
 
