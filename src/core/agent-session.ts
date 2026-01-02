@@ -456,7 +456,7 @@ export class AgentSession {
 	 * Used after session/branch switches.
 	 */
 	private async _reloadContext(strategy?: ContextStrategy): Promise<void> {
-		const messages = this._sessionTree.buildContext(undefined, strategy ?? { type: 'full' });
+		const messages = this._sessionTree.buildContext(undefined, strategy ?? { type: 'use-summaries' });
 		this.agent.replaceMessages(messages);
 
 		// Restore model if saved
@@ -590,6 +590,9 @@ export class AgentSession {
 		// Append summary node that covers these IDs
 		const ids = nodesToSummarize.map(n => n.id);
 		this._sessionTree.appendSummary(finalContent, ids);
+
+		// Reload context to reflect compaction
+		await this._reloadContext();
 	}
 
 	/**
@@ -639,6 +642,9 @@ export class AgentSession {
 		const summary = await summarizeBranch(nodesToSummarize, this.model, this.providerOptions);
 		const finalContent = `The user explored a different conversation branch before returning here.\nSummary of that exploration:\n\n${summary}`;
 		this._sessionTree.merge(fromBranch, finalContent);
+
+		// Reload context to reflect merge
+		await this._reloadContext();
 	}
 
 	/**
@@ -658,6 +664,9 @@ export class AgentSession {
 		const ids = segment.map(n => n.id);
 		
 		this._sessionTree.appendSummary(finalContent, ids);
+
+		// Reload context to reflect summary
+		await this._reloadContext();
 	}
 
 	// =========================================================================

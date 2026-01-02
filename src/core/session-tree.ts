@@ -716,33 +716,91 @@ export class SessionTree {
 
 	private _extractWithSummaries(lineage: TreeNode[]): Message[] {
 		const messages: Message[] = [];
-		const summarizedIds = new Set<string>();
+		
+		// Map: nodeId -> summaryNodeId (immediate parent summary)
+		const coveredBy = new Map<string, string>();
+		// Map: summaryNodeId -> SummaryNode object
+		const summaryNodes = new Map<string, SummaryNode>();
 
-		// First pass: collect all summarized node IDs
+		// 1. Build coverage map
 		for (const node of lineage) {
 			if (node.type === 'summary') {
-				for (const id of node.summarizes) {
-					summarizedIds.add(id);
+				summaryNodes.set(node.id, node);
+				for (const childId of node.summarizes) {
+					coveredBy.set(childId, node.id);
 				}
 			}
 		}
 
-		// Second pass: build messages, skipping summarized nodes
+		// Helper to find the ultimate visible summary (root of coverage chain)
+		const findVisibleSummary = (nodeId: string): SummaryNode | null => {
+			let currentId = nodeId;
+			let ultimateSummary: SummaryNode | null = null;
+			
+			// Traverse up the chain of summaries
+			// Node -> Summary1 -> Summary2 -> ... -> UltimateSummary (not covered)
+			// We want to find the highest summary that covers this node
+			
+			// First, check if the node itself is covered
+			let parentId = coveredBy.get(currentId);
+			while (parentId) {
+				const parent = summaryNodes.get(parentId);
+				if (parent) {
+					ultimateSummary = parent;
+					currentId = parent.id;
+					parentId = coveredBy.get(currentId);
+				} else {
+					break; 
+				}
+			}
+			
+			return ultimateSummary;
+		};
+
+		const emittedSummaries = new Set<string>();
+
+		// 2. Iterate and build messages
 		for (const node of lineage) {
-			if (summarizedIds.has(node.id)) {
-				continue; // Skip, this is covered by a summary
+			
+			// Find if this node is covered by any summary chain
+			const rootSummary = findVisibleSummary(node.id);
+
+			if (rootSummary) {
+				// This node is covered by a summary.
+				// If we haven't emitted that summary yet, emit it now (at the position of the first covered node)
+				if (!emittedSummaries.has(rootSummary.id)) {
+					messages.push({
+						id: rootSummary.id,
+						role: 'user',
+						content: [{ type: 'text', content: `[Summary]: ${rootSummary.content}` }],
+						timestamp: new Date(rootSummary.timestamp).getTime(),
+					} as Message);
+					emittedSummaries.add(rootSummary.id);
+				}
+				// Skip the original node as it's represented by the summary
+				continue;
 			}
 
-			if (node.type === 'message') {
-				messages.push(node.message);
-			} else if (node.type === 'summary') {
-				// Include summary as a message
+			// If the node is a Summary Node itself
+			if (node.type === 'summary') {
+				// If it was already emitted (because we encountered its covered children earlier), skip
+				if (emittedSummaries.has(node.id)) {
+					continue;
+				}
+				// If it wasn't emitted (e.g. it summarizes nothing, or nodes not in lineage), emit it now
 				messages.push({
 					id: node.id,
 					role: 'user',
 					content: [{ type: 'text', content: `[Summary]: ${node.content}` }],
 					timestamp: new Date(node.timestamp).getTime(),
 				} as Message);
+				emittedSummaries.add(node.id);
+				continue;
+			}
+
+			// Normal node (not covered, and not a summary)
+			if (node.type === 'message') {
+				messages.push(node.message);
 			} else if (node.type === 'merge') {
 				messages.push({
 					id: node.id,
