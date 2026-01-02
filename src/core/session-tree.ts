@@ -455,6 +455,19 @@ export class SessionTree {
 					lastModified: new Date(this._header.created),
 				};
 			}
+
+			// Check if it is a pending branch
+			const pendingParentId = this._pendingBranches.get(branchName);
+			if (pendingParentId) {
+				return {
+					name: branchName,
+					headNodeId: pendingParentId,
+					messageCount: 0,
+					created: new Date(),
+					lastModified: new Date(),
+				};
+			}
+
 			return null;
 		}
 
@@ -537,6 +550,15 @@ export class SessionTree {
 				head = entry;
 			}
 		}
+
+		// If no node found on this branch, check if it's a pending branch
+		if (!head) {
+			const pendingParentId = this._pendingBranches.get(targetBranch);
+			if (pendingParentId) {
+				return this._nodeMap.get(pendingParentId) ?? null;
+			}
+		}
+
 		return head;
 	}
 
