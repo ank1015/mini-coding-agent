@@ -1,4 +1,4 @@
-import type { BaseAssistantEvent, Message, ToolResultMessage, UserMessage, AgentState, Api, BaseAssistantMessage } from "@ank1015/providers";
+import { sanitizeSurrogates, type BaseAssistantEvent, type Message, type ToolResultMessage, type UserMessage, type AgentState, type Api, type BaseAssistantMessage } from "@ank1015/providers";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { basename } from "path";
@@ -118,6 +118,19 @@ function formatExpandableOutput(lines: string[], maxLines: number): string {
 	}
 	out += "</div>";
 	return out;
+}
+
+function safeJsonForScript(obj: unknown): string {
+	return JSON.stringify(obj, (key, value) => {
+		if (typeof value === "string") {
+			return sanitizeSurrogates(value);
+		}
+		return value;
+	})
+		.replace(/</g, "\\u003c")
+		.replace(/>/g, "\\u003e")
+		.replace(/\u2028/g, "\\u2028")
+		.replace(/\u2029/g, "\\u2029");
 }
 
 // ============================================================================
@@ -741,19 +754,20 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 
 
     // Collect usage data for visualization
-    const assistantUsage = data.messages
-        .filter(m => m.role === 'assistant')
-        .map((m, index) => {
-            const am = m as BaseAssistantMessage<Api>;
-            return {
-                id: `Message ${index + 1}`,
-                input: am.usage?.input || 0,
-                output: am.usage?.output || 0,
-                cacheRead: am.usage?.cacheRead || 0,
-                cacheWrite: am.usage?.cacheWrite || 0,
-                total: (am.usage?.input || 0) + (am.usage?.output || 0) + (am.usage?.cacheRead || 0) + (am.usage?.cacheWrite || 0)
-            };
-        });
+    function calculateStats(messages: Message[]) {
+        const assistantUsage = messages
+            .filter(m => m.role === 'assistant')
+            .map((m, index) => {
+                const am = m as BaseAssistantMessage<Api>;
+                return {
+                    id: `Message ${index + 1}`,
+                    input: am.usage?.input || 0,
+                    output: am.usage?.output || 0,
+                    cacheRead: am.usage?.cacheRead || 0,
+                    cacheWrite: am.usage?.cacheWrite || 0,
+                    total: (am.usage?.input || 0) + (am.usage?.output || 0) + (am.usage?.cacheRead || 0) + (am.usage?.cacheWrite || 0)
+                };
+            });
 
     // ========================================================================
     // Context Analysis - Three Message Types
@@ -802,7 +816,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 
     const userStats: UserStats = { count: 0, totalTokens: 0 };
 
-    for (const msg of data.messages) {
+    for (const msg of messages) {
         if (msg.role === 'user') {
             userStats.count++;
             userStats.totalTokens += estimateTokens(countChars(msg));
@@ -840,7 +854,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     const readFilePaths: { path: string; turnNumber: number }[] = [];
 
     let turnNum = 0;
-    for (const msg of data.messages) {
+    for (const msg of messages) {
         if (msg.role === 'assistant') {
             turnNum++;
             const am = msg as BaseAssistantMessage<Api>;
@@ -898,7 +912,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         byTool: {},
     };
 
-    for (const msg of data.messages) {
+    for (const msg of messages) {
         if (msg.role === 'toolResult') {
             const tr = msg as ToolResultMessage;
             const toolName = toolIdToName.get(tr.toolCallId) || 'unknown';
@@ -926,7 +940,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     let cumulativeToolResults = 0;
     let turnCount = 0;
 
-    for (const msg of data.messages) {
+    for (const msg of messages) {
         if (msg.role === 'user') {
             cumulativeUser += estimateTokens(countChars(msg));
         } else if (msg.role === 'toolResult') {
@@ -947,6 +961,39 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
             // Assistant output becomes part of context for next turn
             cumulativeAssistant += am.usage?.output || 0;
         }
+    }
+    
+    return {
+        assistantUsage,
+        contextAnalysis,
+        userStats,
+        assistantStats,
+        toolCallCounts,
+        toolCallTokensByTool,
+        readFilePaths,
+        toolResultStats,
+    };
+}
+
+    const branchStats: Record<string, any> = {};
+    const messageMap = new Map(data.messages.map(m => [m.id, m])); // Map ID -> Message
+
+    // Calculate stats for each branch
+    for (const branch of branches) {
+        const lineageIds = branchLineages[branch] || [];
+        const messages: Message[] = [];
+        
+        for (const id of lineageIds) {
+             const m = messageMap.get(id);
+             if (m) messages.push(m);
+        }
+        
+        // If no lineage (legacy without IDs?), fallback to all data.messages
+        if (messages.length === 0 && branch === 'main' && lineageIds.length === 0) {
+             messages.push(...data.messages);
+        }
+
+        branchStats[branch] = calculateStats(messages);
     }
 
 	const systemPromptHtml = data.systemPrompt
@@ -1108,6 +1155,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                     <h1>Context & Caching Analysis</h1>
                     <button onclick="hideCacheView()" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">Close</button>
                 </div>
+                <div id="cache-tabs-container" class="tabs-container" style="margin-top: 15px; margin-bottom: 0;"></div>
             </div>
             <div style="position: relative; flex: 1; width: 100%; min-height: 0;">
                 <canvas id="cacheChart"></canvas>
@@ -1135,6 +1183,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                     <h1>Context Composition Analysis</h1>
                     <button onclick="hideContextView()" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">Close</button>
                 </div>
+                <div id="context-tabs-container" class="tabs-container" style="margin-top: 15px; margin-bottom: 0;"></div>
             </div>
 
             <!-- Top Charts: Context Growth & Composition (3 categories) -->
@@ -1159,11 +1208,11 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                 <div style="display: flex; gap: 40px; font-family: monospace; font-size: 14px;">
                     <div>
                         <span style="color: ${COLORS.textDim};">Count:</span>
-                        <span style="color: ${COLORS.text}; font-weight: bold; margin-left: 8px;">${userStats.count}</span>
+                        <span style="color: ${COLORS.text}; font-weight: bold; margin-left: 8px;" id="stat-user-count">-</span>
                     </div>
                     <div>
                         <span style="color: ${COLORS.textDim};">Total Tokens:</span>
-                        <span style="color: ${COLORS.text}; font-weight: bold; margin-left: 8px;">~${userStats.totalTokens.toLocaleString()}</span>
+                        <span style="color: ${COLORS.text}; font-weight: bold; margin-left: 8px;" id="stat-user-tokens">-</span>
                     </div>
                 </div>
             </div>
@@ -1179,19 +1228,19 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                         <div style="font-family: monospace; font-size: 12px;">
                             <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
                                 <span style="color: ${COLORS.text};">Thinking</span>
-                                <span style="color: ${COLORS.textDim};">~${assistantStats.thinkingTokens.toLocaleString()} tokens (${assistantStats.thinkingCount} blocks)</span>
+                                <span style="color: ${COLORS.textDim};" id="stat-thinking">~- tokens (- blocks)</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
                                 <span style="color: ${COLORS.text};">Response</span>
-                                <span style="color: ${COLORS.green};">~${assistantStats.responseTokens.toLocaleString()} tokens (${assistantStats.responseCount} blocks)</span>
+                                <span style="color: ${COLORS.green};" id="stat-response">~- tokens (- blocks)</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
                                 <span style="color: ${COLORS.text};">Tool Calls</span>
-                                <span style="color: ${COLORS.yellow};">~${assistantStats.toolCallTokens.toLocaleString()} tokens (${assistantStats.toolCallCount} calls)</span>
+                                <span style="color: ${COLORS.yellow};" id="stat-toolcalls">~- tokens (- calls)</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
                                 <span style="color: ${COLORS.text};">Actual Output (API)</span>
-                                <span style="color: ${COLORS.cyan};">${assistantStats.totalOutputTokens.toLocaleString()} tokens</span>
+                                <span style="color: ${COLORS.cyan};" id="stat-total-output">- tokens</span>
                             </div>
                         </div>
                     </div>
@@ -1199,19 +1248,8 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                     <!-- Tool Call Counts -->
                     <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 4px;">
                         <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Tool Calls Summary</h4>
-                        <div style="font-family: monospace; font-size: 12px;">
-                            ${Object.entries(toolCallCounts)
-                                .sort((a, b) => b[1] - a[1])
-                                .map(([tool, count]) => `
-                                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                                        <span style="color: ${COLORS.text};">${escapeHtml(tool)}</span>
-                                        <span style="color: ${COLORS.cyan};">${count} calls</span>
-                                    </div>
-                                `).join('')}
-                            <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
-                                <span style="color: ${COLORS.text};">Total</span>
-                                <span style="color: ${COLORS.green};">${Object.values(toolCallCounts).reduce((a, b) => a + b, 0)} calls</span>
-                            </div>
+                        <div style="font-family: monospace; font-size: 12px;" id="stat-tool-counts-list">
+                            <!-- Injected -->
                         </div>
                     </div>
                 </div>
@@ -1225,20 +1263,9 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                 </div>
 
                 <!-- Read Files List -->
-                ${readFilePaths.length > 0 ? `
-                <div style="margin-top: 20px;">
-                    <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Files Read (${readFilePaths.length} total)</h4>
-                    <div style="font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 10px;">
-                        ${readFilePaths.map((item, idx) => `
-                            <div style="display: flex; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <span style="color: ${COLORS.textDim}; min-width: 25px;">${idx + 1}.</span>
-                                <span style="color: ${COLORS.textDim}; min-width: 55px;">Turn ${item.turnNumber}</span>
-                                <span style="color: ${COLORS.text}; word-break: break-all;">${escapeHtml(shortenPath(item.path))}</span>
-                            </div>
-                        `).join('')}
-                    </div>
+                <div style="margin-top: 20px;" id="read-files-container">
+                    <!-- Injected -->
                 </div>
-                ` : ''}
             </div>
 
             <!-- Section 3: Tool Results Analysis -->
@@ -1249,19 +1276,8 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                     <!-- Tool Results Summary -->
                     <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 4px;">
                         <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Tokens by Tool</h4>
-                        <div style="font-family: monospace; font-size: 12px;">
-                            ${Object.entries(toolResultStats.byTool)
-                                .sort((a, b) => b[1] - a[1])
-                                .map(([tool, tokens]) => `
-                                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                                        <span style="color: ${COLORS.text};">${escapeHtml(tool)}</span>
-                                        <span style="color: ${COLORS.yellow};">~${tokens.toLocaleString()}</span>
-                                    </div>
-                                `).join('')}
-                            <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
-                                <span style="color: ${COLORS.text};">Total</span>
-                                <span style="color: ${COLORS.cyan};">~${toolResultStats.totalTokens.toLocaleString()} tokens</span>
-                            </div>
+                        <div style="font-family: monospace; font-size: 12px;" id="stat-tool-results-list">
+                            <!-- Injected -->
                         </div>
                     </div>
 
@@ -1342,22 +1358,121 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     </div>
 
     <script>
-        const treeEntries = ${JSON.stringify(data.treeEntries || [])};
-        const usageData = ${JSON.stringify(assistantUsage)};
-        const contextData = ${JSON.stringify(contextAnalysis)};
-        const toolCallData = ${JSON.stringify(toolCallTokensByTool)};
-        const toolResultData = ${JSON.stringify(toolResultStats.byTool)};
+        const treeEntries = ${safeJsonForScript(data.treeEntries || [])};
+        // Per-branch stats
+        const branchStats = ${safeJsonForScript(branchStats)};
+        // Global usage data (fallback) if single branch
+        // const usageData = []; // Now we rely on branchStats
 
         // Branching Data
-        const branches = ${JSON.stringify(branches)};
-        const branchLineages = ${JSON.stringify(branchLineages)};
-        const eventHtmlMap = ${JSON.stringify(eventHtmlMap)};
-        const activeBranch = "${escapeHtml(activeBranch)}";
+        const branches = ${safeJsonForScript(branches)};
+        const branchLineages = ${safeJsonForScript(branchLineages)};
+        const eventHtmlMap = ${safeJsonForScript(eventHtmlMap)};
+        const activeBranch = ${safeJsonForScript(activeBranch)};
 
         let currentBranch = activeBranch;
+        
+        // Helper to get stats for current branch, fallback to global or first if needed
+        function getBranchData() {
+            return branchStats[currentBranch] || branchStats[Object.keys(branchStats)[0]];
+        }
+        
+        // Global chart variables
+        let usageData = []; // will be set from branch data
+        let contextData = []; 
+        let toolCallData = {};
+        let toolResultData = {};
 
-        function renderTabs() {
-            const container = document.getElementById('tabs-container');
+        function updateGlobalDataFromBranch() {
+             const data = getBranchData();
+             if (!data) return;
+             usageData = data.assistantUsage || [];
+             contextData = data.contextAnalysis || [];
+             toolCallData = data.toolCallTokensByTool || {};
+             toolResultData = data.toolResultStats.byTool || {};
+             // Update other stats in DOM
+             updateStatsDOM(data);
+        }
+
+        function updateStatsDOM(data) {
+             if (!data) return;
+             // Update user stats
+             document.getElementById('stat-user-count').innerText = data.userStats.count;
+             document.getElementById('stat-user-tokens').innerText = '~' + data.userStats.totalTokens.toLocaleString();
+             
+             // Update assistant stats
+             document.getElementById('stat-thinking').innerText = '~' + data.assistantStats.thinkingTokens.toLocaleString() + ' tokens (' + data.assistantStats.thinkingCount + ' blocks)';
+             document.getElementById('stat-response').innerText = '~' + data.assistantStats.responseTokens.toLocaleString() + ' tokens (' + data.assistantStats.responseCount + ' blocks)';
+             document.getElementById('stat-toolcalls').innerText = '~' + data.assistantStats.toolCallTokens.toLocaleString() + ' tokens (' + data.assistantStats.toolCallCount + ' calls)';
+             document.getElementById('stat-total-output').innerText = data.assistantStats.totalOutputTokens.toLocaleString() + ' tokens';
+             
+             // Update Tool Calls Summary List
+             const toolCountsHtml = Object.entries(data.toolCallCounts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([tool, count]) => \`
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <span style="color: ${COLORS.text};">\${escapeHtml(tool)}</span>
+                        <span style="color: ${COLORS.cyan};">\${count} calls</span>
+                    </div>
+                \`).join('') + 
+                \`<div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
+                    <span style="color: ${COLORS.text};">Total</span>
+                    <span style="color: ${COLORS.green};">\${Object.values(data.toolCallCounts).reduce((a, b) => a + b, 0)} calls</span>
+                </div>\`;
+             document.getElementById('stat-tool-counts-list').innerHTML = toolCountsHtml;
+
+             // Update Read Files List
+             const filesHtml = data.readFilePaths.length > 0 ? 
+                \`<h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Files Read (\${data.readFilePaths.length} total)</h4>
+                <div style="font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 10px;">
+                    \${data.readFilePaths.map((item, idx) => \`
+                        <div style="display: flex; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <span style="color: ${COLORS.textDim}; min-width: 25px;">\${idx + 1}.</span>
+                            <span style="color: ${COLORS.textDim}; min-width: 55px;">Turn \${item.turnNumber}</span>
+                            <span style="color: ${COLORS.text}; word-break: break-all;">\${escapeHtml(item.path)}</span>
+                        </div>
+                    \`).join('')}
+                </div>\` : '';
+             document.getElementById('read-files-container').innerHTML = filesHtml;
+
+             // Update Tool Results List
+             const toolResultsHtml = Object.entries(data.toolResultStats.byTool)
+                .sort((a, b) => b[1] - a[1])
+                .map(([tool, tokens]) => \`
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <span style="color: ${COLORS.text};">\${escapeHtml(tool)}</span>
+                        <span style="color: ${COLORS.yellow};">~\${tokens.toLocaleString()}</span>
+                    </div>
+                \`).join('') +
+                \`<div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
+                    <span style="color: ${COLORS.text};">Total</span>
+                    <span style="color: ${COLORS.cyan};">~\${data.toolResultStats.totalTokens.toLocaleString()} tokens</span>
+                </div>\`;
+             document.getElementById('stat-tool-results-list').innerHTML = toolResultsHtml;
+        }
+
+        // Need escapeHtml in JS scope for template strings
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;")
+                .replace(/\`/g, "&#96;");
+        }
+
+        // Shorten path in JS
+        const homeDir = ${safeJsonForScript(homedir())};
+        function shortenPath(path) {
+             // Simple approximation since we don't have full homedir logic in browser
+             // We can check if it starts with homeDir passed from backend
+             return path; // For simplicity in browser, or use regex
+        }
+
+        function renderTabs(containerId) {
+            const container = document.getElementById(containerId);
             container.innerHTML = '';
             
             if (branches.length <= 1 && branches[0] === 'main') {
@@ -1378,7 +1493,6 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
             const container = document.getElementById('messages-container');
             const lineage = branchLineages[currentBranch] || [];
             
-            // Build HTML string
             let html = '';
             for (const id of lineage) {
                 if (eventHtmlMap[id]) {
@@ -1390,12 +1504,38 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 
         function switchBranch(branch) {
             currentBranch = branch;
-            renderTabs();
+            updateGlobalDataFromBranch();
+            
+            renderTabs('tabs-container');
+            renderTabs('cache-tabs-container');
+            renderTabs('context-tabs-container');
+            
             renderMessages();
+            
+            // Re-render charts if their views are open
+            // We can just destroy and re-create charts if simpler, or update data
+            if (document.getElementById('cache-view').style.display === 'block') {
+                 if (chartInstance) {
+                     chartInstance.destroy();
+                     chartInstance = null;
+                 }
+                 renderChart();
+            }
+            if (document.getElementById('context-view').style.display === 'block') {
+                 // Reset context charts
+                 if (contextCharts.growth) { contextCharts.growth.destroy(); contextCharts.growth = null; }
+                 if (contextCharts.composition) { contextCharts.composition.destroy(); contextCharts.composition = null; }
+                 if (contextCharts.toolCalls) { contextCharts.toolCalls.destroy(); contextCharts.toolCalls = null; }
+                 if (contextCharts.toolResults) { contextCharts.toolResults.destroy(); contextCharts.toolResults = null; }
+                 renderContextCharts();
+            }
         }
 
-        // Initial Render
-        renderTabs();
+        // Initial Setup
+        updateGlobalDataFromBranch();
+        renderTabs('tabs-container');
+        renderTabs('cache-tabs-container');
+        renderTabs('context-tabs-container');
         renderMessages();
 
         let chartInstance = null;
