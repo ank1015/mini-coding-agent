@@ -37,6 +37,7 @@ interface ParsedSessionData {
 	tools?: { name: string; description: string }[];
 	contextWindow?: number;
 	isStreamingFormat?: boolean;
+	treeEntries?: any[];
 }
 
 // ============================================================================
@@ -130,12 +131,14 @@ function parseSessionTreeFormat(lines: string[]): ParsedSessionData {
 		sessionEvents: [],
 		tokenStats: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		costStats: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		treeEntries: [],
 	};
 
 	for (const line of lines) {
 		let entry: { type: string; [key: string]: unknown };
 		try {
 			entry = JSON.parse(line) as { type: string; [key: string]: unknown };
+			data.treeEntries?.push(entry);
 		} catch {
 			continue;
 		}
@@ -901,6 +904,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Session Export - ${escapeHtml(filename)}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -1022,6 +1026,14 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                 <button id="nextBtn" onclick="moveWindow(5)" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">Next &rarr;</button>
             </div>
         </div>
+    </div>
+
+    <div id="branch-view" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:${COLORS.bodyBg}; z-index:1000; overflow:hidden;">
+        <div style="position: absolute; top: 20px; right: 20px; z-index: 1001;">
+            <button onclick="hideBranchView()" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">Close</button>
+        </div>
+        <div id="branch-graph-container" style="width: 100%; height: 100%;"></div>
+        <div id="node-tooltip" style="position: absolute; opacity: 0; background: ${COLORS.containerBg}; border: 1px solid ${COLORS.textDim}; padding: 10px; border-radius: 4px; pointer-events: none; z-index: 1002; max-width: 300px; color: ${COLORS.text}; font-size: 11px;"></div>
     </div>
 
     <div id="context-view" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:${COLORS.bodyBg}; z-index:1000; overflow:auto; padding:20px;">
@@ -1202,6 +1214,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                 <div style="display:flex; gap: 15px;">
                     <a onclick="showContextView()" class="view-link">Visualize Context</a>
                     <a onclick="showCacheView()" class="view-link">View caching details</a>
+                    <a onclick="showBranchView()" class="view-link">Visualize branches</a>
                 </div>
             </div>
             <div class="header-info">
@@ -1233,6 +1246,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     </div>
 
     <script>
+        const treeEntries = ${JSON.stringify(data.treeEntries || [])};
         const usageData = ${JSON.stringify(assistantUsage)};
         const contextData = ${JSON.stringify(contextAnalysis)};
         const toolCallData = ${JSON.stringify(toolCallTokensByTool)};
@@ -1540,6 +1554,160 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                         plugins: { legend: { display: false } }
                     }
                 });
+            }
+        }
+        let branchGraphRendered = false;
+
+        function showBranchView() {
+            document.getElementById('branch-view').style.display = 'block';
+            if (!branchGraphRendered && treeEntries.length > 0) {
+                renderBranchGraph();
+                branchGraphRendered = true;
+            }
+        }
+
+        function hideBranchView() {
+            document.getElementById('branch-view').style.display = 'none';
+        }
+
+        function renderBranchGraph() {
+            const container = document.getElementById('branch-graph-container');
+            container.innerHTML = '';
+            
+            // Filter nodes
+            const nodes = treeEntries.filter(d => d.type !== 'tree' && d.type !== 'active');
+            if (nodes.length === 0) {
+                 container.innerHTML = '<div style="color:${COLORS.textDim}; padding:20px; text-align:center;">No tree data available.</div>';
+                 return;
+            }
+
+            // Identify root(s) - nodes with null parentId or parentId not in set
+            const nodeIds = new Set(nodes.map(n => n.id));
+            
+            // Stratify
+            let root;
+            try {
+                root = d3.stratify()
+                    .id(d => d.id)
+                    .parentId(d => {
+                        // If parentId is not in nodes, treat as root (e.g. if we have partial tree)
+                        return (d.parentId && nodeIds.has(d.parentId)) ? d.parentId : null;
+                    })(nodes);
+            } catch (e) {
+                console.error("Stratify error:", e);
+                container.innerHTML = '<div style="color:${COLORS.red}; padding:20px;">Error rendering graph: ' + e.message + '</div>';
+                return;
+            }
+
+            // Assign unique colors to branches
+            const branches = Array.from(new Set(nodes.map(d => d.branch)));
+            const colorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(branches);
+
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            // Layout
+            const nodeWidth = 200;
+            const nodeHeight = 60;
+            
+            const tree = d3.tree()
+                .nodeSize([nodeHeight, nodeWidth])
+                .separation((a, b) => (a.parent == b.parent ? 1 : 1.2));
+
+            tree(root);
+
+            // Zoom/Pan
+            const svg = d3.select(container).append('svg')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .call(d3.zoom().on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                }))
+                .append('g');
+
+            // Center initially - calculate bounds?
+            // Just center vertically on root and give some left padding
+            const g = svg.append('g')
+                .attr('transform', 'translate(100,' + (height / 2) + ')');
+
+            // Links
+            g.selectAll('.link')
+                .data(root.links())
+                .enter().append('path')
+                .attr('class', 'link')
+                .attr('d', d3.linkHorizontal()
+                    .x(d => d.y)
+                    .y(d => d.x))
+                .attr('fill', 'none')
+                .attr('stroke', '#555')
+                .attr('stroke-width', 1.5)
+                .attr('opacity', 0.6);
+
+            // Nodes
+            const node = g.selectAll('.node')
+                .data(root.descendants())
+                .enter().append('g')
+                .attr('class', 'node')
+                .attr('transform', d => 'translate(' + d.y + ',' + d.x + ')')
+                .style('cursor', 'pointer')
+                .on('mouseover', showTooltip)
+                .on('mouseout', hideTooltip);
+
+            // Node Circle
+            node.append('circle')
+                .attr('r', 6)
+                .attr('fill', d => colorScale(d.data.branch))
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 1.5);
+
+            // Node Labels (Type or Summary)
+            node.append('text')
+                .attr('dy', -10)
+                .attr('x', 0)
+                .style('text-anchor', 'middle')
+                .style('font-size', '10px')
+                .style('fill', '${COLORS.text}')
+                .style('text-shadow', '0 1px 2px rgba(0,0,0,0.8)')
+                .text(d => {
+                    if (d.data.type === 'checkpoint') return '🚩 ' + d.data.name;
+                    if (d.data.type === 'summary') return '📝 Summary';
+                    if (d.data.type === 'merge') return '🔀 Merge';
+                    if (d.data.type === 'provider') return '⚙️ Model';
+                    return ''; // Too many messages to label all
+                });
+
+            // Tooltip function
+            const tooltip = document.getElementById('node-tooltip');
+            function showTooltip(event, d) {
+                tooltip.style.opacity = 1;
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY + 10) + 'px';
+                
+                let content = '<strong>' + d.data.type.toUpperCase() + '</strong><br>';
+                content += '<span style="color:${COLORS.textDim}">ID: ' + d.data.id.slice(0, 8) + '...</span><br>';
+                content += '<span style="color:${COLORS.cyan}">Branch: ' + d.data.branch + '</span><br>';
+                content += '<span style="color:${COLORS.textDim}">' + new Date(d.data.timestamp).toLocaleString() + '</span><br>';
+                
+                if (d.data.type === 'message') {
+                     const role = d.data.message.role;
+                     content += 'Role: ' + role + '<br>';
+                     if (role === 'user') {
+                         let text = '';
+                         if (typeof d.data.message.content === 'string') text = d.data.message.content;
+                         else text = d.data.message.content.filter(c => c.type === 'text').map(c => c.content).join('');
+                         content += '<div style="margin-top:5px; max-height:100px; overflow:hidden; font-size:10px; opacity:0.8;">' + text.slice(0, 150) + (text.length > 150 ? '...' : '') + '</div>';
+                     }
+                } else if (d.data.type === 'summary' || d.data.type === 'merge') {
+                     content += '<div style="margin-top:5px; font-style:italic;">' + d.data.content + '</div>';
+                } else if (d.data.type === 'checkpoint') {
+                     content += 'Name: ' + d.data.name;
+                }
+                
+                tooltip.innerHTML = content;
+            }
+            
+            function hideTooltip() {
+                tooltip.style.opacity = 0;
             }
         }
     </script>
