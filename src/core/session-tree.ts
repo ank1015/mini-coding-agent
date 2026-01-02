@@ -629,7 +629,7 @@ export class SessionTree {
 				// Include merge summary as an assistant message
 				messages.push({
 					id: node.id,
-					role: 'assistant',
+					role: 'user',
 					content: [{ type: 'text', content: `[Merged from ${node.fromBranch}]: ${node.content}` }],
 					timestamp: new Date(node.timestamp).getTime(),
 				} as Message);
@@ -637,7 +637,7 @@ export class SessionTree {
 				// Include summary as an assistant message
 				messages.push({
 					id: node.id,
-					role: 'assistant',
+					role: 'user',
 					content: [{ type: 'text', content: `[Summary]: ${node.content}` }],
 					timestamp: new Date(node.timestamp).getTime(),
 				} as Message);
@@ -677,14 +677,14 @@ export class SessionTree {
 				// Include summary as a message
 				messages.push({
 					id: node.id,
-					role: 'assistant',
+					role: 'user',
 					content: [{ type: 'text', content: `[Summary]: ${node.content}` }],
 					timestamp: new Date(node.timestamp).getTime(),
 				} as Message);
 			} else if (node.type === 'merge') {
 				messages.push({
 					id: node.id,
-					role: 'assistant',
+					role: 'user',
 					content: [{ type: 'text', content: `[Merged from ${node.fromBranch}]: ${node.content}` }],
 					timestamp: new Date(node.timestamp).getTime(),
 				} as Message);

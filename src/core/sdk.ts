@@ -20,7 +20,7 @@
  */
 
 import { Api, Conversation, getApiKeyFromEnv, getAvailableModels, getModel, Model, OptionsForApi, Provider } from "@ank1015/providers";
-import { SessionManager } from "./session-manager.js";
+import { SessionTree } from "./session-tree.js";
 import { Settings, SettingsManager } from "./settings-manager.js";
 import { AgentSession } from "./agent-session.js";
 import {
@@ -68,8 +68,8 @@ export interface CreateAgentSessionOptions {
 	/** Built-in tools to use. Default: allTools [read, bash, edit, write] */
 	tools?: Tool[];
 
-	/** Session manager. Default: SessionManager.create(cwd) */
-	sessionManager?: SessionManager;
+	/** Session tree. Default: SessionTree.create(cwd) */
+	sessionTree?: SessionTree;
 
 	/** Settings manager. Default: SettingsManager.create(cwd, agentDir) */
 	settingsManager?: SettingsManager;
@@ -204,10 +204,10 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		providerOptions = options.provider.providerOptions;
 	}
 
-	if(options.sessionManager){
+	if(options.sessionTree){
 		// Check if session has existing data to restore and find model and provider
-		const existingSession = options.sessionManager.loadSession();
-		const hasExistingSession = existingSession.messages.length > 0;	
+		const existingSession = options.sessionTree.loadSession();
+		const hasExistingSession = existingSession.messages.length > 0;
 		if(hasExistingSession){
 			const extractedModel = findModel(existingSession.model?.api as Api, existingSession.model?.modelId as any);
 			if(extractedModel){
@@ -245,8 +245,8 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		providerOptions = {};
     }
 
-	// Create session manager with initial provider
-	const sessionManager = options.sessionManager ?? SessionManager.create(
+	// Create session tree with initial provider
+	const sessionTree = options.sessionTree ?? SessionTree.create(
 		cwd,
 		agentDir,
 		model && providerOptions ? {
@@ -257,7 +257,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	);
 
 	// Check if session has existing data to restore
-	const existingSession = sessionManager.loadSession();
+	const existingSession = sessionTree.loadSession();
 	const hasExistingSession = existingSession.messages.length > 0;
 
 	const builtInTools = options.tools ?? createCodingTools(cwd);
@@ -292,7 +292,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 
 	const session = new AgentSession({
 		agent,
-		sessionManager,
+		sessionTree,
 		settingsManager,
 	});
 

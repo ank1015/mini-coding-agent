@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { basename } from "path";
 import { APP_NAME, VERSION } from "../config.js";
-import type { SessionManager } from "./session-manager.js";
+import type { SessionTree } from "./session-tree.js";
 
 // ============================================================================
 // Types
@@ -1434,11 +1434,11 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 // ============================================================================
 
 /**
- * Export session to HTML using SessionManager and AgentState.
+ * Export session to HTML using SessionTree and AgentState.
  * Used by TUI's /export command.
  */
-export function exportSessionToHtml(sessionManager: SessionManager, state: AgentState, outputPath?: string): string {
-	const sessionFile = sessionManager.getSessionFile();
+export function exportSessionToHtml(sessionTree: SessionTree, state: AgentState, outputPath?: string): string {
+	const sessionFile = sessionTree.getSessionFile();
 	const content = readFileSync(sessionFile, "utf8");
 	const data = parseSessionFile(content);
 
