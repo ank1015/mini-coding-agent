@@ -13,6 +13,7 @@ interface MessageEvent {
 	type: "message";
 	message: Message;
 	timestamp?: number;
+	id?: string;
 }
 
 interface ModelChangeEvent {
@@ -20,6 +21,7 @@ interface ModelChangeEvent {
 	provider: string;
 	modelId: string;
 	timestamp?: number;
+	id?: string;
 }
 
 type SessionEvent = MessageEvent | ModelChangeEvent ;
@@ -71,7 +73,8 @@ function escapeHtml(text: string): string {
 		.replace(/</g, "&lt;")
 		.replace(/>/g, "&gt;")
 		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#039;");
+		.replace(/'/g, "&#039;")
+		.replace(/`/g, "&#96;"); // Escape backticks for template literals
 }
 
 function shortenPath(path: string): string {
@@ -159,6 +162,7 @@ function parseSessionTreeFormat(lines: string[]): ParsedSessionData {
 					type: "message",
 					message,
 					timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : undefined,
+					id: message.id
 				});
 
 				if (message.role === "toolResult") {
@@ -188,6 +192,7 @@ function parseSessionTreeFormat(lines: string[]): ParsedSessionData {
 					provider: entry.api as string,
 					modelId: entry.modelId as string,
 					timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : undefined,
+					id: entry.id as string
 				});
 				if (entry.api && entry.modelId) {
 					data.modelsUsed.add(`${entry.api}/${entry.modelId}`);
@@ -207,6 +212,7 @@ function parseSessionTreeFormat(lines: string[]): ParsedSessionData {
 					type: "message",
 					message: msg,
 					timestamp,
+					id: entry.id as string
 				});
 				break;
 			}
@@ -224,6 +230,7 @@ function parseSessionTreeFormat(lines: string[]): ParsedSessionData {
 					type: "message",
 					message: msg,
 					timestamp,
+					id: entry.id as string
 				});
 				break;
 			}
@@ -648,19 +655,90 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 	const contextWindow = data.contextWindow || 0;
 	const contextPercent = contextWindow > 0 ? ((contextTokens / contextWindow) * 100).toFixed(1) : null;
 
-	let messagesHtml = "";
+	// Calculate branches and lineages if tree data is available
+	let branches: string[] = [];
+	let branchLineages: Record<string, string[]> = {};
+	let activeBranch = "main";
+	const eventHtmlMap: Record<string, string> = {};
+
+	// Generate HTML for all events first
 	for (const event of data.sessionEvents) {
+		let html = "";
 		switch (event.type) {
 			case "message":
 				if (event.message.role !== "toolResult") {
-					messagesHtml += formatMessage(event.message, data.toolResultsMap);
+					html = formatMessage(event.message, data.toolResultsMap);
 				}
 				break;
 			case "model_change":
-				messagesHtml += formatModelChange(event);
+				html = formatModelChange(event);
 				break;
 		}
+		if (html && event.id) {
+			eventHtmlMap[event.id] = html;
+		} else if (html && !event.id) {
+			// Fallback for events without ID (legacy/streaming) - though we try to ensure IDs
+			// If no ID, we can't map it.
+			// However, for streaming events, we might use timestamp as ID if needed, but let's see.
+		}
 	}
+
+	if (data.treeEntries && data.treeEntries.length > 0) {
+		// Reconstruct tree to build lineages
+		const nodeMap = new Map<string, any>();
+		const branchHeads = new Map<string, string>();
+		
+		for (const entry of data.treeEntries) {
+			if (entry.type === 'active') {
+				activeBranch = entry.branch;
+			} else if (entry.type !== 'tree') {
+				nodeMap.set(entry.id, entry);
+				branchHeads.set(entry.branch, entry.id); // Last one seen is head (append-only)
+			}
+		}
+		
+		branches = Array.from(branchHeads.keys());
+		// Ensure default branch is in list
+		const defaultBranch = data.treeEntries.find(e => e.type === 'tree')?.defaultBranch || 'main';
+		if (!branches.includes(defaultBranch)) branches.push(defaultBranch);
+		
+		// Build lineage for each branch
+		for (const branch of branches) {
+			const lineage: string[] = [];
+			let currentId = branchHeads.get(branch);
+			
+			// If branch has no nodes yet (just created), try to find parent from pending logic?
+			// But export usually happens after nodes exist.
+			// If we can't find head, maybe it's the default branch with no nodes?
+			
+			while (currentId) {
+				const node = nodeMap.get(currentId);
+				if (!node) break;
+				
+				// Add to lineage if it's a message or provider change (things that produce HTML)
+				// Check if we have HTML for this ID
+				if (eventHtmlMap[currentId]) {
+					lineage.unshift(currentId);
+				}
+				
+				currentId = node.parentId;
+			}
+			branchLineages[branch] = lineage;
+		}
+	} else {
+		// Legacy / Streaming - single lineage
+		branches = ["main"];
+		activeBranch = "main";
+		// Collect all event IDs that have HTML
+		const lineage: string[] = [];
+		for (const event of data.sessionEvents) {
+			if (event.id && eventHtmlMap[event.id]) {
+				lineage.push(event.id);
+			}
+		}
+		branchLineages["main"] = lineage;
+	}
+
 
     // Collect usage data for visualization
     const assistantUsage = data.messages
@@ -1005,6 +1083,20 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         .footer { margin-top: 48px; padding: 20px; text-align: center; color: ${COLORS.textDim}; font-size: 10px; }
         .streaming-notice { background: rgb(50, 45, 35); padding: 12px 16px; border-radius: 4px; margin-bottom: 16px; color: ${COLORS.textDim}; font-size: 11px; }
         .view-link { color: ${COLORS.cyan}; text-decoration: underline; cursor: pointer; margin-left: 8px; font-size: 11px; }
+        .tabs-container { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .tab-button {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.05);
+            border: none;
+            border-radius: 4px 4px 0 0;
+            color: ${COLORS.textDim};
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .tab-button:hover { background: rgba(255,255,255,0.1); color: ${COLORS.text}; }
+        .tab-button.active { background: ${COLORS.cyan}; color: ${COLORS.containerBg}; font-weight: bold; }
         @media print { body { background: white; color: black; } .tool-execution { border: 1px solid #ddd; } }
     </style>
 </head>
@@ -1236,8 +1328,12 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         ${toolsHtml}
         ${streamingNotice}
 
-        <div class="messages">
-            ${messagesHtml}
+        <div id="tabs-container" class="tabs-container">
+            <!-- Tabs will be injected here by JS -->
+        </div>
+
+        <div id="messages-container" class="messages">
+            <!-- Messages will be injected here by JS -->
         </div>
 
         <div class="footer">
@@ -1251,6 +1347,56 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         const contextData = ${JSON.stringify(contextAnalysis)};
         const toolCallData = ${JSON.stringify(toolCallTokensByTool)};
         const toolResultData = ${JSON.stringify(toolResultStats.byTool)};
+
+        // Branching Data
+        const branches = ${JSON.stringify(branches)};
+        const branchLineages = ${JSON.stringify(branchLineages)};
+        const eventHtmlMap = ${JSON.stringify(eventHtmlMap)};
+        const activeBranch = "${escapeHtml(activeBranch)}";
+
+        let currentBranch = activeBranch;
+
+        function renderTabs() {
+            const container = document.getElementById('tabs-container');
+            container.innerHTML = '';
+            
+            if (branches.length <= 1 && branches[0] === 'main') {
+                container.style.display = 'none';
+                return;
+            }
+
+            branches.forEach(branch => {
+                const btn = document.createElement('button');
+                btn.className = 'tab-button' + (branch === currentBranch ? ' active' : '');
+                btn.innerText = branch;
+                btn.onclick = () => switchBranch(branch);
+                container.appendChild(btn);
+            });
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messages-container');
+            const lineage = branchLineages[currentBranch] || [];
+            
+            // Build HTML string
+            let html = '';
+            for (const id of lineage) {
+                if (eventHtmlMap[id]) {
+                    html += eventHtmlMap[id];
+                }
+            }
+            container.innerHTML = html;
+        }
+
+        function switchBranch(branch) {
+            currentBranch = branch;
+            renderTabs();
+            renderMessages();
+        }
+
+        // Initial Render
+        renderTabs();
+        renderMessages();
 
         let chartInstance = null;
         let contextCharts = { growth: null, composition: null, toolCalls: null, toolResults: null };
@@ -1600,8 +1746,8 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
             }
 
             // Assign unique colors to branches
-            const branches = Array.from(new Set(nodes.map(d => d.branch)));
-            const colorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(branches);
+            const branchesSet = Array.from(new Set(nodes.map(d => d.branch)));
+            const colorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(branchesSet);
 
             const width = container.clientWidth;
             const height = container.clientHeight;
