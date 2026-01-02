@@ -1187,9 +1187,12 @@ describe('SessionTree', () => {
 			expect(session.branches).toContain('main');
 		});
 
-		it('should sort by modified time descending', () => {
+		it('should sort by modified time descending', async () => {
 			const tree1 = SessionTree.create(cwd, agentDir);
 			tree1.appendMessage({ role: 'assistant', id: 'msg-1', content: [] } as Message);
+
+			// Wait to ensure different mtime
+			await new Promise(resolve => setTimeout(resolve, 50));
 
 			const tree2 = SessionTree.create(cwd, agentDir);
 			tree2.appendMessage({ role: 'assistant', id: 'msg-2', content: [] } as Message);

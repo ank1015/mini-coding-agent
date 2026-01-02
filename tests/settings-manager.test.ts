@@ -29,6 +29,14 @@ describe('SettingsManager', () => {
 			expect(existsSync(settingsPath)).toBe(true);
 			const content = JSON.parse(readFileSync(settingsPath, 'utf-8'));
 			expect(content).toEqual({
+				defaultApi: 'google',
+				defaultModel: 'gemini-3-flash-preview',
+				defaultProviderOptions: {
+					thinkingConfig: {
+						includeThoughts: true,
+						thinkingLevel: "MEDIUM"
+					}
+				},
 				queueMode: 'one-at-a-time',
 				terminal: {
 					showImages: true,

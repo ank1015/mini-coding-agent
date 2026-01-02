@@ -242,8 +242,16 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 			);
 		}
 		model = available[0];
+		// If we fall back to available models, we should respect defaults if possible, but we don't have them here.
+		// providerOptions needs to be compatible with the model.
+		// For now, empty object is the safest default unless we have specific logic.
 		providerOptions = {};
     }
+
+	// Ensure providerOptions is not undefined if model is set
+	if (!providerOptions && model) {
+		providerOptions = {};
+	}
 
 	// Create session tree with initial provider
 	const sessionTree = options.sessionTree ?? SessionTree.create(
