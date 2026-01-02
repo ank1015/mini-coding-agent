@@ -63,23 +63,23 @@ Use this EXACT format:
 
 Keep each section concise. Preserve exact file paths, function names, and error messages.`;
 
-export const summarizeNodes = async (nodeMessages: Message[], model: Model<Api>, providerOptions: OptionsForApi<Api>) => {
+export const summarizeNodes = async (nodeMessages: Message[], model: Model<Api>, providerOptions: OptionsForApi<Api>): Promise<string> => {
 
     const context: Message[] = [...nodeMessages, {role: 'user', timestamp: Date.now(), id: generateUUID(), content: [{type: 'text', content: NODE_SUMMARIZATION_PROMPT}]}]
     const response = await complete(model, {messages: context}, providerOptions);
 
     const responseContent = response.content.filter(c =>  c.type === 'response');
-    const responseText = responseContent.map(c => c.content.filter(p => p.type === 'text').map(r => r.content).join('\n'));
+    const responseText = responseContent.map(c => c.content.filter(p => p.type === 'text').map(r => r.content).join('\n')).join('\n');
 
     return responseText
 }
 
-export const summarizeBranch = async (branchMessages: Message[], model: Model<Api>, providerOptions: OptionsForApi<Api>) => {
-    const context: Message[] = [...branchMessages, {role: 'user', timestamp: Date.now(), id: generateUUID(), content: [{type: 'text', content: NODE_SUMMARIZATION_PROMPT}]}]
+export const summarizeBranch = async (branchMessages: Message[], model: Model<Api>, providerOptions: OptionsForApi<Api>): Promise<string> => {
+    const context: Message[] = [...branchMessages, {role: 'user', timestamp: Date.now(), id: generateUUID(), content: [{type: 'text', content: BRANCH_SUMMARY_PROMPT}]}]
     const response = await complete(model, {messages: context}, providerOptions);
 
     const responseContent = response.content.filter(c =>  c.type === 'response');
-    const responseText = responseContent.map(c => c.content.filter(p => p.type === 'text').map(r => r.content).join('\n'));
+    const responseText = responseContent.map(c => c.content.filter(p => p.type === 'text').map(r => r.content).join('\n')).join('\n');
 
     return responseText
 }

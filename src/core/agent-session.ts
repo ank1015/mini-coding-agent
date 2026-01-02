@@ -17,6 +17,7 @@ import { exportSessionToHtml } from "./export-html.js";
 import { SessionTree, type BranchInfo, type ContextStrategy } from "./session-tree.js";
 import type { SettingsManager } from "./settings-manager.js";
 import { getDefaultProviderOption } from "../utils/default-provider-options.js";
+import { summarizeBranch, summarizeNodes } from "./summarization.js";
 
 /** Session-specific events that extend the core AgentEvent */
 export type AgentSessionEvent = AgentEvent
@@ -558,6 +559,105 @@ export class AgentSession {
 	 */
 	createCheckpoint(name: string, metadata?: Record<string, unknown>): void {
 		this._sessionTree.appendCheckpoint(name, metadata);
+	}
+
+	// =========================================================================
+	// High-level Summarization & Merging
+	// =========================================================================
+
+	/**
+	 * Compact the current history by summarizing older nodes.
+	 * Keeps the last N nodes intact.
+	 */
+	async compactHistory(options: { keepRecent: number }): Promise<void> {
+		if (!this.model) throw new Error("No model available for summarization");
+
+		const head = this._sessionTree.getHeadNode();
+		if (!head) return;
+
+		const lineage = this._sessionTree.getLineage(head.id);
+		if (lineage.length <= options.keepRecent) return;
+
+		// Nodes to summarize: everything except the last N
+		const nodesToSummarize = lineage.slice(0, lineage.length - options.keepRecent);
+		const messages = this._sessionTree.extractMessages(nodesToSummarize);
+
+		if (messages.length === 0) return;
+
+		const summary = await summarizeNodes(messages, this.model, this.providerOptions);
+		const finalContent = `Older conversation history has been summarized to save context:\n\n${summary}`;
+
+		// Append summary node that covers these IDs
+		const ids = nodesToSummarize.map(n => n.id);
+		this._sessionTree.appendSummary(finalContent, ids);
+	}
+
+	/**
+	 * Smart merge: Merges another branch into current branch.
+	 * 1. Finds LCA (Lowest Common Ancestor).
+	 * 2. Summarizes new nodes in fromBranch (after LCA).
+	 * 3. Appends merge node with summary.
+	 */
+	async smartMergeBranch(fromBranch: string): Promise<void> {
+		if (!this.model) throw new Error("No model available for summarization");
+
+		const fromHead = this._sessionTree.getHeadNode(fromBranch);
+		const currentHead = this._sessionTree.getHeadNode(this.activeBranch);
+
+		if (!fromHead) throw new Error(`Branch '${fromBranch}' has no nodes.`);
+		// If current has no nodes, simple merge? Or just start?
+		// Assuming currentHead exists for now. If not, normal merge might fail too.
+
+		let nodesToSummarize: Message[] = [];
+
+		if (!currentHead) {
+			// If current branch is empty (e.g. root), summarize everything from other branch?
+			// Usually branches share a root.
+			const lineage = this._sessionTree.getLineage(fromHead.id);
+			nodesToSummarize = this._sessionTree.extractMessages(lineage);
+		} else {
+			const lca = this._sessionTree.findLowestCommonAncestor(fromHead.id, currentHead.id);
+			if (!lca) {
+				// No common ancestor? Summarize everything
+				const lineage = this._sessionTree.getLineage(fromHead.id);
+				nodesToSummarize = this._sessionTree.extractMessages(lineage);
+			} else {
+				// Get nodes from LCA (exclusive) to Head (inclusive)
+				const segment = this._sessionTree.getLineageSegment(lca.id, fromHead.id);
+				// Slice(1) to exclude LCA itself
+				const newNodes = segment.slice(1);
+				if (newNodes.length === 0) {
+					// Nothing to merge
+					return;
+				}
+				nodesToSummarize = this._sessionTree.extractMessages(newNodes);
+			}
+		}
+
+		if (nodesToSummarize.length === 0) return;
+
+		const summary = await summarizeBranch(nodesToSummarize, this.model, this.providerOptions);
+		const finalContent = `The user explored a different conversation branch before returning here.\nSummary of that exploration:\n\n${summary}`;
+		this._sessionTree.merge(fromBranch, finalContent);
+	}
+
+	/**
+	 * Summarize a specific range of nodes and append the summary to the current branch.
+	 */
+	async summarizeRange(fromNodeId: string, toNodeId: string): Promise<void> {
+		if (!this.model) throw new Error("No model available for summarization");
+
+		const segment = this._sessionTree.getLineageSegment(fromNodeId, toNodeId);
+		if (segment.length === 0) return;
+
+		const messages = this._sessionTree.extractMessages(segment);
+		if (messages.length === 0) return;
+
+		const summary = await summarizeNodes(messages, this.model, this.providerOptions);
+		const finalContent = `A specific segment of the conversation has been summarized:\n\n${summary}`;
+		const ids = segment.map(n => n.id);
+		
+		this._sessionTree.appendSummary(finalContent, ids);
 	}
 
 	// =========================================================================

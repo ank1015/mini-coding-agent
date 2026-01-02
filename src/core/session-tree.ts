@@ -653,7 +653,7 @@ export class SessionTree {
 	private _applyStrategy(lineage: TreeNode[], strategy: ContextStrategy): Message[] {
 		switch (strategy.type) {
 			case 'full':
-				return this._extractMessages(lineage);
+				return this.extractMessages(lineage);
 
 			case 'recent': {
 				// Get last N message nodes
@@ -668,9 +668,9 @@ export class SessionTree {
 					n => n.type === 'checkpoint' && (n as CheckpointNode).name === strategy.name
 				);
 				if (checkpointIdx === -1) {
-					return this._extractMessages(lineage); // Checkpoint not found, return all
+					return this.extractMessages(lineage); // Checkpoint not found, return all
 				}
-				return this._extractMessages(lineage.slice(checkpointIdx + 1));
+				return this.extractMessages(lineage.slice(checkpointIdx + 1));
 			}
 
 			case 'use-summaries':
@@ -681,7 +681,7 @@ export class SessionTree {
 		}
 	}
 
-	private _extractMessages(nodes: TreeNode[]): Message[] {
+	extractMessages(nodes: TreeNode[]): Message[] {
 		const messages: Message[] = [];
 
 		for (const node of nodes) {
