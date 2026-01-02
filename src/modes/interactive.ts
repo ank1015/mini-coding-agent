@@ -28,10 +28,11 @@ import { APP_NAME, getDebugLogPath } from "../config.js";
 import { AgentState, Api, BaseAssistantEvent, BaseAssistantMessage, Message } from "@ank1015/providers";
 import { UserMessageComponent } from "./components/user-message.js";
 import { DynamicBorder } from "./components/dynamic-border.js";
-import { SessionManager } from "../core/session-manager.js";
+import { SessionTree } from "../core/session-tree.js";
 import { QueueModeSelectorComponent } from "./components/queue-mode-selector.js";
 import { SessionSelectorComponent } from "./components/session-selector.js";
 import { MessageSelectorComponent } from "./components/message-selector.js";
+import { BranchSelectorComponent } from "./components/branch-selector.js";
 import { ModelSelectorComponent } from "./components/model-selector.js";
 import { ThinkingSelectorComponent } from "./components/thinking-selector.js";
 import { ShowImagesSelectorComponent } from "./components/show-images-selector.js";
@@ -77,8 +78,8 @@ export class InteractiveMode {
 	private get agent() {
 		return this.session.agent;
 	}
-	private get sessionManager() {
-		return this.session.sessionManager;
+	private get sessionTree() {
+		return this.session.sessionTree;
 	}
 	private get settingsManager() {
 		return this.session.settingsManager;
@@ -106,11 +107,14 @@ export class InteractiveMode {
 			{ name: "session", description: "Show session info and stats" },
 			{ name: "hotkeys", description: "Show all keyboard shortcuts" },
 			{ name: "branch", description: "Create a new branch from a previous message" },
+			{ name: "branches", description: "List all branches in current session" },
+			{ name: "switch-branch", description: "Switch to a different branch" },
+			{ name: "merge", description: "Merge another branch into the current one" },
+			{ name: "checkpoint", description: "Create a named checkpoint" },
 			{ name: "queue", description: "Select message queue mode (opens selector UI)" },
 			{ name: "clear", description: "Clear context and start a fresh session" },
 			{ name: "resume", description: "Resume a different session" },
-			{ name: "model", description: "Switch model (branches session if API changes)" },
-			{ name: "clone", description: "Clone current session to a new file" },
+			{ name: "model", description: "Switch model" },
 			{ name: "thinking", description: "Set thinking level (low/high) for supported models" },
 		];
 
@@ -285,8 +289,28 @@ export class InteractiveMode {
 				this.editor.setText("");
 				return;
 			}
-			if (text === "/clone") {
-				await this.handleCloneCommand();
+			if (text === "/branches") {
+				this.handleBranchesCommand();
+				this.editor.setText("");
+				return;
+			}
+			if (text === "/switch-branch") {
+				this.showBranchSwitchSelector();
+				this.editor.setText("");
+				return;
+			}
+			if (text === "/merge") {
+				this.showMergeSelector();
+				this.editor.setText("");
+				return;
+			}
+			if (text.startsWith("/checkpoint")) {
+				const name = text.replace("/checkpoint", "").trim();
+				if (name) {
+					this.handleCheckpointCommand(name);
+				} else {
+					this.showWarning("Please provide a checkpoint name");
+				}
 				this.editor.setText("");
 				return;
 			}
@@ -579,7 +603,9 @@ export class InteractiveMode {
 	}
 
 	private rebuildChatFromMessages(): void {
-		this.renderMessages(this.session.messages);
+		this.chatContainer.clear();
+		this.renderMessages(this.session.messages, { updateFooter: true, populateHistory: false });
+		this.ui.requestRender();
 	}
 
 	// =========================================================================
@@ -766,16 +792,17 @@ export class InteractiveMode {
 		}
 		this.statusContainer.clear();
 
-		// Branch session via AgentSession (emits hook and tool session events)
-		const newSessionPath = this.session.branchSession(messageId);
+		// Generate branch name with timestamp
+		const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+		const branchName = `branch-${timestamp}`;
 
 		// Clear UI state
 		this.pendingMessagesContainer.clear();
 		this.streamingComponent = null;
 		this.pendingTools.clear();
 
-		// Switch session via AgentSession (emits hook and tool session events)
-		await this.session.switchSession(newSessionPath);
+		// Create and switch to branch via AgentSession
+		await this.session.branchAndSwitch(branchName, messageId);
 
 		// Clear and re-render the chat
 		this.chatContainer.clear();
@@ -783,7 +810,7 @@ export class InteractiveMode {
 
 		this.isFirstUserMessage = true;
 		this.renderInitialMessages(this.session.state);
-		this.showStatus("Branched session");
+		this.showStatus(`Created and switched to branch: ${branchName}`);
 	}
 
 	private showQueueModeSelector(): void {
@@ -806,7 +833,7 @@ export class InteractiveMode {
 
 	private showSessionSelector(): void {
 		this.showSelector((done) => {
-			const sessions = SessionManager.list(this.sessionManager.getCwd());
+			const sessions = SessionTree.listSessions(this.sessionTree.cwd);
 			const selector = new SessionSelectorComponent(
 				sessions,
 				async (sessionPath) => {
@@ -885,6 +912,114 @@ export class InteractiveMode {
 		});
 	}
 
+	private showBranchSwitchSelector(): void {
+		const branches = this.session.listBranches();
+		this.showSelector((done) => {
+			const selector = new BranchSelectorComponent(
+				branches,
+				this.session.activeBranch,
+				async (branchName) => {
+					done();
+					await this.handleSwitchBranch(branchName);
+				},
+				() => {
+					done();
+					this.ui.requestRender();
+				},
+				() => {
+					void this.shutdown();
+				},
+			);
+			return { component: selector, focus: selector.getBranchList() };
+		});
+	}
+
+	private async handleSwitchBranch(branchName: string): Promise<void> {
+		if (branchName === this.session.activeBranch) {
+			this.showStatus(`Already on branch ${branchName}`);
+			return;
+		}
+
+		// Stop loading animation
+		if (this.loadingAnimation) {
+			this.loadingAnimation.stop();
+			this.loadingAnimation = null;
+		}
+		this.statusContainer.clear();
+
+		// Clear UI state
+		this.pendingMessagesContainer.clear();
+		this.streamingComponent = null;
+		this.pendingTools.clear();
+
+		try {
+			await this.session.switchBranch(branchName);
+			// Clear and re-render the chat
+			this.chatContainer.clear();
+			this.ui.fullRefresh();
+
+			this.isFirstUserMessage = true;
+			this.renderInitialMessages(this.session.state);
+			this.showStatus(`Switched to branch: ${branchName}`);
+		} catch (error) {
+			this.showError(`Failed to switch branch: ${error instanceof Error ? error.message : "Unknown error"}`);
+		}
+	}
+
+	private showMergeSelector(): void {
+		const branches = this.session.listBranches();
+		// Filter out current branch
+		const mergeableBranches = branches.filter(b => b.name !== this.session.activeBranch);
+
+		if (mergeableBranches.length === 0) {
+			this.showWarning("No other branches available to merge.");
+			return;
+		}
+
+		this.showSelector((done) => {
+			const selector = new BranchSelectorComponent(
+				mergeableBranches,
+				this.session.activeBranch,
+				async (branchName) => {
+					done();
+					await this.handleMergeCommand(branchName);
+				},
+				() => {
+					done();
+					this.ui.requestRender();
+				},
+				() => {
+					void this.shutdown();
+				},
+			);
+			return { component: selector, focus: selector.getBranchList() };
+		});
+	}
+
+	private async handleMergeCommand(fromBranch: string): Promise<void> {
+		try {
+			// Ideally we'd prompt the user for a summary, but for now we'll auto-generate one
+			const summary = `Merged changes from ${fromBranch}`;
+			
+			this.session.mergeBranch(fromBranch, summary);
+			this.showStatus(`Merged branch ${fromBranch} into ${this.session.activeBranch}`);
+			
+			// Reload context to see merge message
+			this.rebuildChatFromMessages();
+		} catch (error) {
+			this.showError(`Failed to merge branch: ${error instanceof Error ? error.message : "Unknown error"}`);
+		}
+	}
+
+	private handleCheckpointCommand(name: string): void {
+		try {
+			this.session.createCheckpoint(name);
+			this.showStatus(`Checkpoint created: ${name}`);
+		} catch (error) {
+			this.showError(`Failed to create checkpoint: ${error instanceof Error ? error.message : "Unknown error"}`);
+		}
+	}
+
 	private async handleThinkingChange(level: 'low' | 'high'): Promise<void> {
 		try {
 			await this.session.updateThinkingLevel(level);
@@ -896,69 +1031,17 @@ export class InteractiveMode {
 	}
 
 	private async handleModelChange(model: Model<Api>): Promise<void> {
-		const oldSessionId = this.session.sessionId;
-		
 		try {
-			await this.session.smartChangeModel(model);
-			
-			const newSessionId = this.session.sessionId;
-			const branched = oldSessionId !== newSessionId;
-			
-			if (branched) {
-				// Clear UI state as we have a new session (even if content is same)
-				this.pendingMessagesContainer.clear();
-				this.streamingComponent = null;
-				this.pendingTools.clear();
-				this.isFirstUserMessage = true; // Reset spacers
-				
-				// Re-render chat
-				this.chatContainer.clear();
-				this.ui.fullRefresh();
-				this.renderInitialMessages(this.session.state);
-				
-				this.showStatus(`Branched to new session for ${model.api}`);
-			} else {
-				this.showStatus(`Switched to ${model.id}`);
-			}
-			
+			await this.session.changeModel(model);
+
+			this.showStatus(`Switched to ${model.id}`);
+
 			// Update footer to show new model
 			this.footer.updateState(this.session.state);
 			this.ui.requestRender();
-			
+
 		} catch (error) {
 			this.showError(`Failed to change model: ${error instanceof Error ? error.message : "Unknown error"}`);
-		}
-	}
-
-	private async handleCloneCommand(): Promise<void> {
-		try {
-			// Stop loading animation if running (unlikely for a command, but good safety)
-			if (this.loadingAnimation) {
-				this.loadingAnimation.stop();
-				this.loadingAnimation = null;
-			}
-			this.statusContainer.clear();
-
-			// Clone session
-			const newSessionPath = this.sessionManager.clone();
-
-			// Clear UI state
-			this.pendingMessagesContainer.clear();
-			this.streamingComponent = null;
-			this.pendingTools.clear();
-			this.isFirstUserMessage = true;
-
-			// Switch to new session
-			await this.session.switchSession(newSessionPath);
-
-			// Re-render chat
-			this.chatContainer.clear();
-			this.ui.fullRefresh();
-			this.renderInitialMessages(this.session.state);
-
-			this.showStatus("Session cloned");
-		} catch (error) {
-			this.showError(`Failed to clone session: ${error instanceof Error ? error.message : "Unknown error"}`);
 		}
 	}
 
@@ -1011,7 +1094,9 @@ export class InteractiveMode {
 
 		let info = `${theme.bold("Session Info")}\n\n`;
 		info += `${theme.fg("dim", "File:")} ${stats.sessionFile}\n`;
-		info += `${theme.fg("dim", "ID:")} ${stats.sessionId}\n\n`;
+		info += `${theme.fg("dim", "ID:")} ${stats.sessionId}\n`;
+		info += `${theme.fg("dim", "Active Branch:")} ${stats.activeBranch}\n`;
+		info += `${theme.fg("dim", "Total Branches:")} ${stats.branchCount}\n\n`;
 		info += `${theme.bold("Messages")}\n`;
 		info += `${theme.fg("dim", "User:")} ${stats.userMessages}\n`;
 		info += `${theme.fg("dim", "Assistant:")} ${stats.assistantMessages}\n`;
@@ -1032,6 +1117,29 @@ export class InteractiveMode {
 		if (stats.cost > 0) {
 			info += `\n${theme.bold("Cost")}\n`;
 			info += `${theme.fg("dim", "Total:")} ${stats.cost.toFixed(4)}`;
+		}
+
+		this.chatContainer.addChild(new Spacer(1));
+		this.chatContainer.addChild(new Text(info, 1, 0));
+		this.ui.requestRender();
+	}
+
+	private handleBranchesCommand(): void {
+		const branches = this.session.listBranches();
+		const activeBranch = this.session.activeBranch;
+
+		let info = `${theme.bold("Branches")}\n\n`;
+		if (branches.length === 0) {
+			info += theme.fg("dim", "No branches yet");
+		} else {
+			for (const branch of branches) {
+				const isActive = branch.name === activeBranch;
+				const marker = isActive ? theme.fg("accent", "* ") : "  ";
+				const name = isActive ? theme.bold(branch.name) : branch.name;
+				info += `${marker}${name}\n`;
+				info += `  ${theme.fg("dim", "Messages:")} ${branch.messageCount}\n`;
+				info += `  ${theme.fg("dim", "Last modified:")} ${branch.lastModified.toLocaleString()}\n\n`;
+			}
 		}
 
 		this.chatContainer.addChild(new Spacer(1));

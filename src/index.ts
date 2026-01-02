@@ -44,7 +44,6 @@ export {
 
 // Core classes for advanced usage
 export { AgentSession, type AgentSessionConfig, type PromptOptions, type SessionStats } from "./core/agent-session.js";
-export { SessionManager, type SessionInfo, type LoadedSession } from "./core/session-manager.js";
 export { SettingsManager } from "./core/settings-manager.js";
 
 // New tree-based session manager

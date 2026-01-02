@@ -11,7 +11,7 @@
  * Modes use this class and add their own I/O layer on top.
  */
 
-import { Conversation, BaseAssistantMessage, Model, TextContent, AgentEvent, AgentState, Message, Attachment, getApiKeyFromEnv, Api, OptionsForApi, generateUUID, getModel } from "@ank1015/providers";
+import { Conversation, BaseAssistantMessage, Model, TextContent, AgentEvent, AgentState, Message, Attachment, getApiKeyFromEnv, Api, OptionsForApi, generateUUID, getModel, GoogleThinkingLevel, OpenAIProviderOptions, GoogleProviderOptions } from "@ank1015/providers";
 import { getModelsPath } from "../config.js";
 import { exportSessionToHtml } from "./export-html.js";
 import { SessionTree, type BranchInfo, type ContextStrategy } from "./session-tree.js";
@@ -338,8 +338,19 @@ export class AgentSession {
 	async reset(): Promise<boolean> {
 		this._disconnectFromAgent();
 		await this.abort();
+		
+		// Capture current model before resetting agent (just in case, though agent.reset shouldn't clear it)
+		const currentModel = this.model;
+		const currentOptions = this.providerOptions;
+
 		this.agent.reset();
 		this._sessionTree = this._sessionTree.reset();
+
+		// Ensure the new session starts with the correct provider info
+		if (currentModel) {
+			this._sessionTree.saveProvider(currentModel.api, currentModel.id, currentOptions);
+		}
+
 		this._queuedMessages = [];
 		this._reconnectToAgent();
 		return true;
@@ -372,6 +383,32 @@ export class AgentSession {
 	async changeModel(model: Model<Api>, providerOptions?: OptionsForApi<Api>): Promise<void> {
 		const options = providerOptions ?? getDefaultProviderOption(model.api);
 		await this.setModel(model, options);
+	}
+
+	/**
+	 * Update thinking level for supported models (OpenAI/Google).
+	 */
+	async updateThinkingLevel(level: 'low' | 'high'): Promise<void> {
+		const model = this.model;
+		if (!model) throw new Error("No model selected");
+
+		let newOptions: OptionsForApi<Api> = { ...this.providerOptions };
+
+		if (model.api === 'openai') {
+			const opts = newOptions as OpenAIProviderOptions;
+			if (!opts.reasoning) opts.reasoning = {};
+			opts.reasoning.effort = level;
+		} else if (model.api === 'google') {
+			const opts = newOptions as GoogleProviderOptions;
+			if (!opts.thinkingConfig) opts.thinkingConfig = { includeThoughts: true };
+			opts.thinkingConfig.thinkingLevel = level === 'high' 
+				? GoogleThinkingLevel.HIGH 
+				: GoogleThinkingLevel.LOW;
+		} else {
+			throw new Error(`Thinking level not supported for ${model.api}`);
+		}
+
+		await this.setModel(model, newOptions);
 	}
 
 	// =========================================================================

@@ -3,7 +3,7 @@
  */
 
 import { ProcessTerminal, TUI } from "@ank1015/agents-tui";
-import type { SessionInfo } from "../core/session-manager.js";
+import type { SessionInfo } from "../core/session-tree.js";
 import { SessionSelectorComponent } from "../modes/components/session-selector.js";
 
 /** Show TUI session selector and return selected session path or null if cancelled */

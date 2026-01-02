@@ -120,6 +120,116 @@ function formatExpandableOutput(lines: string[], maxLines: number): string {
 // Parsing functions
 // ============================================================================
 
+function parseSessionTreeFormat(lines: string[]): ParsedSessionData {
+	const data: ParsedSessionData = {
+		sessionId: "unknown",
+		timestamp: new Date().toISOString(),
+		modelsUsed: new Set(),
+		messages: [],
+		toolResultsMap: new Map(),
+		sessionEvents: [],
+		tokenStats: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		costStats: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+	};
+
+	for (const line of lines) {
+		let entry: { type: string; [key: string]: unknown };
+		try {
+			entry = JSON.parse(line) as { type: string; [key: string]: unknown };
+		} catch {
+			continue;
+		}
+
+		switch (entry.type) {
+			case "tree":
+				data.sessionId = (entry.id as string) || "unknown";
+				data.timestamp = (entry.created as string) || data.timestamp;
+				if (entry.api && entry.modelId) {
+					data.modelsUsed.add(`${entry.api}/${entry.modelId}`);
+				}
+				break;
+
+			case "message": {
+				const message = entry.message as Message;
+				data.messages.push(message);
+				data.sessionEvents.push({
+					type: "message",
+					message,
+					timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : undefined,
+				});
+
+				if (message.role === "toolResult") {
+					const toolResult = message as ToolResultMessage;
+					data.toolResultsMap.set(toolResult.toolCallId, toolResult);
+				} else if (message.role === "assistant") {
+					const assistantMsg = message as BaseAssistantMessage<Api>;
+					if (assistantMsg.usage) {
+						data.tokenStats.input += assistantMsg.usage.input || 0;
+						data.tokenStats.output += assistantMsg.usage.output || 0;
+						data.tokenStats.cacheRead += assistantMsg.usage.cacheRead || 0;
+						data.tokenStats.cacheWrite += assistantMsg.usage.cacheWrite || 0;
+						if (assistantMsg.usage.cost) {
+							data.costStats.input += assistantMsg.usage.cost.input || 0;
+							data.costStats.output += assistantMsg.usage.cost.output || 0;
+							data.costStats.cacheRead += assistantMsg.usage.cost.cacheRead || 0;
+							data.costStats.cacheWrite += assistantMsg.usage.cost.cacheWrite || 0;
+						}
+					}
+				}
+				break;
+			}
+
+			case "provider":
+				data.sessionEvents.push({
+					type: "model_change",
+					provider: entry.api as string,
+					modelId: entry.modelId as string,
+					timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : undefined,
+				});
+				if (entry.api && entry.modelId) {
+					data.modelsUsed.add(`${entry.api}/${entry.modelId}`);
+				}
+				break;
+
+			case "summary": {
+				const timestamp = entry.timestamp ? new Date(entry.timestamp as string).getTime() : undefined;
+				const msg: Message = {
+					role: "system",
+					content: `[Summary]: ${entry.content}`,
+					timestamp,
+					id: entry.id as string
+				} as any;
+				data.messages.push(msg);
+				data.sessionEvents.push({
+					type: "message",
+					message: msg,
+					timestamp,
+				});
+				break;
+			}
+
+			case "merge": {
+				const timestamp = entry.timestamp ? new Date(entry.timestamp as string).getTime() : undefined;
+				const msg: Message = {
+					role: "system",
+					content: `[Merged from ${entry.fromBranch}]: ${entry.content}`,
+					timestamp,
+					id: entry.id as string
+				} as any;
+				data.messages.push(msg);
+				data.sessionEvents.push({
+					type: "message",
+					message: msg,
+					timestamp,
+				});
+				break;
+			}
+		}
+	}
+
+	return data;
+}
+
 function parseSessionManagerFormat(lines: string[]): ParsedSessionData {
 	const data: ParsedSessionData = {
 		sessionId: "unknown",
@@ -266,10 +376,11 @@ function parseStreamingEventFormat(lines: string[]): ParsedSessionData {
 	return data;
 }
 
-function detectFormat(lines: string[]): "session-manager" | "streaming-events" | "unknown" {
+function detectFormat(lines: string[]): "session-manager" | "streaming-events" | "session-tree" | "unknown" {
 	for (const line of lines) {
 		try {
 			const entry = JSON.parse(line) as { type: string };
+			if (entry.type === "tree") return "session-tree";
 			if (entry.type === "session") return "session-manager";
 			if (entry.type === "agent_start" || entry.type === "message_start" || entry.type === "turn_start") {
 				return "streaming-events";
@@ -294,7 +405,14 @@ function parseSessionFile(content: string): ParsedSessionData {
 		throw new Error("Unknown session file format");
 	}
 
-	return format === "session-manager" ? parseSessionManagerFormat(lines) : parseStreamingEventFormat(lines);
+	switch (format) {
+		case "session-tree":
+			return parseSessionTreeFormat(lines);
+		case "session-manager":
+			return parseSessionManagerFormat(lines);
+		case "streaming-events":
+			return parseStreamingEventFormat(lines);
+	}
 }
 
 // ============================================================================
