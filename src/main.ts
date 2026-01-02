@@ -1,6 +1,6 @@
 import { AgentSession } from "./core/agent-session.js";
 import { InteractiveMode } from "./modes/interactive.js";
-import { SessionManager } from "./core/session-manager.js";
+import { SessionTree } from "./core/session-tree.js";
 import { Args } from "./cli/args.js";
 import { ensureTool } from "./utils/tools-manager.js";
 import { VERSION } from "./config.js";
@@ -42,19 +42,19 @@ export async function main(args: string[]) {
 
 	const settingsManager = SettingsManager.create();
     initTheme("custom", false);
-    let sessionManager: SessionManager | undefined = undefined;
+    let sessionTree: SessionTree | undefined = undefined;
 
     if(parsed.noSession){
-        sessionManager = SessionManager.inMemory();
+        sessionTree = SessionTree.inMemory();
     }
     if(parsed.session){
-        sessionManager = SessionManager.open(parsed.session);
+        sessionTree = SessionTree.open(parsed.session);
     }
     if(parsed.continue){
-        sessionManager = SessionManager.continueRecent(cwd);
+        sessionTree = SessionTree.continueRecent(cwd);
     }
     if(parsed.resume){
-		const sessions = SessionManager.list(cwd);
+		const sessions = SessionTree.listSessions(cwd);
 		if (sessions.length === 0) {
 			console.log(chalk.dim("No sessions found"));
 			return;
@@ -66,13 +66,13 @@ export async function main(args: string[]) {
 		}
 		// Clear screen after session selection
 		process.stdout.write("\x1b[3J\x1b[2J\x1b[H");
-		sessionManager = SessionManager.open(selectedPath);
+		sessionTree = SessionTree.open(selectedPath);
     }
 
     const {session} = await createAgentSession({
         cwd,
         settingsManager,
-        sessionManager
+        sessionTree
     })
 
 

@@ -114,7 +114,7 @@ export class TaskExecutor {
         // So the script itself might exit 0 even if tests fail? 
         // We'll see. If it exits non-zero, execAsync throws.
         
-        const testCmd = `docker exec ${containerId} bash /workspace/tests/test.sh`;
+        const testCmd = `docker exec ${containerId} bash -l /workspace/tests/test.sh`;
         
         try {
             await execAsync(testCmd);

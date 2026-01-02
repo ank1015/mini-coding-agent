@@ -6,20 +6,18 @@
  * - Agent state access
  * - Event subscription with automatic session persistence
  * - Model and Provider options management
- * - Session switching
+ * - Session and branch management
  *
  * Modes use this class and add their own I/O layer on top.
  */
 
-import { appendFileSync } from "fs";
-import { tmpdir } from "os";
-import { join } from "path";
-import { Conversation, BaseAssistantMessage, Model, TextContent, AgentEvent, AgentState, Message, Attachment, getApiKeyFromEnv, Api, OptionsForApi, generateUUID, getModel, OpenAIProviderOptions, GoogleProviderOptions, GoogleThinkingLevel } from "@ank1015/providers";
+import { Conversation, BaseAssistantMessage, Model, TextContent, AgentEvent, AgentState, Message, Attachment, getApiKeyFromEnv, Api, OptionsForApi, generateUUID, getModel, GoogleThinkingLevel, OpenAIProviderOptions, GoogleProviderOptions } from "@ank1015/providers";
 import { getModelsPath } from "../config.js";
 import { exportSessionToHtml } from "./export-html.js";
-import { loadSessionFromEntries, type SessionManager } from "./session-manager.js";
+import { SessionTree, type BranchInfo, type ContextStrategy } from "./session-tree.js";
 import type { SettingsManager } from "./settings-manager.js";
 import { getDefaultProviderOption } from "../utils/default-provider-options.js";
+import { summarizeBranch, summarizeNodes } from "./summarization.js";
 
 /** Session-specific events that extend the core AgentEvent */
 export type AgentSessionEvent = AgentEvent
@@ -33,7 +31,7 @@ export type AgentSessionEventListener = (event: AgentSessionEvent) => void;
 
 export interface AgentSessionConfig {
 	agent: Conversation;
-	sessionManager: SessionManager;
+	sessionTree: SessionTree;
 	settingsManager: SettingsManager;
 }
 
@@ -47,6 +45,8 @@ export interface PromptOptions {
 export interface SessionStats {
 	sessionFile: string | null;
 	sessionId: string;
+	activeBranch: string;
+	branchCount: number;
 	userMessages: number;
 	assistantMessages: number;
 	toolCalls: number;
@@ -69,7 +69,7 @@ export interface SessionStats {
 
 export class AgentSession {
 	readonly agent: Conversation;
-	readonly sessionManager: SessionManager;
+	private _sessionTree: SessionTree;
 	readonly settingsManager: SettingsManager;
 
 	// Event subscription state
@@ -81,7 +81,7 @@ export class AgentSession {
 
 	constructor(config: AgentSessionConfig) {
 		this.agent = config.agent;
-		this.sessionManager = config.sessionManager;
+		this._sessionTree = config.sessionTree;
 		this.settingsManager = config.settingsManager;
 	}
 
@@ -117,7 +117,7 @@ export class AgentSession {
 
 		// Handle session persistence
 		if (event.type === "message_end") {
-			this.sessionManager.saveMessage(event.message);
+			this._sessionTree.saveMessage(event.message);
 		}
 	};
 
@@ -230,12 +230,27 @@ export class AgentSession {
 
 	/** Current session file path, or null if sessions are disabled */
 	get sessionFile(): string | null {
-		return this.sessionManager.isPersisted() ? this.sessionManager.getSessionFile() : null;
+		return this._sessionTree.isPersisted() ? this._sessionTree.file : null;
 	}
 
 	/** Current session ID */
 	get sessionId(): string {
-		return this.sessionManager.getSessionId();
+		return this._sessionTree.id;
+	}
+
+	/** Current session tree (for advanced access) */
+	get sessionTree(): SessionTree {
+		return this._sessionTree;
+	}
+
+	/** Current active branch name */
+	get activeBranch(): string {
+		return this._sessionTree.activeBranch;
+	}
+
+	/** List of all branch names in current session */
+	get branches(): string[] {
+		return this._sessionTree.getBranches();
 	}
 
 	// =========================================================================
@@ -317,15 +332,26 @@ export class AgentSession {
 
 	/**
 	 * Reset agent and session to start fresh.
-	 * Clears all messages and starts a new session.
+	 * Clears all messages and starts a new session file.
 	 * Listeners are preserved and will continue receiving events.
-	 * @returns true if reset completed, false if cancelled by hook
+	 * @returns true if reset completed
 	 */
 	async reset(): Promise<boolean> {
 		this._disconnectFromAgent();
 		await this.abort();
+		
+		// Capture current model before resetting agent (just in case, though agent.reset shouldn't clear it)
+		const currentModel = this.model;
+		const currentOptions = this.providerOptions;
+
 		this.agent.reset();
-		this.sessionManager.reset();
+		this._sessionTree = this._sessionTree.reset();
+
+		// Ensure the new session starts with the correct provider info
+		if (currentModel) {
+			this._sessionTree.saveProvider(currentModel.api, currentModel.id, currentOptions);
+		}
+
 		this._queuedMessages = [];
 		this._reconnectToAgent();
 		return true;
@@ -337,7 +363,7 @@ export class AgentSession {
 
 	/**
 	 * Set model & Provider options directly.
-	 * Validates API key, saves to session and settings.
+	 * Validates API key, saves to session.
 	 * @throws Error if no API key available for the model
 	 */
 	async setModel(model: Model<Api>, providerOptions: OptionsForApi<Api>): Promise<void> {
@@ -347,72 +373,43 @@ export class AgentSession {
 		}
 
 		this.agent.setProvider({model, providerOptions});
-		this.sessionManager.saveProvider(model.api, model.id, providerOptions);
-		// this.settingsManager.setDefaultModelAndSettings(model, providerOptions);
+		this._sessionTree.saveProvider(model.api, model.id, providerOptions);
 	}
 
 	/**
-	 * Smartly change the model.
-	 * - If no messages or same API: Update in-place.
-	 * - If messages exist AND different API: Branch session first, then update.
+	 * Change the model.
+	 * Switches in-place and records the provider change.
+	 * User can manually branch before switching if they want to preserve history.
 	 */
-	async smartChangeModel(model: Model<Api>): Promise<void> {
-		const hasMessages = this.messages.length > 0;
-		const currentApi = this.model?.api;
-		const isDifferentApi = currentApi !== model.api;
-
-		if (hasMessages && isDifferentApi) {
-			// Branch and switch
-			const newSessionPath = this.sessionManager.clone();
-			await this.switchSession(newSessionPath);
-			
-			// For new provider/API, use default options
-			const newOptions = getDefaultProviderOption(model.api);
-			await this.setModel(model, newOptions);
-		} else {
-			// Update in-place
-			// If staying on same API, preserve current options.
-			// If API changed (only possible here if !hasMessages), use default options.
-			const options = (!isDifferentApi) 
-				? this.providerOptions 
-				: getDefaultProviderOption(model.api);
-				
-			await this.setModel(model, options);
-		}
+	async changeModel(model: Model<Api>, providerOptions?: OptionsForApi<Api>): Promise<void> {
+		const options = providerOptions ?? getDefaultProviderOption(model.api);
+		await this.setModel(model, options);
 	}
 
 	/**
-	 * Update the thinking level for the current model.
-	 * Supports OpenAI (reasoning.effort) and Google (thinkingConfig.thinkingLevel).
+	 * Update thinking level for supported models (OpenAI/Google).
 	 */
 	async updateThinkingLevel(level: 'low' | 'high'): Promise<void> {
-		if (!this.model) return;
-		
-		const api = this.model.api;
-		// Deep clone would be better but shallow copy + specific object copy is fine for now
-		const currentOptions = JSON.parse(JSON.stringify(this.providerOptions));
+		const model = this.model;
+		if (!model) throw new Error("No model selected");
 
-		let updated = false;
+		let newOptions: OptionsForApi<Api> = { ...this.providerOptions };
 
-		if (api === 'openai') {
-			const opts = currentOptions as OpenAIProviderOptions;
+		if (model.api === 'openai') {
+			const opts = newOptions as OpenAIProviderOptions;
 			if (!opts.reasoning) opts.reasoning = {};
-			opts.reasoning.effort = level; // 'low' | 'high' (medium is also valid but selector only has 2)
-			updated = true;
-		} else if (api === 'google') {
-			const opts = currentOptions as GoogleProviderOptions;
-			if (!opts.thinkingConfig) {
-				opts.thinkingConfig = { includeThoughts: true, thinkingLevel: GoogleThinkingLevel.LOW };
-			}
-			opts.thinkingConfig.thinkingLevel = level === 'high' ? GoogleThinkingLevel.HIGH : GoogleThinkingLevel.LOW;
-			updated = true;
+			opts.reasoning.effort = level;
+		} else if (model.api === 'google') {
+			const opts = newOptions as GoogleProviderOptions;
+			if (!opts.thinkingConfig) opts.thinkingConfig = { includeThoughts: true };
+			opts.thinkingConfig.thinkingLevel = level === 'high' 
+				? GoogleThinkingLevel.HIGH 
+				: GoogleThinkingLevel.LOW;
+		} else {
+			throw new Error(`Thinking level not supported for ${model.api}`);
 		}
 
-		if (updated) {
-			await this.setModel(this.model, currentOptions);
-		} else {
-			throw new Error(`Thinking level configuration not supported for ${api}`);
-		}
+		await this.setModel(model, newOptions);
 	}
 
 	// =========================================================================
@@ -434,40 +431,36 @@ export class AgentSession {
 	// =========================================================================
 
 	/**
-	 * Branch session from a specific message ID.
-	 * Creates a new session file up to that message, then switches to it.
-	 * @returns true if branch completed
-	 */
-	branchSession(messageId: string): string {
-		const newSessionPath = this.sessionManager.branch(messageId);
-		return newSessionPath;
-	}
-
-	/**
 	 * Switch to a different session file.
-	 * Aborts current operation, loads messages, restores model/thinking.
+	 * Aborts current operation, loads messages, restores model.
 	 * Listeners are preserved and will continue receiving events.
-	 * @returns true if switch completed, false if cancelled
+	 * @returns true if switch completed
 	 */
 	async switchSession(sessionPath: string): Promise<boolean> {
-
 		this._disconnectFromAgent();
 		await this.abort();
 		this._queuedMessages = [];
 
-		// Set new session
-		this.sessionManager.setSessionFile(sessionPath);
+		// Open the new session tree
+		this._sessionTree = SessionTree.open(sessionPath);
 
-		// Reload messages
-		const entries = this.sessionManager.loadEntries();
-		const loaded = loadSessionFromEntries(entries);
+		// Reload context from the new tree
+		await this._reloadContext();
 
+		this._reconnectToAgent();
+		return true;
+	}
 
-		this.agent.replaceMessages(loaded.messages);
-
+	/**
+	 * Reload context from session tree into agent.
+	 * Used after session/branch switches.
+	 */
+	private async _reloadContext(strategy?: ContextStrategy): Promise<void> {
+		const messages = this._sessionTree.buildContext(undefined, strategy ?? { type: 'use-summaries' });
+		this.agent.replaceMessages(messages);
 
 		// Restore model if saved
-		const savedModel = this.sessionManager.loadModel();
+		const savedModel = this._sessionTree.loadModel();
 		if (savedModel) {
 			const model = getModel(savedModel.api as Api, savedModel.modelId as any);
 			if (!model) {
@@ -475,10 +468,210 @@ export class AgentSession {
 			}
 			this.agent.setProvider({ model, providerOptions: savedModel.providerOptions });
 		}
+	}
+
+	// =========================================================================
+	// Branch Management
+	// =========================================================================
+
+	/**
+	 * Create a new branch from a specific node (or current head).
+	 * Does NOT switch to the new branch.
+	 * @param name - Name for the new branch
+	 * @param fromNodeId - Optional node ID to branch from (defaults to current head)
+	 */
+	createBranch(name: string, fromNodeId?: string): void {
+		this._sessionTree.createBranch(name, fromNodeId);
+	}
+
+	/**
+	 * Switch to a different branch.
+	 * Reloads context from the branch.
+	 * @param name - Branch name to switch to
+	 * @param strategy - Optional context strategy (defaults to full)
+	 */
+	async switchBranch(name: string, strategy?: ContextStrategy): Promise<void> {
+		this._disconnectFromAgent();
+		await this.abort();
+		this._queuedMessages = [];
+
+		this._sessionTree.switchBranch(name);
+		await this._reloadContext(strategy);
 
 		this._reconnectToAgent();
-		return true;
 	}
+
+	/**
+	 * Create a branch and switch to it.
+	 * Convenience method combining createBranch + switchBranch.
+	 * @param name - Name for the new branch
+	 * @param fromNodeId - Optional node ID to branch from
+	 * @returns BranchInfo for the new branch
+	 */
+	async branchAndSwitch(name: string, fromNodeId?: string): Promise<BranchInfo> {
+		this._sessionTree.createBranch(name, fromNodeId);
+		await this.switchBranch(name);
+		return this._sessionTree.getBranchInfo(name)!;
+	}
+
+	/**
+	 * Merge another branch into the current branch.
+	 * Creates a merge node with the provided summary.
+	 * @param fromBranch - Branch to merge from
+	 * @param summary - Summary of the merged content
+	 */
+	mergeBranch(fromBranch: string, summary: string): void {
+		this._sessionTree.merge(fromBranch, summary);
+	}
+
+	/**
+	 * List all branches with their info.
+	 */
+	listBranches(): BranchInfo[] {
+		return this._sessionTree.listBranches();
+	}
+
+	/**
+	 * Get info for a specific branch.
+	 */
+	getBranchInfo(name: string): BranchInfo | null {
+		return this._sessionTree.getBranchInfo(name);
+	}
+
+	// =========================================================================
+	// Summarization & Checkpoints
+	// =========================================================================
+
+	/**
+	 * Create a summary node that compresses multiple nodes.
+	 * @param content - The summary text
+	 * @param nodeIds - Node IDs that this summary covers
+	 */
+	createSummary(content: string, nodeIds: string[]): void {
+		this._sessionTree.appendSummary(content, nodeIds);
+	}
+
+	/**
+	 * Create a checkpoint at the current position.
+	 * Useful for marking points to return to later.
+	 * @param name - Name for the checkpoint
+	 * @param metadata - Optional metadata
+	 */
+	createCheckpoint(name: string, metadata?: Record<string, unknown>): void {
+		this._sessionTree.appendCheckpoint(name, metadata);
+	}
+
+	// =========================================================================
+	// High-level Summarization & Merging
+	// =========================================================================
+
+	/**
+	 * Compact the current history by summarizing older nodes.
+	 * Keeps the last N nodes intact.
+	 */
+	async compactHistory(options: { keepRecent: number }): Promise<void> {
+		if (!this.model) throw new Error("No model available for summarization");
+
+		const head = this._sessionTree.getHeadNode();
+		if (!head) return;
+
+		const lineage = this._sessionTree.getLineage(head.id);
+		if (lineage.length <= options.keepRecent) return;
+
+		// Nodes to summarize: everything except the last N
+		const nodesToSummarize = lineage.slice(0, lineage.length - options.keepRecent);
+		const messages = this._sessionTree.extractMessages(nodesToSummarize);
+
+		if (messages.length === 0) return;
+
+		const summary = await summarizeNodes(messages, this.model, this.providerOptions);
+		const finalContent = `Older conversation history has been summarized to save context:\n\n${summary}`;
+
+		// Append summary node that covers these IDs
+		const ids = nodesToSummarize.map(n => n.id);
+		this._sessionTree.appendSummary(finalContent, ids);
+
+		// Reload context to reflect compaction
+		await this._reloadContext();
+	}
+
+	/**
+	 * Smart merge: Merges another branch into current branch.
+	 * 1. Finds LCA (Lowest Common Ancestor).
+	 * 2. Summarizes new nodes in fromBranch (after LCA).
+	 * 3. Appends merge node with summary.
+	 */
+	async smartMergeBranch(fromBranch: string): Promise<void> {
+		if (!this.model) throw new Error("No model available for summarization");
+
+		const fromHead = this._sessionTree.getHeadNode(fromBranch);
+		const currentHead = this._sessionTree.getHeadNode(this.activeBranch);
+
+		if (!fromHead) throw new Error(`Branch '${fromBranch}' has no nodes.`);
+		// If current has no nodes, simple merge? Or just start?
+		// Assuming currentHead exists for now. If not, normal merge might fail too.
+
+		let nodesToSummarize: Message[] = [];
+
+		if (!currentHead) {
+			// If current branch is empty (e.g. root), summarize everything from other branch?
+			// Usually branches share a root.
+			const lineage = this._sessionTree.getLineage(fromHead.id);
+			nodesToSummarize = this._sessionTree.extractMessages(lineage);
+		} else {
+			const lca = this._sessionTree.findLowestCommonAncestor(fromHead.id, currentHead.id);
+			if (!lca) {
+				// No common ancestor? Summarize everything
+				const lineage = this._sessionTree.getLineage(fromHead.id);
+				nodesToSummarize = this._sessionTree.extractMessages(lineage);
+			} else {
+				// Get nodes from LCA (exclusive) to Head (inclusive)
+				const segment = this._sessionTree.getLineageSegment(lca.id, fromHead.id);
+				// Slice(1) to exclude LCA itself
+				const newNodes = segment.slice(1);
+				if (newNodes.length === 0) {
+					// Nothing to merge
+					return;
+				}
+				nodesToSummarize = this._sessionTree.extractMessages(newNodes);
+			}
+		}
+
+		if (nodesToSummarize.length === 0) return;
+
+		const summary = await summarizeBranch(nodesToSummarize, this.model, this.providerOptions);
+		const finalContent = `The user explored a different conversation branch before returning here.\nSummary of that exploration:\n\n${summary}`;
+		this._sessionTree.merge(fromBranch, finalContent);
+
+		// Reload context to reflect merge
+		await this._reloadContext();
+	}
+
+	/**
+	 * Summarize a specific range of nodes and append the summary to the current branch.
+	 */
+	async summarizeRange(fromNodeId: string, toNodeId: string): Promise<void> {
+		if (!this.model) throw new Error("No model available for summarization");
+
+		const segment = this._sessionTree.getLineageSegment(fromNodeId, toNodeId);
+		if (segment.length === 0) return;
+
+		const messages = this._sessionTree.extractMessages(segment);
+		if (messages.length === 0) return;
+
+		const summary = await summarizeNodes(messages, this.model, this.providerOptions);
+		const finalContent = `A specific segment of the conversation has been summarized:\n\n${summary}`;
+		const ids = segment.map(n => n.id);
+		
+		this._sessionTree.appendSummary(finalContent, ids);
+
+		// Reload context to reflect summary
+		await this._reloadContext();
+	}
+
+	// =========================================================================
+	// Statistics & Export
+	// =========================================================================
 
 	/**
 	 * Get session statistics.
@@ -511,6 +704,8 @@ export class AgentSession {
 		return {
 			sessionFile: this.sessionFile,
 			sessionId: this.sessionId,
+			activeBranch: this.activeBranch,
+			branchCount: this.branches.length,
 			userMessages,
 			assistantMessages,
 			toolCalls,
@@ -533,6 +728,6 @@ export class AgentSession {
 	 * @returns Path to exported file
 	 */
 	exportToHtml(outputPath?: string): string {
-		return exportSessionToHtml(this.sessionManager, this.state, outputPath);
+		return exportSessionToHtml(this._sessionTree, this.state, outputPath);
 	}
 }

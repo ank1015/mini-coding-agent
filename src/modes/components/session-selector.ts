@@ -11,7 +11,7 @@ import {
 	Text,
 	truncateToWidth,
 } from "@ank1015/agents-tui";
-import type { SessionInfo } from "../../core/session-manager.js";
+import type { SessionInfo } from "../../core/session-tree.js";
 import { fuzzyFilter } from "../../utils/fuzzy.js";
 import { theme } from "../theme/theme.js";
 import { DynamicBorder } from "./dynamic-border.js";
@@ -39,14 +39,14 @@ class SessionList implements Component {
 			if (this.filteredSessions[this.selectedIndex]) {
 				const selected = this.filteredSessions[this.selectedIndex];
 				if (this.onSelect) {
-					this.onSelect(selected.path);
+					this.onSelect(selected.file);
 				}
 			}
 		};
 	}
 
 	private filterSessions(query: string): void {
-		this.filteredSessions = fuzzyFilter(this.allSessions, query, (session) => session.allMessagesText);
+		this.filteredSessions = fuzzyFilter(this.allSessions, query, (session) => session.firstMessage);
 		this.selectedIndex = Math.min(this.selectedIndex, Math.max(0, this.filteredSessions.length - 1));
 	}
 
@@ -107,7 +107,7 @@ class SessionList implements Component {
 			// Second line: metadata (dimmed) - also truncate for safety
 			const modified = formatDate(session.modified);
 			const msgCount = `${session.messageCount} message${session.messageCount !== 1 ? "s" : ""}`;
-			const branchInfo = session.parentId ? " ↳ Branched" : "";
+			const branchInfo = session.branches.length > 1 ? ` ↳ ${session.branches.length} branches` : "";
 			const metadata = `  ${modified} · ${msgCount}${branchInfo}`;
 			const metadataLine = theme.fg("dim", truncateToWidth(metadata, width, ""));
 
@@ -139,7 +139,7 @@ class SessionList implements Component {
 		else if (isEnter(keyData)) {
 			const selected = this.filteredSessions[this.selectedIndex];
 			if (selected && this.onSelect) {
-				this.onSelect(selected.path);
+				this.onSelect(selected.file);
 			}
 		}
 		// Escape - cancel

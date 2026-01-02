@@ -20,8 +20,9 @@ interface MessageItem {
 	id: string;
 	text: string;
 	timestamp: number;
-	originalMessage: Message;
+	originalMessage?: Message;
 	disabled?: boolean;
+	isCurrent?: boolean;
 }
 
 /**
@@ -37,11 +38,11 @@ class MessageList implements Component {
 	public onExit: () => void = () => {};
 	private maxVisible: number = 5;
 
-	constructor(messages: Message[]) {
+	constructor(messages: Message[], includeCurrent: boolean = false) {
 		const userMessages = messages.filter((m) => m.role === "user");
 		const firstMessageId = userMessages[0]?.id;
 
-		this.allMessages = userMessages
+		const items: MessageItem[] = userMessages
 			.map((m) => {
 				const textContent = m.content
 					.filter((c) => c.type === "text")
@@ -58,6 +59,17 @@ class MessageList implements Component {
 			})
 			.reverse(); // Newest first
 
+		if (includeCurrent) {
+			items.unshift({
+				id: "__CURRENT__",
+				text: "Current position (latest message)",
+				timestamp: Date.now(),
+				isCurrent: true,
+				disabled: false,
+			});
+		}
+
+		this.allMessages = items;
 		this.filteredMessages = this.allMessages;
 		this.searchInput = new Input();
 
@@ -129,9 +141,10 @@ class MessageList implements Component {
 			const messageLine = cursor + messageText;
 
 			// Second line: metadata
-			const time = formatDate(msg.timestamp);
+			const time = msg.isCurrent ? "now" : formatDate(msg.timestamp);
+			const roleLabel = msg.isCurrent ? "Current" : "User";
 			const disabledText = msg.disabled ? " · Cannot branch from start" : "";
-			const metadata = `  ${time} · User${disabledText}`;
+			const metadata = `  ${time} · ${roleLabel}${disabledText}`;
 			const metadataLine = theme.fg("dim", truncateToWidth(metadata, width, ""));
 
 			lines.push(messageLine);
@@ -186,6 +199,7 @@ export class MessageSelectorComponent extends Container {
 		onSelect: (messageId: string) => void,
 		onCancel: () => void,
 		onExit: () => void,
+		includeCurrent: boolean = false,
 	) {
 		super();
 
@@ -195,7 +209,7 @@ export class MessageSelectorComponent extends Container {
 		this.addChild(new DynamicBorder());
 		this.addChild(new Spacer(1));
 
-		this.messageList = new MessageList(messages);
+		this.messageList = new MessageList(messages, includeCurrent);
 		this.messageList.onSelect = onSelect;
 		this.messageList.onCancel = onCancel;
 		this.messageList.onExit = onExit;
@@ -205,8 +219,9 @@ export class MessageSelectorComponent extends Container {
 		this.addChild(new Spacer(1));
 		this.addChild(new DynamicBorder());
 
-		// Auto-cancel if no user messages
-		if (messages.filter(m => m.role === 'user').length === 0) {
+		const userCount = messages.filter(m => m.role === 'user').length;
+		// Auto-cancel if no user messages AND includeCurrent is false
+		if (userCount === 0 && !includeCurrent) {
 			setTimeout(() => onCancel(), 100);
 		}
 	}

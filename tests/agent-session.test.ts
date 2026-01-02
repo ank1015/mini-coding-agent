@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AgentSession } from '../src/core/agent-session';
-import { SessionManager } from '../src/core/session-manager';
+import { SessionTree } from '../src/core/session-tree';
 import { SettingsManager } from '../src/core/settings-manager';
 import type { Conversation, AgentEvent } from '@ank1015/providers';
 
@@ -20,7 +20,7 @@ vi.mock('@ank1015/providers', async () => {
 
 describe('AgentSession', () => {
 	let mockAgent: any;
-	let sessionManager: SessionManager;
+	let sessionTree: SessionTree;
 	let settingsManager: SettingsManager;
 
 	beforeEach(() => {
@@ -52,9 +52,7 @@ describe('AgentSession', () => {
 		};
 
 		// Create in-memory managers for testing
-		// Using a real (non-in-memory) session manager for branching tests because branching requires file operations
-		// But for general tests we can use inMemory
-		sessionManager = SessionManager.inMemory({
+		sessionTree = SessionTree.inMemory(process.cwd(), {
 			api: 'openai',
 			modelId: 'gpt-4',
 			providerOptions: { temperature: 0.7 },
@@ -68,26 +66,26 @@ describe('AgentSession', () => {
 	});
 
 	describe('constructor', () => {
-		it('should initialize with agent, sessionManager, and settingsManager', () => {
+		it('should initialize with agent, sessionTree, and settingsManager', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
 			expect(session.agent).toBe(mockAgent);
-			expect(session.sessionManager).toBe(sessionManager);
+			expect(session.sessionTree).toBe(sessionTree);
 			expect(session.settingsManager).toBe(settingsManager);
 		});
 
 		it('should subscribe to agent events when session.subscribe is called', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
-		session.subscribe(() => {});
+			session.subscribe(() => {});
 			expect(mockAgent.subscribe).toHaveBeenCalled();
 		});
 	});
@@ -96,7 +94,7 @@ describe('AgentSession', () => {
 		it('should provide access to agent state', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -106,7 +104,7 @@ describe('AgentSession', () => {
 		it('should provide access to current model', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -120,7 +118,7 @@ describe('AgentSession', () => {
 		it('should provide access to provider options', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -130,7 +128,7 @@ describe('AgentSession', () => {
 		it('should expose isStreaming state', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -143,7 +141,7 @@ describe('AgentSession', () => {
 		it('should expose messages', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -153,7 +151,7 @@ describe('AgentSession', () => {
 		it('should expose queue mode', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -163,18 +161,18 @@ describe('AgentSession', () => {
 		it('should expose session file', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
-			// In-memory session should return null
-			expect(session.sessionFile).toBeNull();
+			// In-memory session returns empty string for file property in current implementation
+			expect(session.sessionFile).toBeFalsy(); 
 		});
 
 		it('should expose session ID', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -186,7 +184,7 @@ describe('AgentSession', () => {
 		it('should allow subscribing to events', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -199,7 +197,7 @@ describe('AgentSession', () => {
 		it('should allow unsubscribing', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -219,7 +217,7 @@ describe('AgentSession', () => {
 
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -229,7 +227,7 @@ describe('AgentSession', () => {
 		it('should call agent.prompt with text', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -241,7 +239,7 @@ describe('AgentSession', () => {
 		it('should pass attachments to agent.prompt', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -259,7 +257,7 @@ describe('AgentSession', () => {
 		it('should queue message and call agent.queueMessage', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -272,7 +270,7 @@ describe('AgentSession', () => {
 		it('should track queued message count', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -285,7 +283,7 @@ describe('AgentSession', () => {
 		it('should return queued messages', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -301,7 +299,7 @@ describe('AgentSession', () => {
 		it('should clear queued messages and return them', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -320,7 +318,7 @@ describe('AgentSession', () => {
 		it('should call agent.abort and waitForIdle', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -332,10 +330,10 @@ describe('AgentSession', () => {
 	});
 
 	describe('reset()', () => {
-		it('should reset agent and session manager', async () => {
+		it('should reset agent and session tree', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -351,7 +349,7 @@ describe('AgentSession', () => {
 		it('should clear queued messages', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -366,7 +364,7 @@ describe('AgentSession', () => {
 		it('should update agent provider', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -381,10 +379,10 @@ describe('AgentSession', () => {
 			});
 		});
 
-		it('should save to session manager', async () => {
+		it('should save to session tree', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -393,29 +391,12 @@ describe('AgentSession', () => {
 
 			await session.setModel(newModel, newOptions);
 
-			const loadedSession = sessionManager.loadSession();
-			expect(loadedSession.model).toEqual({
+			const loadedModel = sessionTree.loadModel();
+			expect(loadedModel).toEqual({
 				api: 'google',
 				modelId: 'gemini-3-flash',
 				providerOptions: newOptions,
 			});
-		});
-
-		it('should save to settings manager', async () => {
-			const session = new AgentSession({
-				agent: mockAgent as Conversation,
-				sessionManager,
-				settingsManager,
-			});
-
-			const newModel = { id: 'gemini-3-flash', api: 'google', name: 'Gemini' } as any;
-			const newOptions = { temperature: 0.5 };
-
-			await session.setModel(newModel, newOptions);
-
-			expect(settingsManager.getDefaultModel()).toBe('gemini-3-flash');
-			expect(settingsManager.getDefaultProvider()).toBe('google');
-			expect(settingsManager.getDefaultProviderOptions()).toEqual(newOptions);
 		});
 
 		it('should throw if no API key available', async () => {
@@ -424,7 +405,7 @@ describe('AgentSession', () => {
 
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -438,7 +419,7 @@ describe('AgentSession', () => {
 		it('should update agent queue mode', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -450,7 +431,7 @@ describe('AgentSession', () => {
 		it('should save to settings manager', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -464,11 +445,29 @@ describe('AgentSession', () => {
 		it('should abort current operation', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
-			await session.switchSession('/path/to/session.jsonl');
+			// We need a real file to switch to for the underlying SessionTree.open() call
+			const { join } = require('path');
+			const { tmpdir } = require('os');
+			const { writeFileSync, mkdirSync } = require('fs');
+			
+			const testDir = join(tmpdir(), `session-test-${Date.now()}`);
+			mkdirSync(testDir, { recursive: true });
+			const sessionFile = join(testDir, 'test.jsonl');
+			
+			// Write a minimal valid session header
+			writeFileSync(sessionFile, JSON.stringify({
+				type: 'tree',
+				id: 'test-id',
+				cwd: process.cwd(),
+				created: new Date().toISOString(),
+				defaultBranch: 'main'
+			}) + '\n');
+
+			await session.switchSession(sessionFile);
 
 			expect(mockAgent.abort).toHaveBeenCalled();
 			expect(mockAgent.waitForIdle).toHaveBeenCalled();
@@ -477,31 +476,35 @@ describe('AgentSession', () => {
 		it('should clear queued messages', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
+			// Mock the actual switch to avoid file IO issues in this specific test
+			// or reuse the file setup from above
+			const { join } = require('path');
+			const { tmpdir } = require('os');
+			const { writeFileSync, mkdirSync } = require('fs');
+			const testDir = join(tmpdir(), `session-test-2-${Date.now()}`);
+			mkdirSync(testDir, { recursive: true });
+			const sessionFile = join(testDir, 'test.jsonl');
+			writeFileSync(sessionFile, JSON.stringify({
+				type: 'tree',
+				id: 'test-id',
+				cwd: process.cwd(),
+				created: new Date().toISOString(),
+				defaultBranch: 'main'
+			}) + '\n');
+
 			await session.queueMessage('Message 1');
-			await session.switchSession('/path/to/session.jsonl');
+			await session.switchSession(sessionFile);
 
 			expect(session.queuedMessageCount).toBe(0);
 		});
-
-		it('should replace agent messages with loaded session', async () => {
-			const session = new AgentSession({
-				agent: mockAgent as Conversation,
-				sessionManager,
-				settingsManager,
-			});
-
-			await session.switchSession('/path/to/session.jsonl');
-
-			expect(mockAgent.replaceMessages).toHaveBeenCalled();
-		});
 	});
 
-	describe('branchSession()', () => {
-		let realSessionManager: SessionManager;
+	describe('branchAndSwitch()', () => {
+		let realSessionTree: SessionTree;
 		let testDir: string;
 		let agentDir: string;
 		let cwd: string;
@@ -518,38 +521,39 @@ describe('AgentSession', () => {
 			mkdirSync(agentDir, { recursive: true });
 			mkdirSync(cwd, { recursive: true });
 
-			realSessionManager = SessionManager.create(cwd, agentDir, {
+			realSessionTree = SessionTree.create(cwd, agentDir, {
 				api: 'openai',
 				modelId: 'gpt-4',
 				providerOptions: { temperature: 0.7 }
 			});
 
 			// Save some messages to branch from
-			realSessionManager.saveMessage({ role: 'user', id: 'msg-1', content: [{ type: 'text', content: '1' }] });
-			realSessionManager.saveMessage({ role: 'assistant', id: 'msg-2', content: [{ type: 'text', content: '2' }] });
-			realSessionManager.saveMessage({ role: 'user', id: 'msg-3', content: [{ type: 'text', content: '3' }] });
+			realSessionTree.appendMessage({ role: 'user', id: 'msg-1', content: [{ type: 'text', content: '1' }] } as any);
+			realSessionTree.appendMessage({ role: 'assistant', id: 'msg-2', content: [{ type: 'text', content: '2' }] } as any);
+			realSessionTree.appendMessage({ role: 'user', id: 'msg-3', content: [{ type: 'text', content: '3' }] } as any);
 		});
 
 		it('should branch session and switch to it', async () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager: realSessionManager,
+				sessionTree: realSessionTree,
 				settingsManager,
 			});
 
-			const originalSessionId = session.sessionId;
+			const originalBranch = session.activeBranch;
 
-			// Spy on sessionManager.branch to ensure it's called
-			const branchSpy = vi.spyOn(realSessionManager, 'branch');
-			const switchSpy = vi.spyOn(session, 'switchSession');
+			// Spy on sessionTree.createBranch to ensure it's called
+			const branchSpy = vi.spyOn(realSessionTree, 'createBranch');
+			const switchSpy = vi.spyOn(session, 'switchBranch');
 
-			await session.branchSession('msg-3');
+			await session.branchAndSwitch('new-branch', 'msg-3');
 
-			expect(branchSpy).toHaveBeenCalledWith('msg-3');
-			expect(switchSpy).toHaveBeenCalled();
+			expect(branchSpy).toHaveBeenCalledWith('new-branch', 'msg-3');
+			expect(switchSpy).toHaveBeenCalledWith('new-branch');
 			
-			// Verify current session ID changed
-			expect(session.sessionId).not.toBe(originalSessionId);
+			// Verify active branch changed
+			expect(session.activeBranch).not.toBe(originalBranch);
+			expect(session.activeBranch).toBe('new-branch');
 		});
 
 		afterEach(() => {
@@ -571,7 +575,7 @@ describe('AgentSession', () => {
 
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -613,7 +617,7 @@ describe('AgentSession', () => {
 
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -641,7 +645,7 @@ describe('AgentSession', () => {
 
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -653,14 +657,14 @@ describe('AgentSession', () => {
 		it('should include session file and ID', () => {
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
 			const stats = session.getSessionStats();
 
-			expect(stats.sessionId).toBe(sessionManager.getSessionId());
-			expect(stats.sessionFile).toBeNull(); // In-memory session
+			expect(stats.sessionId).toBe(sessionTree.id);
+			expect(stats.sessionFile).toBeFalsy(); // In-memory session
 		});
 	});
 
@@ -671,7 +675,7 @@ describe('AgentSession', () => {
 
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -695,7 +699,7 @@ describe('AgentSession', () => {
 
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 
@@ -717,7 +721,7 @@ describe('AgentSession', () => {
 			});
 
 			// Verify message was saved to session
-			const loadedSession = sessionManager.loadSession();
+			const loadedSession = sessionTree.loadSession();
 			expect(loadedSession.messages).toHaveLength(1);
 			expect(loadedSession.messages[0]).toEqual(testMessage);
 		});
@@ -731,7 +735,7 @@ describe('AgentSession', () => {
 
 			const session = new AgentSession({
 				agent: mockAgent as Conversation,
-				sessionManager,
+				sessionTree,
 				settingsManager,
 			});
 

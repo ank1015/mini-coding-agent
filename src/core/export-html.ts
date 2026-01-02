@@ -1,9 +1,9 @@
-import type { BaseAssistantEvent, Message, ToolResultMessage, UserMessage, AgentState, Api, BaseAssistantMessage } from "@ank1015/providers";
+import { sanitizeSurrogates, type BaseAssistantEvent, type Message, type ToolResultMessage, type UserMessage, type AgentState, type Api, type BaseAssistantMessage } from "@ank1015/providers";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { basename } from "path";
 import { APP_NAME, VERSION } from "../config.js";
-import type { SessionManager } from "./session-manager.js";
+import type { SessionTree } from "./session-tree.js";
 
 // ============================================================================
 // Types
@@ -13,6 +13,7 @@ interface MessageEvent {
 	type: "message";
 	message: Message;
 	timestamp?: number;
+	id?: string;
 }
 
 interface ModelChangeEvent {
@@ -20,6 +21,7 @@ interface ModelChangeEvent {
 	provider: string;
 	modelId: string;
 	timestamp?: number;
+	id?: string;
 }
 
 type SessionEvent = MessageEvent | ModelChangeEvent ;
@@ -37,6 +39,7 @@ interface ParsedSessionData {
 	tools?: { name: string; description: string }[];
 	contextWindow?: number;
 	isStreamingFormat?: boolean;
+	treeEntries?: any[];
 }
 
 // ============================================================================
@@ -70,7 +73,8 @@ function escapeHtml(text: string): string {
 		.replace(/</g, "&lt;")
 		.replace(/>/g, "&gt;")
 		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#039;");
+		.replace(/'/g, "&#039;")
+		.replace(/`/g, "&#96;"); // Escape backticks for template literals
 }
 
 function shortenPath(path: string): string {
@@ -116,9 +120,138 @@ function formatExpandableOutput(lines: string[], maxLines: number): string {
 	return out;
 }
 
+function safeJsonForScript(obj: unknown): string {
+	return JSON.stringify(obj, (key, value) => {
+		if (typeof value === "string") {
+			return sanitizeSurrogates(value);
+		}
+		return value;
+	})
+		.replace(/</g, "\\u003c")
+		.replace(/>/g, "\\u003e")
+		.replace(/\u2028/g, "\\u2028")
+		.replace(/\u2029/g, "\\u2029");
+}
+
 // ============================================================================
 // Parsing functions
 // ============================================================================
+
+function parseSessionTreeFormat(lines: string[]): ParsedSessionData {
+	const data: ParsedSessionData = {
+		sessionId: "unknown",
+		timestamp: new Date().toISOString(),
+		modelsUsed: new Set(),
+		messages: [],
+		toolResultsMap: new Map(),
+		sessionEvents: [],
+		tokenStats: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		costStats: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		treeEntries: [],
+	};
+
+	for (const line of lines) {
+		let entry: { type: string; [key: string]: unknown };
+		try {
+			entry = JSON.parse(line) as { type: string; [key: string]: unknown };
+			data.treeEntries?.push(entry);
+		} catch {
+			continue;
+		}
+
+		switch (entry.type) {
+			case "tree":
+				data.sessionId = (entry.id as string) || "unknown";
+				data.timestamp = (entry.created as string) || data.timestamp;
+				if (entry.api && entry.modelId) {
+					data.modelsUsed.add(`${entry.api}/${entry.modelId}`);
+				}
+				break;
+
+			case "message": {
+				const message = entry.message as Message;
+				data.messages.push(message);
+				data.sessionEvents.push({
+					type: "message",
+					message,
+					timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : undefined,
+					id: message.id
+				});
+
+				if (message.role === "toolResult") {
+					const toolResult = message as ToolResultMessage;
+					data.toolResultsMap.set(toolResult.toolCallId, toolResult);
+				} else if (message.role === "assistant") {
+					const assistantMsg = message as BaseAssistantMessage<Api>;
+					if (assistantMsg.usage) {
+						data.tokenStats.input += assistantMsg.usage.input || 0;
+						data.tokenStats.output += assistantMsg.usage.output || 0;
+						data.tokenStats.cacheRead += assistantMsg.usage.cacheRead || 0;
+						data.tokenStats.cacheWrite += assistantMsg.usage.cacheWrite || 0;
+						if (assistantMsg.usage.cost) {
+							data.costStats.input += assistantMsg.usage.cost.input || 0;
+							data.costStats.output += assistantMsg.usage.cost.output || 0;
+							data.costStats.cacheRead += assistantMsg.usage.cost.cacheRead || 0;
+							data.costStats.cacheWrite += assistantMsg.usage.cost.cacheWrite || 0;
+						}
+					}
+				}
+				break;
+			}
+
+			case "provider":
+				data.sessionEvents.push({
+					type: "model_change",
+					provider: entry.api as string,
+					modelId: entry.modelId as string,
+					timestamp: entry.timestamp ? new Date(entry.timestamp as string).getTime() : undefined,
+					id: entry.id as string
+				});
+				if (entry.api && entry.modelId) {
+					data.modelsUsed.add(`${entry.api}/${entry.modelId}`);
+				}
+				break;
+
+			case "summary": {
+				const timestamp = entry.timestamp ? new Date(entry.timestamp as string).getTime() : undefined;
+				const msg: Message = {
+					role: "system",
+					content: `[Summary]: ${entry.content}`,
+					timestamp,
+					id: entry.id as string
+				} as any;
+				data.messages.push(msg);
+				data.sessionEvents.push({
+					type: "message",
+					message: msg,
+					timestamp,
+					id: entry.id as string
+				});
+				break;
+			}
+
+			case "merge": {
+				const timestamp = entry.timestamp ? new Date(entry.timestamp as string).getTime() : undefined;
+				const msg: Message = {
+					role: "system",
+					content: `[Merged from ${entry.fromBranch}]: ${entry.content}`,
+					timestamp,
+					id: entry.id as string
+				} as any;
+				data.messages.push(msg);
+				data.sessionEvents.push({
+					type: "message",
+					message: msg,
+					timestamp,
+					id: entry.id as string
+				});
+				break;
+			}
+		}
+	}
+
+	return data;
+}
 
 function parseSessionManagerFormat(lines: string[]): ParsedSessionData {
 	const data: ParsedSessionData = {
@@ -266,10 +399,11 @@ function parseStreamingEventFormat(lines: string[]): ParsedSessionData {
 	return data;
 }
 
-function detectFormat(lines: string[]): "session-manager" | "streaming-events" | "unknown" {
+function detectFormat(lines: string[]): "session-manager" | "streaming-events" | "session-tree" | "unknown" {
 	for (const line of lines) {
 		try {
 			const entry = JSON.parse(line) as { type: string };
+			if (entry.type === "tree") return "session-tree";
 			if (entry.type === "session") return "session-manager";
 			if (entry.type === "agent_start" || entry.type === "message_start" || entry.type === "turn_start") {
 				return "streaming-events";
@@ -294,7 +428,14 @@ function parseSessionFile(content: string): ParsedSessionData {
 		throw new Error("Unknown session file format");
 	}
 
-	return format === "session-manager" ? parseSessionManagerFormat(lines) : parseStreamingEventFormat(lines);
+	switch (format) {
+		case "session-tree":
+			return parseSessionTreeFormat(lines);
+		case "session-manager":
+			return parseSessionManagerFormat(lines);
+		case "streaming-events":
+			return parseStreamingEventFormat(lines);
+	}
 }
 
 // ============================================================================
@@ -527,34 +668,106 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 	const contextWindow = data.contextWindow || 0;
 	const contextPercent = contextWindow > 0 ? ((contextTokens / contextWindow) * 100).toFixed(1) : null;
 
-	let messagesHtml = "";
+	// Calculate branches and lineages if tree data is available
+	let branches: string[] = [];
+	let branchLineages: Record<string, string[]> = {};
+	let activeBranch = "main";
+	const eventHtmlMap: Record<string, string> = {};
+
+	// Generate HTML for all events first
 	for (const event of data.sessionEvents) {
+		let html = "";
 		switch (event.type) {
 			case "message":
 				if (event.message.role !== "toolResult") {
-					messagesHtml += formatMessage(event.message, data.toolResultsMap);
+					html = formatMessage(event.message, data.toolResultsMap);
 				}
 				break;
 			case "model_change":
-				messagesHtml += formatModelChange(event);
+				html = formatModelChange(event);
 				break;
+		}
+		if (html && event.id) {
+			eventHtmlMap[event.id] = html;
+		} else if (html && !event.id) {
+			// Fallback for events without ID (legacy/streaming) - though we try to ensure IDs
+			// If no ID, we can't map it.
+			// However, for streaming events, we might use timestamp as ID if needed, but let's see.
 		}
 	}
 
+	if (data.treeEntries && data.treeEntries.length > 0) {
+		// Reconstruct tree to build lineages
+		const nodeMap = new Map<string, any>();
+		const branchHeads = new Map<string, string>();
+		
+		for (const entry of data.treeEntries) {
+			if (entry.type === 'active') {
+				activeBranch = entry.branch;
+			} else if (entry.type !== 'tree') {
+				nodeMap.set(entry.id, entry);
+				branchHeads.set(entry.branch, entry.id); // Last one seen is head (append-only)
+			}
+		}
+		
+		branches = Array.from(branchHeads.keys());
+		// Ensure default branch is in list
+		const defaultBranch = data.treeEntries.find(e => e.type === 'tree')?.defaultBranch || 'main';
+		if (!branches.includes(defaultBranch)) branches.push(defaultBranch);
+		
+		// Build lineage for each branch
+		for (const branch of branches) {
+			const lineage: string[] = [];
+			let currentId = branchHeads.get(branch);
+			
+			// If branch has no nodes yet (just created), try to find parent from pending logic?
+			// But export usually happens after nodes exist.
+			// If we can't find head, maybe it's the default branch with no nodes?
+			
+			while (currentId) {
+				const node = nodeMap.get(currentId);
+				if (!node) break;
+				
+				// Add to lineage if it's a message or provider change (things that produce HTML)
+				// Check if we have HTML for this ID
+				if (eventHtmlMap[currentId]) {
+					lineage.unshift(currentId);
+				}
+				
+				currentId = node.parentId;
+			}
+			branchLineages[branch] = lineage;
+		}
+	} else {
+		// Legacy / Streaming - single lineage
+		branches = ["main"];
+		activeBranch = "main";
+		// Collect all event IDs that have HTML
+		const lineage: string[] = [];
+		for (const event of data.sessionEvents) {
+			if (event.id && eventHtmlMap[event.id]) {
+				lineage.push(event.id);
+			}
+		}
+		branchLineages["main"] = lineage;
+	}
+
+
     // Collect usage data for visualization
-    const assistantUsage = data.messages
-        .filter(m => m.role === 'assistant')
-        .map((m, index) => {
-            const am = m as BaseAssistantMessage<Api>;
-            return {
-                id: `Message ${index + 1}`,
-                input: am.usage?.input || 0,
-                output: am.usage?.output || 0,
-                cacheRead: am.usage?.cacheRead || 0,
-                cacheWrite: am.usage?.cacheWrite || 0,
-                total: (am.usage?.input || 0) + (am.usage?.output || 0) + (am.usage?.cacheRead || 0) + (am.usage?.cacheWrite || 0)
-            };
-        });
+    function calculateStats(messages: Message[]) {
+        const assistantUsage = messages
+            .filter(m => m.role === 'assistant')
+            .map((m, index) => {
+                const am = m as BaseAssistantMessage<Api>;
+                return {
+                    id: `Message ${index + 1}`,
+                    input: am.usage?.input || 0,
+                    output: am.usage?.output || 0,
+                    cacheRead: am.usage?.cacheRead || 0,
+                    cacheWrite: am.usage?.cacheWrite || 0,
+                    total: (am.usage?.input || 0) + (am.usage?.output || 0) + (am.usage?.cacheRead || 0) + (am.usage?.cacheWrite || 0)
+                };
+            });
 
     // ========================================================================
     // Context Analysis - Three Message Types
@@ -603,7 +816,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 
     const userStats: UserStats = { count: 0, totalTokens: 0 };
 
-    for (const msg of data.messages) {
+    for (const msg of messages) {
         if (msg.role === 'user') {
             userStats.count++;
             userStats.totalTokens += estimateTokens(countChars(msg));
@@ -641,7 +854,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     const readFilePaths: { path: string; turnNumber: number }[] = [];
 
     let turnNum = 0;
-    for (const msg of data.messages) {
+    for (const msg of messages) {
         if (msg.role === 'assistant') {
             turnNum++;
             const am = msg as BaseAssistantMessage<Api>;
@@ -699,7 +912,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         byTool: {},
     };
 
-    for (const msg of data.messages) {
+    for (const msg of messages) {
         if (msg.role === 'toolResult') {
             const tr = msg as ToolResultMessage;
             const toolName = toolIdToName.get(tr.toolCallId) || 'unknown';
@@ -727,7 +940,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     let cumulativeToolResults = 0;
     let turnCount = 0;
 
-    for (const msg of data.messages) {
+    for (const msg of messages) {
         if (msg.role === 'user') {
             cumulativeUser += estimateTokens(countChars(msg));
         } else if (msg.role === 'toolResult') {
@@ -748,6 +961,39 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
             // Assistant output becomes part of context for next turn
             cumulativeAssistant += am.usage?.output || 0;
         }
+    }
+    
+    return {
+        assistantUsage,
+        contextAnalysis,
+        userStats,
+        assistantStats,
+        toolCallCounts,
+        toolCallTokensByTool,
+        readFilePaths,
+        toolResultStats,
+    };
+}
+
+    const branchStats: Record<string, any> = {};
+    const messageMap = new Map(data.messages.map(m => [m.id, m])); // Map ID -> Message
+
+    // Calculate stats for each branch
+    for (const branch of branches) {
+        const lineageIds = branchLineages[branch] || [];
+        const messages: Message[] = [];
+        
+        for (const id of lineageIds) {
+             const m = messageMap.get(id);
+             if (m) messages.push(m);
+        }
+        
+        // If no lineage (legacy without IDs?), fallback to all data.messages
+        if (messages.length === 0 && branch === 'main' && lineageIds.length === 0) {
+             messages.push(...data.messages);
+        }
+
+        branchStats[branch] = calculateStats(messages);
     }
 
 	const systemPromptHtml = data.systemPrompt
@@ -783,6 +1029,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Session Export - ${escapeHtml(filename)}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -883,6 +1130,20 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         .footer { margin-top: 48px; padding: 20px; text-align: center; color: ${COLORS.textDim}; font-size: 10px; }
         .streaming-notice { background: rgb(50, 45, 35); padding: 12px 16px; border-radius: 4px; margin-bottom: 16px; color: ${COLORS.textDim}; font-size: 11px; }
         .view-link { color: ${COLORS.cyan}; text-decoration: underline; cursor: pointer; margin-left: 8px; font-size: 11px; }
+        .tabs-container { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .tab-button {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.05);
+            border: none;
+            border-radius: 4px 4px 0 0;
+            color: ${COLORS.textDim};
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .tab-button:hover { background: rgba(255,255,255,0.1); color: ${COLORS.text}; }
+        .tab-button.active { background: ${COLORS.cyan}; color: ${COLORS.containerBg}; font-weight: bold; }
         @media print { body { background: white; color: black; } .tool-execution { border: 1px solid #ddd; } }
     </style>
 </head>
@@ -894,6 +1155,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                     <h1>Context & Caching Analysis</h1>
                     <button onclick="hideCacheView()" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">Close</button>
                 </div>
+                <div id="cache-tabs-container" class="tabs-container" style="margin-top: 15px; margin-bottom: 0;"></div>
             </div>
             <div style="position: relative; flex: 1; width: 100%; min-height: 0;">
                 <canvas id="cacheChart"></canvas>
@@ -906,6 +1168,14 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         </div>
     </div>
 
+    <div id="branch-view" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:${COLORS.bodyBg}; z-index:1000; overflow:hidden;">
+        <div style="position: absolute; top: 20px; right: 20px; z-index: 1001;">
+            <button onclick="hideBranchView()" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">Close</button>
+        </div>
+        <div id="branch-graph-container" style="width: 100%; height: 100%;"></div>
+        <div id="node-tooltip" style="position: absolute; opacity: 0; background: ${COLORS.containerBg}; border: 1px solid ${COLORS.textDim}; padding: 10px; border-radius: 4px; pointer-events: none; z-index: 1002; max-width: 300px; color: ${COLORS.text}; font-size: 11px;"></div>
+    </div>
+
     <div id="context-view" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:${COLORS.bodyBg}; z-index:1000; overflow:auto; padding:20px;">
         <div class="container" style="max-width:1200px; min-height: 90vh;">
             <div class="header">
@@ -913,6 +1183,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                     <h1>Context Composition Analysis</h1>
                     <button onclick="hideContextView()" style="padding:8px 16px; cursor:pointer; background:${COLORS.containerBg}; color:${COLORS.text}; border:1px solid ${COLORS.textDim}; border-radius:4px;">Close</button>
                 </div>
+                <div id="context-tabs-container" class="tabs-container" style="margin-top: 15px; margin-bottom: 0;"></div>
             </div>
 
             <!-- Top Charts: Context Growth & Composition (3 categories) -->
@@ -937,11 +1208,11 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                 <div style="display: flex; gap: 40px; font-family: monospace; font-size: 14px;">
                     <div>
                         <span style="color: ${COLORS.textDim};">Count:</span>
-                        <span style="color: ${COLORS.text}; font-weight: bold; margin-left: 8px;">${userStats.count}</span>
+                        <span style="color: ${COLORS.text}; font-weight: bold; margin-left: 8px;" id="stat-user-count">-</span>
                     </div>
                     <div>
                         <span style="color: ${COLORS.textDim};">Total Tokens:</span>
-                        <span style="color: ${COLORS.text}; font-weight: bold; margin-left: 8px;">~${userStats.totalTokens.toLocaleString()}</span>
+                        <span style="color: ${COLORS.text}; font-weight: bold; margin-left: 8px;" id="stat-user-tokens">-</span>
                     </div>
                 </div>
             </div>
@@ -957,19 +1228,19 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                         <div style="font-family: monospace; font-size: 12px;">
                             <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
                                 <span style="color: ${COLORS.text};">Thinking</span>
-                                <span style="color: ${COLORS.textDim};">~${assistantStats.thinkingTokens.toLocaleString()} tokens (${assistantStats.thinkingCount} blocks)</span>
+                                <span style="color: ${COLORS.textDim};" id="stat-thinking">~- tokens (- blocks)</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
                                 <span style="color: ${COLORS.text};">Response</span>
-                                <span style="color: ${COLORS.green};">~${assistantStats.responseTokens.toLocaleString()} tokens (${assistantStats.responseCount} blocks)</span>
+                                <span style="color: ${COLORS.green};" id="stat-response">~- tokens (- blocks)</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
                                 <span style="color: ${COLORS.text};">Tool Calls</span>
-                                <span style="color: ${COLORS.yellow};">~${assistantStats.toolCallTokens.toLocaleString()} tokens (${assistantStats.toolCallCount} calls)</span>
+                                <span style="color: ${COLORS.yellow};" id="stat-toolcalls">~- tokens (- calls)</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
                                 <span style="color: ${COLORS.text};">Actual Output (API)</span>
-                                <span style="color: ${COLORS.cyan};">${assistantStats.totalOutputTokens.toLocaleString()} tokens</span>
+                                <span style="color: ${COLORS.cyan};" id="stat-total-output">- tokens</span>
                             </div>
                         </div>
                     </div>
@@ -977,19 +1248,8 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                     <!-- Tool Call Counts -->
                     <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 4px;">
                         <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Tool Calls Summary</h4>
-                        <div style="font-family: monospace; font-size: 12px;">
-                            ${Object.entries(toolCallCounts)
-                                .sort((a, b) => b[1] - a[1])
-                                .map(([tool, count]) => `
-                                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                                        <span style="color: ${COLORS.text};">${escapeHtml(tool)}</span>
-                                        <span style="color: ${COLORS.cyan};">${count} calls</span>
-                                    </div>
-                                `).join('')}
-                            <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
-                                <span style="color: ${COLORS.text};">Total</span>
-                                <span style="color: ${COLORS.green};">${Object.values(toolCallCounts).reduce((a, b) => a + b, 0)} calls</span>
-                            </div>
+                        <div style="font-family: monospace; font-size: 12px;" id="stat-tool-counts-list">
+                            <!-- Injected -->
                         </div>
                     </div>
                 </div>
@@ -1003,20 +1263,9 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                 </div>
 
                 <!-- Read Files List -->
-                ${readFilePaths.length > 0 ? `
-                <div style="margin-top: 20px;">
-                    <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Files Read (${readFilePaths.length} total)</h4>
-                    <div style="font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 10px;">
-                        ${readFilePaths.map((item, idx) => `
-                            <div style="display: flex; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <span style="color: ${COLORS.textDim}; min-width: 25px;">${idx + 1}.</span>
-                                <span style="color: ${COLORS.textDim}; min-width: 55px;">Turn ${item.turnNumber}</span>
-                                <span style="color: ${COLORS.text}; word-break: break-all;">${escapeHtml(shortenPath(item.path))}</span>
-                            </div>
-                        `).join('')}
-                    </div>
+                <div style="margin-top: 20px;" id="read-files-container">
+                    <!-- Injected -->
                 </div>
-                ` : ''}
             </div>
 
             <!-- Section 3: Tool Results Analysis -->
@@ -1027,19 +1276,8 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                     <!-- Tool Results Summary -->
                     <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 4px;">
                         <h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Tokens by Tool</h4>
-                        <div style="font-family: monospace; font-size: 12px;">
-                            ${Object.entries(toolResultStats.byTool)
-                                .sort((a, b) => b[1] - a[1])
-                                .map(([tool, tokens]) => `
-                                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                                        <span style="color: ${COLORS.text};">${escapeHtml(tool)}</span>
-                                        <span style="color: ${COLORS.yellow};">~${tokens.toLocaleString()}</span>
-                                    </div>
-                                `).join('')}
-                            <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
-                                <span style="color: ${COLORS.text};">Total</span>
-                                <span style="color: ${COLORS.cyan};">~${toolResultStats.totalTokens.toLocaleString()} tokens</span>
-                            </div>
+                        <div style="font-family: monospace; font-size: 12px;" id="stat-tool-results-list">
+                            <!-- Injected -->
                         </div>
                     </div>
 
@@ -1084,6 +1322,7 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                 <div style="display:flex; gap: 15px;">
                     <a onclick="showContextView()" class="view-link">Visualize Context</a>
                     <a onclick="showCacheView()" class="view-link">View caching details</a>
+                    <a onclick="showBranchView()" class="view-link">Visualize branches</a>
                 </div>
             </div>
             <div class="header-info">
@@ -1105,8 +1344,12 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
         ${toolsHtml}
         ${streamingNotice}
 
-        <div class="messages">
-            ${messagesHtml}
+        <div id="tabs-container" class="tabs-container">
+            <!-- Tabs will be injected here by JS -->
+        </div>
+
+        <div id="messages-container" class="messages">
+            <!-- Messages will be injected here by JS -->
         </div>
 
         <div class="footer">
@@ -1115,10 +1358,185 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
     </div>
 
     <script>
-        const usageData = ${JSON.stringify(assistantUsage)};
-        const contextData = ${JSON.stringify(contextAnalysis)};
-        const toolCallData = ${JSON.stringify(toolCallTokensByTool)};
-        const toolResultData = ${JSON.stringify(toolResultStats.byTool)};
+        const treeEntries = ${safeJsonForScript(data.treeEntries || [])};
+        // Per-branch stats
+        const branchStats = ${safeJsonForScript(branchStats)};
+        // Global usage data (fallback) if single branch
+        // const usageData = []; // Now we rely on branchStats
+
+        // Branching Data
+        const branches = ${safeJsonForScript(branches)};
+        const branchLineages = ${safeJsonForScript(branchLineages)};
+        const eventHtmlMap = ${safeJsonForScript(eventHtmlMap)};
+        const activeBranch = ${safeJsonForScript(activeBranch)};
+
+        let currentBranch = activeBranch;
+        
+        // Helper to get stats for current branch, fallback to global or first if needed
+        function getBranchData() {
+            return branchStats[currentBranch] || branchStats[Object.keys(branchStats)[0]];
+        }
+        
+        // Global chart variables
+        let usageData = []; // will be set from branch data
+        let contextData = []; 
+        let toolCallData = {};
+        let toolResultData = {};
+
+        function updateGlobalDataFromBranch() {
+             const data = getBranchData();
+             if (!data) return;
+             usageData = data.assistantUsage || [];
+             contextData = data.contextAnalysis || [];
+             toolCallData = data.toolCallTokensByTool || {};
+             toolResultData = data.toolResultStats.byTool || {};
+             // Update other stats in DOM
+             updateStatsDOM(data);
+        }
+
+        function updateStatsDOM(data) {
+             if (!data) return;
+             // Update user stats
+             document.getElementById('stat-user-count').innerText = data.userStats.count;
+             document.getElementById('stat-user-tokens').innerText = '~' + data.userStats.totalTokens.toLocaleString();
+             
+             // Update assistant stats
+             document.getElementById('stat-thinking').innerText = '~' + data.assistantStats.thinkingTokens.toLocaleString() + ' tokens (' + data.assistantStats.thinkingCount + ' blocks)';
+             document.getElementById('stat-response').innerText = '~' + data.assistantStats.responseTokens.toLocaleString() + ' tokens (' + data.assistantStats.responseCount + ' blocks)';
+             document.getElementById('stat-toolcalls').innerText = '~' + data.assistantStats.toolCallTokens.toLocaleString() + ' tokens (' + data.assistantStats.toolCallCount + ' calls)';
+             document.getElementById('stat-total-output').innerText = data.assistantStats.totalOutputTokens.toLocaleString() + ' tokens';
+             
+             // Update Tool Calls Summary List
+             const toolCountsHtml = Object.entries(data.toolCallCounts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([tool, count]) => \`
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <span style="color: ${COLORS.text};">\${escapeHtml(tool)}</span>
+                        <span style="color: ${COLORS.cyan};">\${count} calls</span>
+                    </div>
+                \`).join('') + 
+                \`<div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
+                    <span style="color: ${COLORS.text};">Total</span>
+                    <span style="color: ${COLORS.green};">\${Object.values(data.toolCallCounts).reduce((a, b) => a + b, 0)} calls</span>
+                </div>\`;
+             document.getElementById('stat-tool-counts-list').innerHTML = toolCountsHtml;
+
+             // Update Read Files List
+             const filesHtml = data.readFilePaths.length > 0 ? 
+                \`<h4 style="color:${COLORS.text}; margin-bottom: 12px; font-size: 13px;">Files Read (\${data.readFilePaths.length} total)</h4>
+                <div style="font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 10px;">
+                    \${data.readFilePaths.map((item, idx) => \`
+                        <div style="display: flex; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <span style="color: ${COLORS.textDim}; min-width: 25px;">\${idx + 1}.</span>
+                            <span style="color: ${COLORS.textDim}; min-width: 55px;">Turn \${item.turnNumber}</span>
+                            <span style="color: ${COLORS.text}; word-break: break-all;">\${escapeHtml(item.path)}</span>
+                        </div>
+                    \`).join('')}
+                </div>\` : '';
+             document.getElementById('read-files-container').innerHTML = filesHtml;
+
+             // Update Tool Results List
+             const toolResultsHtml = Object.entries(data.toolResultStats.byTool)
+                .sort((a, b) => b[1] - a[1])
+                .map(([tool, tokens]) => \`
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <span style="color: ${COLORS.text};">\${escapeHtml(tool)}</span>
+                        <span style="color: ${COLORS.yellow};">~\${tokens.toLocaleString()}</span>
+                    </div>
+                \`).join('') +
+                \`<div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px; font-weight: bold;">
+                    <span style="color: ${COLORS.text};">Total</span>
+                    <span style="color: ${COLORS.cyan};">~\${data.toolResultStats.totalTokens.toLocaleString()} tokens</span>
+                </div>\`;
+             document.getElementById('stat-tool-results-list').innerHTML = toolResultsHtml;
+        }
+
+        // Need escapeHtml in JS scope for template strings
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;")
+                .replace(/\`/g, "&#96;");
+        }
+
+        // Shorten path in JS
+        const homeDir = ${safeJsonForScript(homedir())};
+        function shortenPath(path) {
+             // Simple approximation since we don't have full homedir logic in browser
+             // We can check if it starts with homeDir passed from backend
+             return path; // For simplicity in browser, or use regex
+        }
+
+        function renderTabs(containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (branches.length <= 1 && branches[0] === 'main') {
+                container.style.display = 'none';
+                return;
+            }
+
+            branches.forEach(branch => {
+                const btn = document.createElement('button');
+                btn.className = 'tab-button' + (branch === currentBranch ? ' active' : '');
+                btn.innerText = branch;
+                btn.onclick = () => switchBranch(branch);
+                container.appendChild(btn);
+            });
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messages-container');
+            const lineage = branchLineages[currentBranch] || [];
+            
+            let html = '';
+            for (const id of lineage) {
+                if (eventHtmlMap[id]) {
+                    html += eventHtmlMap[id];
+                }
+            }
+            container.innerHTML = html;
+        }
+
+        function switchBranch(branch) {
+            currentBranch = branch;
+            updateGlobalDataFromBranch();
+            
+            renderTabs('tabs-container');
+            renderTabs('cache-tabs-container');
+            renderTabs('context-tabs-container');
+            
+            renderMessages();
+            
+            // Re-render charts if their views are open
+            // We can just destroy and re-create charts if simpler, or update data
+            if (document.getElementById('cache-view').style.display === 'block') {
+                 if (chartInstance) {
+                     chartInstance.destroy();
+                     chartInstance = null;
+                 }
+                 renderChart();
+            }
+            if (document.getElementById('context-view').style.display === 'block') {
+                 // Reset context charts
+                 if (contextCharts.growth) { contextCharts.growth.destroy(); contextCharts.growth = null; }
+                 if (contextCharts.composition) { contextCharts.composition.destroy(); contextCharts.composition = null; }
+                 if (contextCharts.toolCalls) { contextCharts.toolCalls.destroy(); contextCharts.toolCalls = null; }
+                 if (contextCharts.toolResults) { contextCharts.toolResults.destroy(); contextCharts.toolResults = null; }
+                 renderContextCharts();
+            }
+        }
+
+        // Initial Setup
+        updateGlobalDataFromBranch();
+        renderTabs('tabs-container');
+        renderTabs('cache-tabs-container');
+        renderTabs('context-tabs-container');
+        renderMessages();
 
         let chartInstance = null;
         let contextCharts = { growth: null, composition: null, toolCalls: null, toolResults: null };
@@ -1424,6 +1842,160 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
                 });
             }
         }
+        let branchGraphRendered = false;
+
+        function showBranchView() {
+            document.getElementById('branch-view').style.display = 'block';
+            if (!branchGraphRendered && treeEntries.length > 0) {
+                renderBranchGraph();
+                branchGraphRendered = true;
+            }
+        }
+
+        function hideBranchView() {
+            document.getElementById('branch-view').style.display = 'none';
+        }
+
+        function renderBranchGraph() {
+            const container = document.getElementById('branch-graph-container');
+            container.innerHTML = '';
+            
+            // Filter nodes
+            const nodes = treeEntries.filter(d => d.type !== 'tree' && d.type !== 'active');
+            if (nodes.length === 0) {
+                 container.innerHTML = '<div style="color:${COLORS.textDim}; padding:20px; text-align:center;">No tree data available.</div>';
+                 return;
+            }
+
+            // Identify root(s) - nodes with null parentId or parentId not in set
+            const nodeIds = new Set(nodes.map(n => n.id));
+            
+            // Stratify
+            let root;
+            try {
+                root = d3.stratify()
+                    .id(d => d.id)
+                    .parentId(d => {
+                        // If parentId is not in nodes, treat as root (e.g. if we have partial tree)
+                        return (d.parentId && nodeIds.has(d.parentId)) ? d.parentId : null;
+                    })(nodes);
+            } catch (e) {
+                console.error("Stratify error:", e);
+                container.innerHTML = '<div style="color:${COLORS.red}; padding:20px;">Error rendering graph: ' + e.message + '</div>';
+                return;
+            }
+
+            // Assign unique colors to branches
+            const branchesSet = Array.from(new Set(nodes.map(d => d.branch)));
+            const colorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(branchesSet);
+
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            // Layout
+            const nodeWidth = 200;
+            const nodeHeight = 60;
+            
+            const tree = d3.tree()
+                .nodeSize([nodeHeight, nodeWidth])
+                .separation((a, b) => (a.parent == b.parent ? 1 : 1.2));
+
+            tree(root);
+
+            // Zoom/Pan
+            const svg = d3.select(container).append('svg')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .call(d3.zoom().on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                }))
+                .append('g');
+
+            // Center initially - calculate bounds?
+            // Just center vertically on root and give some left padding
+            const g = svg.append('g')
+                .attr('transform', 'translate(100,' + (height / 2) + ')');
+
+            // Links
+            g.selectAll('.link')
+                .data(root.links())
+                .enter().append('path')
+                .attr('class', 'link')
+                .attr('d', d3.linkHorizontal()
+                    .x(d => d.y)
+                    .y(d => d.x))
+                .attr('fill', 'none')
+                .attr('stroke', '#555')
+                .attr('stroke-width', 1.5)
+                .attr('opacity', 0.6);
+
+            // Nodes
+            const node = g.selectAll('.node')
+                .data(root.descendants())
+                .enter().append('g')
+                .attr('class', 'node')
+                .attr('transform', d => 'translate(' + d.y + ',' + d.x + ')')
+                .style('cursor', 'pointer')
+                .on('mouseover', showTooltip)
+                .on('mouseout', hideTooltip);
+
+            // Node Circle
+            node.append('circle')
+                .attr('r', 6)
+                .attr('fill', d => colorScale(d.data.branch))
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 1.5);
+
+            // Node Labels (Type or Summary)
+            node.append('text')
+                .attr('dy', -10)
+                .attr('x', 0)
+                .style('text-anchor', 'middle')
+                .style('font-size', '10px')
+                .style('fill', '${COLORS.text}')
+                .style('text-shadow', '0 1px 2px rgba(0,0,0,0.8)')
+                .text(d => {
+                    if (d.data.type === 'checkpoint') return '🚩 ' + d.data.name;
+                    if (d.data.type === 'summary') return '📝 Summary';
+                    if (d.data.type === 'merge') return '🔀 Merge';
+                    if (d.data.type === 'provider') return '⚙️ Model';
+                    return ''; // Too many messages to label all
+                });
+
+            // Tooltip function
+            const tooltip = document.getElementById('node-tooltip');
+            function showTooltip(event, d) {
+                tooltip.style.opacity = 1;
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY + 10) + 'px';
+                
+                let content = '<strong>' + d.data.type.toUpperCase() + '</strong><br>';
+                content += '<span style="color:${COLORS.textDim}">ID: ' + d.data.id.slice(0, 8) + '...</span><br>';
+                content += '<span style="color:${COLORS.cyan}">Branch: ' + d.data.branch + '</span><br>';
+                content += '<span style="color:${COLORS.textDim}">' + new Date(d.data.timestamp).toLocaleString() + '</span><br>';
+                
+                if (d.data.type === 'message') {
+                     const role = d.data.message.role;
+                     content += 'Role: ' + role + '<br>';
+                     if (role === 'user') {
+                         let text = '';
+                         if (typeof d.data.message.content === 'string') text = d.data.message.content;
+                         else text = d.data.message.content.filter(c => c.type === 'text').map(c => c.content).join('');
+                         content += '<div style="margin-top:5px; max-height:100px; overflow:hidden; font-size:10px; opacity:0.8;">' + text.slice(0, 150) + (text.length > 150 ? '...' : '') + '</div>';
+                     }
+                } else if (d.data.type === 'summary' || d.data.type === 'merge') {
+                     content += '<div style="margin-top:5px; font-style:italic;">' + d.data.content + '</div>';
+                } else if (d.data.type === 'checkpoint') {
+                     content += 'Name: ' + d.data.name;
+                }
+                
+                tooltip.innerHTML = content;
+            }
+            
+            function hideTooltip() {
+                tooltip.style.opacity = 0;
+            }
+        }
     </script>
 </body>
 </html>`;
@@ -1434,11 +2006,11 @@ function generateHtml(data: ParsedSessionData, filename: string): string {
 // ============================================================================
 
 /**
- * Export session to HTML using SessionManager and AgentState.
+ * Export session to HTML using SessionTree and AgentState.
  * Used by TUI's /export command.
  */
-export function exportSessionToHtml(sessionManager: SessionManager, state: AgentState, outputPath?: string): string {
-	const sessionFile = sessionManager.getSessionFile();
+export function exportSessionToHtml(sessionTree: SessionTree, state: AgentState, outputPath?: string): string {
+	const sessionFile = sessionTree.getSessionFile();
 	const content = readFileSync(sessionFile, "utf8");
 	const data = parseSessionFile(content);
 

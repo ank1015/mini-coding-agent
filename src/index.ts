@@ -44,8 +44,25 @@ export {
 
 // Core classes for advanced usage
 export { AgentSession, type AgentSessionConfig, type PromptOptions, type SessionStats } from "./core/agent-session.js";
-export { SessionManager, type SessionInfo, type LoadedSession } from "./core/session-manager.js";
 export { SettingsManager } from "./core/settings-manager.js";
+
+// New tree-based session manager
+export {
+	SessionTree,
+	type TreeHeader,
+	type TreeNode,
+	type TreeEntry,
+	type MessageNode,
+	type ProviderNode,
+	type SummaryNode,
+	type MergeNode,
+	type CheckpointNode,
+	type CustomNode,
+	type ActiveBranch,
+	type ContextStrategy,
+	type SessionInfo as TreeSessionInfo,
+	type BranchInfo,
+} from "./core/session-tree.js";
 
 // Re-export provider types for convenience
 export type { Api, Model, Provider, Message, Attachment, OptionsForApi } from "@ank1015/providers";
