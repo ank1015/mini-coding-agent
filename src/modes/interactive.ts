@@ -254,6 +254,11 @@ export class InteractiveMode {
 				this.editor.setText("");
 				return;
 			}
+			if (text === "/branches") {
+				this.handleBranchesCommand();
+				this.editor.setText("");
+				return;
+			}
 			if (text.startsWith("/branch")) {
 				const args = text.split(/\s+/).slice(1);
 				const branchName = args.length > 0 ? args[0] : undefined;
@@ -288,11 +293,6 @@ export class InteractiveMode {
 			}
 			if (text === "/model") {
 				this.showModelSelector();
-				this.editor.setText("");
-				return;
-			}
-			if (text === "/branches") {
-				this.handleBranchesCommand();
 				this.editor.setText("");
 				return;
 			}
