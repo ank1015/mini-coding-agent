@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.15
+
+### Features
+- **Tree-Based Session Management**: Replaced linear conversation history with a `SessionTree` structure, enabling complex conversation flows.
+- **Advanced Branching**:
+  - **Create & Switch**: Branch from any message node to explore alternative solutions without losing the original context.
+  - **Merge**: Merge branches back together, incorporating insights from parallel explorations.
+- **Smart Compaction**: Added `/compact` command to summarize older conversation history or merged branches using LLMs, significantly reducing context usage while preserving key information.
+- **Context Strategies**: Implemented flexible strategies for building context (e.g., full history, recent messages, summary-based) to optimize token usage.
+- **Visual Export Updates**: Updated HTML export to visualize the session tree and branch structure.
+- **New Commands**: Added commands for managing the session tree, including branching, merging, and compacting history.
+
 ## 0.0.14
 
 ### Features
