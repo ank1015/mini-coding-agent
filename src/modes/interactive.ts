@@ -254,8 +254,10 @@ export class InteractiveMode {
 				this.editor.setText("");
 				return;
 			}
-			if (text === "/branch") {
-				this.showBranchSelector();
+			if (text.startsWith("/branch")) {
+				const args = text.split(/\s+/).slice(1);
+				const branchName = args.length > 0 ? args[0] : undefined;
+				this.showBranchSelector(branchName);
 				this.editor.setText("");
 				return;
 			}
@@ -764,13 +766,17 @@ export class InteractiveMode {
 		this.ui.requestRender();
 	}
 
-	private showBranchSelector(): void {
+	private showBranchSelector(customName?: string): void {
 		this.showSelector((done) => {
 			const selector = new MessageSelectorComponent(
 				this.session.messages,
 				async (messageId) => {
 					done();
-					await this.handleBranchSession(messageId);
+					if (customName) {
+						await this.handleBranchSession(messageId, customName);
+					} else {
+						this.promptForBranchName(messageId);
+					}
 				},
 				() => {
 					done();
@@ -784,7 +790,36 @@ export class InteractiveMode {
 		});
 	}
 
-	private async handleBranchSession(messageId: string): Promise<void> {
+	private promptForBranchName(messageId: string): void {
+		this.showStatus(theme.fg("accent", "Enter new branch name (leave empty for default):"));
+
+		// Save original handlers
+		const originalOnSubmit = this.editor.onSubmit;
+		const originalOnEscape = this.editor.onEscape;
+
+		const restore = () => {
+			this.editor.onSubmit = originalOnSubmit;
+			this.editor.onEscape = originalOnEscape;
+		};
+
+		this.editor.onEscape = () => {
+			restore();
+			this.editor.setText("");
+			this.showStatus("Branch creation cancelled.");
+		};
+
+		this.editor.onSubmit = async (text: string) => {
+			restore();
+			const name = text.trim() || undefined;
+			this.editor.setText("");
+			await this.handleBranchSession(messageId, name);
+		};
+
+		this.ui.setFocus(this.editor);
+		this.ui.requestRender();
+	}
+
+	private async handleBranchSession(messageId: string, customName?: string): Promise<void> {
 		// Stop loading animation
 		if (this.loadingAnimation) {
 			this.loadingAnimation.stop();
@@ -792,25 +827,29 @@ export class InteractiveMode {
 		}
 		this.statusContainer.clear();
 
-		// Generate branch name with timestamp
+		// Generate branch name with timestamp if not provided
 		const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-		const branchName = `branch-${timestamp}`;
+		const branchName = customName || `branch-${timestamp}`;
 
 		// Clear UI state
 		this.pendingMessagesContainer.clear();
 		this.streamingComponent = null;
 		this.pendingTools.clear();
 
-		// Create and switch to branch via AgentSession
-		await this.session.branchAndSwitch(branchName, messageId);
+		try {
+			// Create and switch to branch via AgentSession
+			await this.session.branchAndSwitch(branchName, messageId);
 
-		// Clear and re-render the chat
-		this.chatContainer.clear();
-		this.ui.fullRefresh();
+			// Clear and re-render the chat
+			this.chatContainer.clear();
+			this.ui.fullRefresh();
 
-		this.isFirstUserMessage = true;
-		this.renderInitialMessages(this.session.state);
-		this.showStatus(`Created and switched to branch: ${branchName}`);
+			this.isFirstUserMessage = true;
+			this.renderInitialMessages(this.session.state);
+			this.showStatus(`Created and switched to branch: ${branchName}`);
+		} catch (error) {
+			this.showError(`Failed to create branch: ${error instanceof Error ? error.message : "Unknown error"}`);
+		}
 	}
 
 	private showQueueModeSelector(): void {
