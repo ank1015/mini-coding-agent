@@ -800,10 +800,11 @@ export class InteractiveMode {
 				this.session.messages,
 				async (messageId) => {
 					done();
+					const idToUse = messageId === "__CURRENT__" ? undefined : messageId;
 					if (customName) {
-						await this.handleBranchSession(messageId, customName);
+						await this.handleBranchSession(idToUse, customName);
 					} else {
-						this.promptForBranchName(messageId);
+						this.promptForBranchName(idToUse);
 					}
 				},
 				() => {
@@ -813,12 +814,13 @@ export class InteractiveMode {
 				() => {
 					void this.shutdown();
 				},
+				true, // include current position option
 			);
 			return { component: selector, focus: selector.getMessageList() };
 		});
 	}
 
-	private promptForBranchName(messageId: string): void {
+	private promptForBranchName(messageId?: string): void {
 		this.showStatus(theme.fg("accent", "Enter new branch name (leave empty for default):"));
 
 		// Save original handlers
@@ -847,7 +849,7 @@ export class InteractiveMode {
 		this.ui.requestRender();
 	}
 
-	private async handleBranchSession(messageId: string, customName?: string): Promise<void> {
+	private async handleBranchSession(messageId?: string, customName?: string): Promise<void> {
 		// Stop loading animation
 		if (this.loadingAnimation) {
 			this.loadingAnimation.stop();
