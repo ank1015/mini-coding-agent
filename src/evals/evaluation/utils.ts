@@ -38,7 +38,7 @@ interface TestResult {
     };
 }
 
-export const loadTraces: (resultDir: string) => ResultTrace = (resultDir: string) => {
+export const loadResultTrace: (resultDir: string) => ResultTrace = (resultDir: string) => {
     const sessionFile = join(resultDir, 'session.jsonl');
     const rewardFile = join(resultDir, 'logs', 'reward.txt');
     const solutionFile = join(resultDir, 'solution', 'solution.py');
