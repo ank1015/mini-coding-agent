@@ -86,7 +86,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 
 
 	// Build tools list based on selected tools
-	const tools = selectedTools || (["read", "bash", "edit", "write"] as ToolName[]);
+	const tools = selectedTools || (["bash", "edit", "find", "grep", "ls", "read", "write"] as ToolName[]);
 	const toolsList = tools.map((t) => `- ${t}: ${toolDescriptions[t]}`).join("\n");
 
 	// Build guidelines based on which tools are actually available

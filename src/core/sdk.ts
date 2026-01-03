@@ -39,6 +39,7 @@ import {
 	createReadOnlyTools,
 	createReadTool,
 	createWriteTool,
+	createAllTools,
 	editTool,
 	findTool,
 	grepTool,
@@ -161,6 +162,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 	return buildSystemPromptInternal({
 		cwd: options.cwd,
 		appendSystemPrompt: options.appendPrompt,
+		selectedTools: ["bash", "edit", "find", "grep", "ls", "read", "write"]
 	});
 }
 
@@ -268,7 +270,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	const existingSession = sessionTree.loadSession();
 	const hasExistingSession = existingSession.messages.length > 0;
 
-	const builtInTools = options.tools ?? createCodingTools(cwd);
+	const builtInTools = options.tools ?? createAllTools(cwd);
 
 	let systemPrompt: string;
 	const defaultPrompt = buildSystemPromptInternal({cwd});
