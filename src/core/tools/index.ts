@@ -55,14 +55,14 @@ export function createReadOnlyTools(cwd: string): Tool[] {
 /**
  * Create all tools configured for a specific working directory.
  */
-export function createAllTools(cwd: string): Record<ToolName, Tool> {
-	return {
-		read: createReadTool(cwd),
-		bash: createBashTool(cwd),
-		edit: createEditTool(cwd),
-		write: createWriteTool(cwd),
-		grep: createGrepTool(cwd),
-		find: createFindTool(cwd),
-		ls: createLsTool(cwd),
-	};
+export function createAllTools(cwd: string): Tool[] {
+	return [
+		createReadTool(cwd),
+		createBashTool(cwd),
+		createEditTool(cwd),
+		createWriteTool(cwd),
+		createGrepTool(cwd),
+		createFindTool(cwd),
+		createLsTool(cwd),
+	]
 }

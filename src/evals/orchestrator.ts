@@ -1,8 +1,22 @@
-import { Provider, Api } from "@ank1015/providers";
+import { Provider, Api, Model, OptionsForApi } from "@ank1015/providers";
 import { EnvironmentManager } from "./setup/environment-manager.js";
 import { RegistryManager } from "./setup/registry-manager.js";
 import { TaskExecutor } from "./execution/task-executor.js";
 import { VerificationResult } from "./types.js";
+import { performAnalysis, type QuantitativeResult, type LLMJudgeResult } from "./evaluation/index.js";
+
+/** Configuration for post-evaluation analysis */
+export interface AnalysisOptions {
+    /** Run quantitative analysis */
+    quantitative?: boolean;
+    /** Run LLM-as-judge analysis */
+    llmJudge?: boolean;
+    /** LLM configuration for judge analysis (required if llmJudge is true) */
+    llmConfig?: {
+        model: Model<Api>;
+        providerOptions: OptionsForApi<Api>;
+    };
+}
 
 export interface EvalConfig {
 	registryIndex: number;
@@ -10,6 +24,8 @@ export interface EvalConfig {
 	resultsDir?: string;
 	provider?: Provider<Api>;
     envVars?: Record<string, string>;
+    /** Post-evaluation analysis options */
+    analysis?: AnalysisOptions;
 }
 
 export interface BulkEvalConfig {
@@ -18,6 +34,8 @@ export interface BulkEvalConfig {
     resultsDir?: string;
     provider?: Provider<Api>;
     envVars?: Record<string, string>;
+    /** Post-evaluation analysis options (applied to all tasks) */
+    analysis?: AnalysisOptions;
 }
 
 export interface EvalResult {
@@ -27,6 +45,10 @@ export interface EvalResult {
     resultDir: string;
     durationMs: number;
     error?: string;
+    /** Quantitative analysis result (if requested) */
+    quantitativeAnalysis?: QuantitativeResult;
+    /** LLM judge analysis result (if requested) */
+    llmJudgeAnalysis?: LLMJudgeResult;
 }
 
 export interface BulkEvalResult {
@@ -76,7 +98,8 @@ export class Evals {
                     taskIndex: idx,
                     resultsDir: config.resultsDir,
                     provider: config.provider,
-                    envVars: config.envVars
+                    envVars: config.envVars,
+                    analysis: config.analysis
                 });
                 results.push(result);
                 if (result.passed) passed++; else failed++;
@@ -168,13 +191,43 @@ export class Evals {
 
         const durationMs = Date.now() - startTime;
         console.log(`=== Finished: ${verification.passed ? "PASSED" : "FAILED"} (Score: ${verification.score}) in ${durationMs}ms ===`);
-        
-        return {
+
+        // Build the result
+        const result: EvalResult = {
             taskName: taskEntry.name,
             passed: verification.passed,
             score: verification.score,
             resultDir,
             durationMs
         };
+
+        // 5. Run post-evaluation analysis if requested
+        if (config.analysis?.quantitative || config.analysis?.llmJudge) {
+            console.log(`=== Running Post-Evaluation Analysis ===`);
+
+            try {
+                const analysisResult = await performAnalysis({
+                    resultDir,
+                    taskName: taskEntry.name,
+                    quantitative: config.analysis.quantitative,
+                    llmJudge: config.analysis.llmJudge,
+                    llmConfig: config.analysis.llmConfig,
+                });
+
+                if (analysisResult.quantitative) {
+                    result.quantitativeAnalysis = analysisResult.quantitative;
+                }
+                if (analysisResult.llmJudge) {
+                    result.llmJudgeAnalysis = analysisResult.llmJudge;
+                }
+
+                console.log(`=== Analysis Complete (files saved to ${resultDir}) ===`);
+            } catch (error: any) {
+                console.error(`Analysis failed:`, error.message);
+                // Don't fail the whole evaluation if analysis fails
+            }
+        }
+
+        return result;
     }
 }
