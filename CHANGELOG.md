@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.16
+
+### Features
+- **Evaluation Analysis Framework**: Introduced comprehensive post-evaluation analysis capabilities.
+  - **Quantitative Analysis**: Detailed metrics on cost, token usage, tool usage patterns, errors, efficiency, and file access patterns.
+  - **LLM-as-Judge**: Qualitative analysis using an LLM to evaluate performance, providing targeted insights and optimization recommendations.
+  - **Integration**: Automatically runs analysis after evaluation and saves detailed reports (JSON & Markdown).
+
 ## 0.0.15
 
 ### Features
