@@ -41,7 +41,7 @@ interface TestResult {
 export const loadResultTrace: (resultDir: string) => ResultTrace = (resultDir: string) => {
     const sessionFile = join(resultDir, 'session.jsonl');
     const rewardFile = join(resultDir, 'logs', 'reward.txt');
-    const solutionFile = join(resultDir, 'solution', 'solution.py');
+    const solutionFile = join(resultDir, 'solution', 'solve.sh');
     const testResultFile = join(resultDir, 'logs', 'ctrf.json')
 
     const result : ResultTrace = {

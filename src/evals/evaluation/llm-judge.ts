@@ -111,6 +111,18 @@ Categorize the failure:
 - What specific changes to the agent's behavior would have led to success?
 - Are there patterns here that suggest system prompt or tool improvements?
 
+### 7. Context Optimization Opportunities
+Analyze the conversation for opportunities to reduce unnecessary context that bloated the agent's input:
+- **Verbose Command Output**: Were there bash commands that produced excessive logs/output that weren't useful? (e.g., package installation logs, build output). Suggest using silent flags (-q, --quiet, -s, > /dev/null) or filtering output.
+- **Unnecessary File Reads**: Did the agent read files or sections that weren't needed for the task?
+- **Redundant Tool Outputs**: Were there tool results that could have been more concise?
+- **Large Error Dumps**: Were there stack traces or error outputs that could be summarized?
+
+For each optimization found, suggest:
+1. What specific command/action generated unnecessary context
+2. How it could be modified to reduce context while preserving useful information
+3. Whether this could be a general guideline for the agent
+
 Provide a thorough analysis that would help improve the agent's performance on similar tasks.`;
 
 
@@ -148,6 +160,18 @@ Answer these questions in your analysis:
 - What did the agent do well that should be reinforced?
 - What patterns emerged that could be optimized?
 - Any suggestions for handling similar tasks more efficiently?
+
+### 7. Context Optimization Opportunities
+Even though the task passed, analyze for opportunities to reduce unnecessary context:
+- **Verbose Command Output**: Were there bash commands that produced excessive logs/output that weren't useful? (e.g., package installation logs, build output). Suggest using silent flags (-q, --quiet, -s, > /dev/null) or filtering output.
+- **Unnecessary File Reads**: Did the agent read files or sections that weren't needed for the task?
+- **Redundant Tool Outputs**: Were there tool results that could have been more concise?
+- **Over-exploration**: Did the agent gather more information than necessary before acting?
+
+For each optimization found, suggest:
+1. What specific command/action generated unnecessary context
+2. How it could be modified to reduce context while preserving useful information
+3. Whether this could be a general guideline for the agent
 
 Provide insights that could help the agent perform even better on similar tasks.`;
 
@@ -316,8 +340,8 @@ function buildAnalysisContext(
     }
 
     // Test results summary
-    parts.push("\n\n# Test Results\n");
-    parts.push(formatTestResults(testResults));
+    // parts.push("\n\n# Test Results\n");
+    // parts.push(formatTestResults(testResults));
 
     // Analysis prompt based on outcome
     parts.push("\n\n# Analysis Request\n");
@@ -374,6 +398,7 @@ export async function performLLMJudgeAnalysis(
         trace.testResults,
         trace.isPass
     );
+
 
     // Call the LLM
     const response = await complete(
