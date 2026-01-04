@@ -41,7 +41,7 @@ export class TaskExecutor {
 
         // 3. Construct Docker Command
         const envFlags = Object.entries(envVars)
-            .map(([k, v]) => `-e ${k}="${v}"`)
+            .map(([k, v]) => `-e ${k}='${v.replace(/'/g, "'\\''")}'`)
             .join(" ");
 
         const containerName = `eval-${taskName}-${runId}`;
