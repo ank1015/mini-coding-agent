@@ -1,0 +1,601 @@
+{
+  "taskName": "fix-git",
+  "cost": {
+    "cumulativeInputTokens": 51249,
+    "cumulativeOutputTokens": 3089,
+    "cumulativeCacheReadTokens": 67362,
+    "cumulativeCacheWriteTokens": 0,
+    "cumulativeInputCost": 0.028992600000000004,
+    "cumulativeOutputCost": 0.009267,
+    "totalCost": 0.03825959999999999,
+    "avgCostPerTurn": 0.0015941499999999997,
+    "costPerToolCall": 0.001663460869565217,
+    "initialContextTokens": 1401,
+    "finalContextTokens": 10011,
+    "contextGrowth": 8610
+  },
+  "context": {
+    "peakContext": 10011,
+    "finalContext": 10011,
+    "avgContext": 4942.125,
+    "contextGrowthCurve": [
+      1401,
+      1522,
+      1590,
+      1711,
+      1776,
+      2055,
+      2186,
+      2654,
+      3086,
+      3175,
+      4706,
+      5463,
+      5590,
+      5901,
+      6437,
+      6512,
+      6888,
+      7250,
+      7350,
+      7402,
+      7455,
+      7873,
+      8617,
+      10011
+    ],
+    "cacheHitRate": 0.5679237170245592,
+    "cacheUtilizationCurve": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0.8902104300091491,
+      0.7370007535795027,
+      0.6357744653272845,
+      0.6170078740157481,
+      0.42137696557586063,
+      0.7278052352187443,
+      0.7105545617173524,
+      0.6731062531774276,
+      0.6176790430324686,
+      0.9147727272727273,
+      0.8649825783972126,
+      0.8219310344827586,
+      0.8100680272108843,
+      0.803431504998649,
+      0.796914822266935,
+      0.7549853931157119,
+      0,
+      0
+    ]
+  },
+  "tools": {
+    "toolCounts": {
+      "bash": 18,
+      "ls": 2,
+      "read": 2,
+      "write": 1
+    },
+    "toolErrors": {
+      "bash": 3
+    },
+    "totalToolCalls": 23,
+    "totalToolErrors": 3,
+    "firstTool": "bash",
+    "lastTool": "read",
+    "sequences2": {
+      "bash -> ls": 1,
+      "ls -> ls": 1,
+      "ls -> bash": 1,
+      "bash -> bash": 15,
+      "bash -> read": 2,
+      "read -> write": 1,
+      "write -> bash": 1
+    },
+    "sequences3": {
+      "bash -> ls -> ls": 1,
+      "ls -> ls -> bash": 1,
+      "ls -> bash -> bash": 1,
+      "bash -> bash -> bash": 13,
+      "bash -> bash -> read": 2,
+      "bash -> read -> write": 1,
+      "read -> write -> bash": 1,
+      "write -> bash -> bash": 1
+    },
+    "consecutiveRepeats": 16,
+    "transitionCounts": {
+      "bash": {
+        "ls": 1,
+        "bash": 15,
+        "read": 2
+      },
+      "ls": {
+        "ls": 1,
+        "bash": 1
+      },
+      "read": {
+        "write": 1
+      },
+      "write": {
+        "bash": 1
+      }
+    },
+    "errorRate": 0.13043478260869565,
+    "avgToolCallsPerTurn": 0.9583333333333334,
+    "toolCallsPerTurn": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0
+    ]
+  },
+  "errors": {
+    "totalErrors": 3,
+    "errorRate": 0.13043478260869565,
+    "errorsByTool": {
+      "bash": 3
+    },
+    "errorRecoveryPatterns": {
+      "bash": [
+        "ls",
+        "bash",
+        "read"
+      ]
+    },
+    "maxConsecutiveErrors": 1,
+    "errorsPerTurn": []
+  },
+  "efficiency": {
+    "totalEdits": 0,
+    "editsWithPriorRead": 0,
+    "readBeforeEditRate": 1,
+    "totalWrites": 1,
+    "writesWithPriorRead": 1,
+    "readBeforeWriteRate": 1,
+    "grepBeforeReadCount": 0,
+    "findBeforeReadCount": 0,
+    "explorationCalls": 4,
+    "executionCalls": 19,
+    "explorationRatio": 0.17391304347826086
+  },
+  "patterns": {
+    "uniqueFilesRead": [
+      "personal-site/_includes/about.md",
+      "personal-site/_layouts/default.html"
+    ],
+    "uniqueFilesWritten": [
+      "personal-site/_includes/about.md"
+    ],
+    "uniqueFilesEdited": [],
+    "totalFilesAccessed": 2,
+    "fileAccessSequence": [
+      {
+        "file": "personal-site/_includes/about.md",
+        "operation": "read"
+      },
+      {
+        "file": "personal-site/_includes/about.md",
+        "operation": "write"
+      },
+      {
+        "file": "personal-site/_layouts/default.html",
+        "operation": "read"
+      }
+    ],
+    "bashCommands": [
+      "git branch -a",
+      "cd personal-site && git branch -a",
+      "cd personal-site && git reflog",
+      "cd personal-site && git branch --contains 72039bb",
+      "cd personal-site && git log -n 5 master",
+      "cd personal-site && git show 72039bb",
+      "cd personal-site && git show 72039bb --fullOutput=true",
+      "cd personal-site && git show 72039bb",
+      "cd personal-site && git show d7d3e4b",
+      "cd personal-site && git merge 72039bb",
+      "cd personal-site && git add _includes/about.md && git commit -m \"Merge Stanford move changes\"",
+      "cd personal-site && git log -n 5",
+      "cd personal-site && git reflog",
+      "cd personal-site && git status",
+      "cd personal-site && git branch -a",
+      "cd personal-site && git stash list",
+      "cd personal-site && git reflog -n 20",
+      "cd personal-site && grep -r \"Stanford\" ."
+    ],
+    "uniqueBashCommands": 15
+  },
+  "turns": {
+    "totalTurns": 24,
+    "avgOutputTokensPerTurn": 128.70833333333334,
+    "avgInputTokensPerTurn": 4942.125,
+    "outputTokensPerTurn": [
+      80,
+      41,
+      41,
+      46,
+      117,
+      111,
+      125,
+      206,
+      54,
+      54,
+      235,
+      67,
+      44,
+      503,
+      45,
+      34,
+      181,
+      72,
+      33,
+      33,
+      237,
+      327,
+      204,
+      199
+    ],
+    "inputTokensPerTurn": [
+      1401,
+      1522,
+      1590,
+      1711,
+      1776,
+      2055,
+      2186,
+      2654,
+      3086,
+      3175,
+      4706,
+      5463,
+      5590,
+      5901,
+      6437,
+      6512,
+      6888,
+      7250,
+      7350,
+      7402,
+      7455,
+      7873,
+      8617,
+      10011
+    ],
+    "toolCallsPerTurn": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0
+    ],
+    "turnDetails": [
+      {
+        "turnIndex": 0,
+        "inputTokens": 1401,
+        "outputTokens": 80,
+        "cacheReadTokens": 0,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1842,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 1,
+        "inputTokens": 1522,
+        "outputTokens": 41,
+        "cacheReadTokens": 0,
+        "toolCalls": [
+          "ls"
+        ],
+        "hadError": false,
+        "duration": 1185,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 2,
+        "inputTokens": 1590,
+        "outputTokens": 41,
+        "cacheReadTokens": 0,
+        "toolCalls": [
+          "ls"
+        ],
+        "hadError": false,
+        "duration": 1159,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 3,
+        "inputTokens": 1711,
+        "outputTokens": 46,
+        "cacheReadTokens": 0,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1233,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 4,
+        "inputTokens": 1776,
+        "outputTokens": 117,
+        "cacheReadTokens": 0,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1808,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 5,
+        "inputTokens": 2055,
+        "outputTokens": 111,
+        "cacheReadTokens": 0,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1421,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 6,
+        "inputTokens": 2186,
+        "outputTokens": 125,
+        "cacheReadTokens": 1946,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1441,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 7,
+        "inputTokens": 2654,
+        "outputTokens": 206,
+        "cacheReadTokens": 1956,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1938,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 8,
+        "inputTokens": 3086,
+        "outputTokens": 54,
+        "cacheReadTokens": 1962,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1118,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 9,
+        "inputTokens": 3175,
+        "outputTokens": 54,
+        "cacheReadTokens": 1959,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1219,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 10,
+        "inputTokens": 4706,
+        "outputTokens": 235,
+        "cacheReadTokens": 1983,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 2165,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 11,
+        "inputTokens": 5463,
+        "outputTokens": 67,
+        "cacheReadTokens": 3976,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1297,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 12,
+        "inputTokens": 5590,
+        "outputTokens": 44,
+        "cacheReadTokens": 3972,
+        "toolCalls": [
+          "read"
+        ],
+        "hadError": false,
+        "duration": 1206,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 13,
+        "inputTokens": 5901,
+        "outputTokens": 503,
+        "cacheReadTokens": 3972,
+        "toolCalls": [
+          "write"
+        ],
+        "hadError": false,
+        "duration": 3557,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 14,
+        "inputTokens": 6437,
+        "outputTokens": 45,
+        "cacheReadTokens": 3976,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1067,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 15,
+        "inputTokens": 6512,
+        "outputTokens": 34,
+        "cacheReadTokens": 5957,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1102,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 16,
+        "inputTokens": 6888,
+        "outputTokens": 181,
+        "cacheReadTokens": 5958,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1898,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 17,
+        "inputTokens": 7250,
+        "outputTokens": 72,
+        "cacheReadTokens": 5959,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1297,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 18,
+        "inputTokens": 7350,
+        "outputTokens": 33,
+        "cacheReadTokens": 5954,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1152,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 19,
+        "inputTokens": 7402,
+        "outputTokens": 33,
+        "cacheReadTokens": 5947,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 1090,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 20,
+        "inputTokens": 7455,
+        "outputTokens": 237,
+        "cacheReadTokens": 5941,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 2301,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 21,
+        "inputTokens": 7873,
+        "outputTokens": 327,
+        "cacheReadTokens": 5944,
+        "toolCalls": [
+          "bash"
+        ],
+        "hadError": false,
+        "duration": 2890,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 22,
+        "inputTokens": 8617,
+        "outputTokens": 204,
+        "cacheReadTokens": 0,
+        "toolCalls": [
+          "read"
+        ],
+        "hadError": false,
+        "duration": 3576,
+        "stopReason": "toolUse"
+      },
+      {
+        "turnIndex": 23,
+        "inputTokens": 10011,
+        "outputTokens": 199,
+        "cacheReadTokens": 0,
+        "toolCalls": [],
+        "hadError": false,
+        "duration": 3882,
+        "stopReason": "stop"
+      }
+    ]
+  }
+}

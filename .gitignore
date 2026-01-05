@@ -39,3 +39,5 @@ evals-cache/
 ./evals-cache
 
 test-results/
+
+eval_runs
