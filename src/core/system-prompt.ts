@@ -119,6 +119,12 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 		guidelinesList.push("Prefer grep/find/ls tools over bash for file exploration (faster, respects .gitignore)");
 	}
 
+	if (hasBash) {
+		guidelinesList.push(
+			"Bash output is aggressively truncated by default (first/last few lines). Use `fullOutput: true` to see more.",
+		);
+	}
+
 	// Read before edit guideline
 	if (hasRead && hasEdit) {
 		guidelinesList.push("Use read to examine files before editing. You must use this tool instead of cat or sed.");

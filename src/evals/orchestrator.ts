@@ -151,12 +151,15 @@ export class Evals {
 
         // 2. Prepare & Build
         const { taskPath, config: taskConfig } = await this.registryManager.prepareTask(taskEntry);
-        const imageId = await this.envManager.setupEnvironment(taskPath, taskConfig);
-        console.log(`Environment Ready: ${imageId}`);
+        const { imageId, workdir } = await this.envManager.setupEnvironment(taskPath, taskConfig);
+        console.log(`Environment Ready: ${imageId} (workdir: ${workdir})`);
 
         // 3. Prepare Env Vars (Merge passed vars with process env keys if needed)
         const envVars = { ...config.envVars };
-        
+
+        // Pass the task workdir to the agent runner
+        envVars.TASK_WORKDIR = workdir;
+
         // Ensure API keys are present if not explicitly passed
         if (!envVars.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY) envVars.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
         if (!envVars.OPENAI_API_KEY && process.env.OPENAI_API_KEY) envVars.OPENAI_API_KEY = process.env.OPENAI_API_KEY;

@@ -6,6 +6,29 @@ import { TaskConfig } from "../types.js";
 
 const execAsync = promisify(exec);
 
+/**
+ * Extract the WORKDIR from a Dockerfile.
+ * Returns the last WORKDIR directive found, or a default value.
+ */
+function extractWorkdirFromDockerfile(dockerfilePath: string): string {
+	const content = readFileSync(dockerfilePath, 'utf-8');
+	const lines = content.split('\n');
+	let workdir = '/workspace'; // default fallback
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (trimmed.toUpperCase().startsWith('WORKDIR ')) {
+			workdir = trimmed.substring(8).trim();
+		}
+	}
+	return workdir;
+}
+
+export interface SetupEnvironmentResult {
+	imageId: string;
+	workdir: string;
+}
+
 export class EnvironmentManager {
 	private agentDir: string;
 
@@ -17,18 +40,22 @@ export class EnvironmentManager {
 	 * Builds the complete environment for a task.
 	 * 1. Builds the task's base image (from Dockerfile or pulls base).
 	 * 2. Builds a wrapper image that includes the Agent (Node.js + Source).
-	 * @returns The final image ID/tag.
+	 * @returns The final image ID/tag and the workdir extracted from the Dockerfile.
 	 */
-	async setupEnvironment(taskPath: string, config: TaskConfig): Promise<string> {
+	async setupEnvironment(taskPath: string, config: TaskConfig): Promise<SetupEnvironmentResult> {
 		const taskName = config.metadata?.tags?.[0] || "unknown-task";
 		const baseImageTag = `task-base:${taskName}`;
-		
+
 		// 1. Build Base Image
 		const dockerfilePath = join(taskPath, "environment", "Dockerfile");
 		let baseImage: string;
+		let workdir = '/workspace'; // default fallback
 
 		if (existsSync(dockerfilePath)) {
 			console.log(`Building base image from ${dockerfilePath}...`);
+			// Extract WORKDIR from the Dockerfile
+			workdir = extractWorkdirFromDockerfile(dockerfilePath);
+			console.log(`Extracted WORKDIR from Dockerfile: ${workdir}`);
 			// We build with the context of the 'environment' folder, as is standard
 			const envDir = join(taskPath, "environment");
 			await execAsync(`docker build -t ${baseImageTag} ${envDir}`);
@@ -38,6 +65,8 @@ export class EnvironmentManager {
 			baseImage = config.environment.docker_image;
 			// Ensure we have it
 			await execAsync(`docker pull ${baseImage}`);
+			// For pre-defined images, we can't easily extract WORKDIR, use default
+			console.log(`Using default WORKDIR for pre-defined image: ${workdir}`);
 		} else {
 			throw new Error("No Dockerfile found and no docker_image specified in task config.");
 		}
@@ -60,7 +89,7 @@ export class EnvironmentManager {
 			// rmSync(wrapperPath); // Keep for debugging for now
 		}
 
-		return runnerImageTag;
+		return { imageId: runnerImageTag, workdir };
 	}
 
 	private generateWrapperDockerfile(baseImage: string): string {
