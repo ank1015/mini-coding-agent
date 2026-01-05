@@ -10,11 +10,13 @@ async function main() {
 		const taskPath = process.env.TASK_PATH || "/workspace";
 		const outputDir = process.env.OUTPUT_DIR || "/results";
 		const instructionsFile = join(taskPath, "instruction.md");
-        const workDir = '/app'
+		// Use TASK_WORKDIR from environment (extracted from Dockerfile), fallback to /workspace
+		const workDir = process.env.TASK_WORKDIR || "/workspace";
 
 		console.log(`Starting Agent Runner...`);
 		console.log(`Task Path: ${taskPath}`);
 		console.log(`Output Dir: ${outputDir}`);
+		console.log(`Work Dir: ${workDir}`);
 
 		// 2. Read Instructions
 		if (!existsSync(instructionsFile)) {
