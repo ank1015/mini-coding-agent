@@ -230,6 +230,89 @@ export function truncateTail(content: string, options: TruncationOptions = {}): 
 }
 
 /**
+ * Truncate content by keeping the head and tail (first N/2 lines and last N/2 lines).
+ */
+export function truncateMiddle(content: string, options: TruncationOptions = {}): TruncationResult {
+	const maxLines = options.maxLines ?? DEFAULT_MAX_LINES;
+	const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
+
+	const totalBytes = Buffer.byteLength(content, "utf-8");
+	const lines = content.split("\n");
+	const totalLines = lines.length;
+
+	// Check if no truncation needed
+	if (totalLines <= maxLines && totalBytes <= maxBytes) {
+		return {
+			content,
+			truncated: false,
+			truncatedBy: null,
+			totalLines,
+			totalBytes,
+			outputLines: totalLines,
+			outputBytes: totalBytes,
+			lastLinePartial: false,
+			firstLineExceedsLimit: false,
+			maxLines,
+			maxBytes,
+		};
+	}
+
+	const halfLines = Math.floor(maxLines / 2);
+	const headLines: string[] = [];
+	const tailLines: string[] = [];
+	let currentBytes = 0;
+	let truncatedBy: "lines" | "bytes" = "lines";
+
+	// Head
+	for (let i = 0; i < lines.length; i++) {
+		if (headLines.length >= halfLines) break;
+		const line = lines[i];
+		const lineBytes = Buffer.byteLength(line, "utf-8") + 1; // +1 for newline
+		if (currentBytes + lineBytes > maxBytes) {
+			truncatedBy = "bytes";
+			break;
+		}
+		headLines.push(line);
+		currentBytes += lineBytes;
+	}
+
+	// Tail (working backwards)
+	if (truncatedBy !== "bytes") {
+		for (let i = lines.length - 1; i >= 0; i--) {
+			if (tailLines.length >= halfLines) break;
+			// Check overlap with head
+			if (i < headLines.length) break;
+
+			const line = lines[i];
+			const lineBytes = Buffer.byteLength(line, "utf-8") + 1;
+			if (currentBytes + lineBytes > maxBytes) {
+				truncatedBy = "bytes";
+				break;
+			}
+			tailLines.unshift(line);
+			currentBytes += lineBytes;
+		}
+	}
+
+	const outputContent = [...headLines, ...tailLines].join("\n");
+	const finalOutputBytes = Buffer.byteLength(outputContent, "utf-8");
+
+	return {
+		content: outputContent,
+		truncated: true,
+		truncatedBy,
+		totalLines,
+		totalBytes,
+		outputLines: headLines.length + tailLines.length,
+		outputBytes: finalOutputBytes,
+		lastLinePartial: false,
+		firstLineExceedsLimit: false,
+		maxLines,
+		maxBytes,
+	};
+}
+
+/**
  * Truncate a string to fit within a byte limit (from the end).
  * Handles multi-byte UTF-8 characters correctly.
  */

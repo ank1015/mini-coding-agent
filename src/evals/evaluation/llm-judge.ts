@@ -45,7 +45,7 @@ const SYSTEM_PROMPT = `You are an expert evaluator analyzing the behavior of an 
 The coding agent is an AI assistant designed to help users with software engineering tasks. It operates in a terminal environment with access to the following tools:
 
 - **read**: Read file contents (text files and images)
-- **bash**: Execute bash commands in the terminal
+- **bash**: Execute bash commands in the terminal, returns truncated output by default with optional flag to return full output
 - **edit**: Make surgical edits to files by finding exact text and replacing it
 - **write**: Create or overwrite files
 - **grep**: Search file contents for patterns (respects .gitignore)
