@@ -38,9 +38,14 @@ const bashSchema = Type.Object({
 export interface BashToolDetails {
 	truncation?: TruncationResult;
 	fullOutputPath?: string;
+	/** Stderr content (included on error, up to MAX_STDERR_BYTES) */
+	stderr?: string;
+	/** Whether stderr was truncated */
+	stderrTruncated?: boolean;
 }
 
 const DEFAULT_PREVIEW_LINES = 20;
+const MAX_STDERR_BYTES = 10 * 1024; // 10KB for stderr on errors
 
 export function createBashTool(cwd: string): AgentTool<typeof bashSchema> {
 	return {
@@ -48,7 +53,7 @@ export function createBashTool(cwd: string): AgentTool<typeof bashSchema> {
 		label: "bash",
 		description: `Execute a bash command. stdout/stderr are captured. By default, output is truncated to first/last ${
 			DEFAULT_PREVIEW_LINES / 2
-		} lines to reduce context. Use fullOutput=true to see more (up to ${DEFAULT_MAX_BYTES / 1024}KB).`,
+		} lines to reduce context. Use fullOutput=true to see more (up to ${DEFAULT_MAX_BYTES / 1024}KB). On errors, stderr is shown separately (up to ${MAX_STDERR_BYTES / 1024}KB) to ensure error messages are visible.`,
 		parameters: bashSchema,
 		execute: async (
 			_toolCallId: string,
@@ -82,6 +87,10 @@ export function createBashTool(cwd: string): AgentTool<typeof bashSchema> {
 				const tailChunks: Buffer[] = [];
 				let tailChunksBytes = 0;
 				const MAX_TAIL_BYTES = DEFAULT_MAX_BYTES * 2;
+
+				// Stderr buffer (separate, for error reporting)
+				const stderrChunks: Buffer[] = [];
+				let stderrBytes = 0;
 
 				let timedOut = false;
 
@@ -152,12 +161,30 @@ export function createBashTool(cwd: string): AgentTool<typeof bashSchema> {
 					}
 				};
 
-				// Collect stdout and stderr together
+				// Handle stderr separately (also goes to combined output)
+				const handleStderr = (data: Buffer) => {
+					// Add to combined output
+					handleData(data);
+
+					// Also buffer stderr separately (up to MAX_STDERR_BYTES)
+					if (stderrBytes < MAX_STDERR_BYTES) {
+						const remaining = MAX_STDERR_BYTES - stderrBytes;
+						if (data.length <= remaining) {
+							stderrChunks.push(data);
+							stderrBytes += data.length;
+						} else {
+							stderrChunks.push(data.subarray(0, remaining));
+							stderrBytes += remaining;
+						}
+					}
+				};
+
+				// Collect stdout and stderr (stderr buffered separately for error reporting)
 				if (child.stdout) {
 					child.stdout.on("data", handleData);
 				}
 				if (child.stderr) {
-					child.stderr.on("data", handleData);
+					child.stderr.on("data", handleStderr);
 				}
 
 				// Handle process exit
@@ -268,7 +295,32 @@ export function createBashTool(cwd: string): AgentTool<typeof bashSchema> {
 					}
 
 					if (code !== 0 && code !== null) {
+						// On error, include stderr separately if available
+						const stderrBuffer = Buffer.concat(stderrChunks);
+						const stderrString = stderrBuffer.toString("utf-8").trim();
+						const stderrWasTruncated = stderrBytes >= MAX_STDERR_BYTES;
+
+						if (stderrString) {
+							outputText += `\n\n[stderr]`;
+							outputText += `\n${stderrString}`;
+							if (stderrWasTruncated) {
+								outputText += `\n[stderr truncated at ${formatSize(MAX_STDERR_BYTES)}]`;
+							}
+						}
+
 						outputText += `\n\nCommand exited with code ${code}`;
+
+						// Include stderr in details for programmatic access
+						if (details) {
+							details.stderr = stderrString;
+							details.stderrTruncated = stderrWasTruncated;
+						} else {
+							details = {
+								stderr: stderrString,
+								stderrTruncated: stderrWasTruncated,
+							};
+						}
+
 						reject(new Error(outputText));
 					} else {
 						resolve({ content: [{ type: "text", content: outputText }], details });
