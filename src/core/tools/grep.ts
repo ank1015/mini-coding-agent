@@ -24,7 +24,7 @@ const grepSchema = Type.Object({
 		Type.Boolean({ description: "Treat pattern as literal string instead of regex (default: false)" }),
 	),
 	context: Type.Optional(
-		Type.Number({ description: "Number of lines to show before and after each match (default: 0)" }),
+		Type.Number({ description: "Number of lines to show before and after each match (default: 2)" }),
 	),
 	limit: Type.Optional(Type.Number({ description: "Maximum number of matches to return (default: 100)" })),
 });
@@ -41,7 +41,7 @@ export function createGrepTool(cwd: string): AgentTool<typeof grepSchema> {
 	return {
 		name: "grep",
 		label: "grep",
-		description: `Search file contents for a pattern. Returns matching lines with file paths and line numbers. Respects .gitignore. Output is truncated to ${DEFAULT_LIMIT} matches or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). Long lines are truncated to ${GREP_MAX_LINE_LENGTH} chars.`,
+		description: `Search file contents for a pattern. Returns matching lines with file paths, line numbers, and 2 lines of context (configurable). Respects .gitignore. Output is truncated to ${DEFAULT_LIMIT} matches or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). Long lines are truncated to ${GREP_MAX_LINE_LENGTH} chars.`,
 		parameters: grepSchema,
 		execute: async (
 			_toolCallId: string,
@@ -96,7 +96,7 @@ export function createGrepTool(cwd: string): AgentTool<typeof grepSchema> {
 						}
 
 						const isDirectory = searchStat.isDirectory();
-						const contextValue = context && context > 0 ? context : 0;
+						const contextValue = context ?? 2;
 						const effectiveLimit = Math.max(1, limit ?? DEFAULT_LIMIT);
 
 						const formatPath = (filePath: string): string => {
