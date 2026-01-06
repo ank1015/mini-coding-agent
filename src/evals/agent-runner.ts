@@ -54,7 +54,8 @@ async function main() {
 
 		const { session } = await createAgentSession({
             cwd: workDir,
-            provider: providerConfig
+            provider: providerConfig,
+            ultraDangerousMode: true
         });
 
 		console.log(`Agent Session Initialized. ID: ${session.sessionId}`);

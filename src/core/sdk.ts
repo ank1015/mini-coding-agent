@@ -74,6 +74,12 @@ export interface CreateAgentSessionOptions {
 
 	/** Settings manager. Default: SettingsManager.create(cwd, agentDir) */
 	settingsManager?: SettingsManager;
+
+	/**
+	 * Enable ultra dangerous mode - tells the agent it has full root/sudo access
+	 * and can install any packages it needs. Only use in secured environments!
+	 */
+	ultraDangerousMode?: boolean;
 }
 
 
@@ -153,6 +159,11 @@ export interface BuildSystemPromptOptions {
 	tools?: Tool[];
 	cwd?: string;
 	appendPrompt?: string;
+	/**
+	 * Enable ultra dangerous mode - tells the agent it has full root/sudo access
+	 * and can install any packages it needs. Only use in secured environments!
+	 */
+	ultraDangerousMode?: boolean;
 }
 
 /**
@@ -162,7 +173,8 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 	return buildSystemPromptInternal({
 		cwd: options.cwd,
 		appendSystemPrompt: options.appendPrompt,
-		selectedTools: ["bash", "edit", "find", "grep", "ls", "read", "write"]
+		selectedTools: ["bash", "edit", "find", "grep", "ls", "read", "write"],
+		ultraDangerousMode: options.ultraDangerousMode,
 	});
 }
 
@@ -273,7 +285,10 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	const builtInTools = options.tools ?? createAllTools(cwd);
 
 	let systemPrompt: string;
-	const defaultPrompt = buildSystemPromptInternal({cwd});
+	const defaultPrompt = buildSystemPromptInternal({
+		cwd,
+		ultraDangerousMode: options.ultraDangerousMode,
+	});
 
 	if (options.systemPrompt === undefined) {
 		systemPrompt = defaultPrompt;
