@@ -115,6 +115,7 @@ export async function performAnalysis(config: AnalysisConfig): Promise<AnalysisR
         // Save to file (both JSON metadata and markdown analysis)
         const llmJsonPath = join(resultDir, "analysis-llm-judge.json");
         const llmMarkdownPath = join(resultDir, "analysis-llm-judge.md");
+        const conversationContextPath = join(resultDir, "conversation-context.md")
 
         // Save JSON with metadata
         writeFileSync(llmJsonPath, JSON.stringify({
@@ -124,6 +125,10 @@ export async function performAnalysis(config: AnalysisConfig): Promise<AnalysisR
             tokenUsage: llmResult.tokenUsage,
         }, null, 2), "utf-8");
         savedFiles.push(llmJsonPath);
+
+        if(llmResult.conversationContext){
+            writeFileSync(conversationContextPath, llmResult.conversationContext, 'utf-8')
+        }
 
         // Save markdown analysis for easy reading
         const markdownContent = `# LLM Judge Analysis: ${taskName}

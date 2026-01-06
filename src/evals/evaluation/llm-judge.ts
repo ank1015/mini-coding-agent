@@ -27,6 +27,7 @@ export interface LLMJudgeResult {
     passed: boolean;
     analysis: string;
     model: string;
+    conversationContext?: string;
     tokenUsage: {
         input: number;
         output: number;
@@ -324,7 +325,7 @@ function buildAnalysisContext(
     solution: string | undefined,
     testResults: any[] | undefined,
     passed: boolean
-): string {
+): string[] {
     const parts: string[] = [];
 
     // Conversation trace
@@ -347,7 +348,7 @@ function buildAnalysisContext(
     parts.push("\n\n# Analysis Request\n");
     parts.push(passed ? PASSED_TASK_PROMPT : FAILED_TASK_PROMPT);
 
-    return parts.join("\n");
+    return parts;
 }
 
 function extractResponseText(response: BaseAssistantMessage<Api>): string {
@@ -410,7 +411,7 @@ export async function performLLMJudgeAnalysis(
                     role: "user",
                     id: generateUUID(),
                     timestamp: Date.now(),
-                    content: [{ type: "text", content: analysisContext }],
+                    content: [{ type: "text", content: analysisContext.join("\n") }],
                 },
             ],
         },
@@ -424,6 +425,7 @@ export async function performLLMJudgeAnalysis(
         passed: trace.isPass,
         analysis,
         model: config.model.id,
+        conversationContext: analysisContext.slice(0, -2).join("\n"),
         tokenUsage: {
             input: response.usage.input + response.usage.cacheRead,
             output: response.usage.output,

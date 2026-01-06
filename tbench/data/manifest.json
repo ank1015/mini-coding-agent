@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-01-05T11:06:30.170Z",
+  "difficulties": {
+    "easy": {
+      "cobol-modernization": {
+        "run_1": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        },
+        "run_2": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        }
+      },
+      "fix-git": {
+        "run_1": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        },
+        "run_2": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        }
+      },
+      "overfull-hbox": {
+        "run_1": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        },
+        "run_2": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        }
+      },
+      "prove-plus-comm": {
+        "run_1": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        },
+        "run_2": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        }
+      }
+    },
+    "medium": {
+      "build-cython-ext": {
+        "run_1": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        },
+        "run_2": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        }
+      },
+      "build-pmars": {
+        "run_1": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        },
+        "run_2": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        }
+      },
+      "build-pov-ray": {
+        "run_1": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        },
+        "run_2": {
+          "exists": true,
+          "hasReward": true,
+          "hasQuantitative": true,
+          "hasLLMJudge": true
+        }
+      }
+    }
+  }
+}
