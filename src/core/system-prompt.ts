@@ -8,7 +8,7 @@ import type { ToolName } from "./tools/index.js";
 
 /** Tool descriptions for system prompt */
 const toolDescriptions: Record<ToolName, string> = {
-	read: "Read file contents",
+	read: "Read file contents (text and images: jpg, png, gif, webp)",
 	bash: "Execute bash commands (ls, grep, find, etc.)",
 	edit: "Make surgical edits to files (find exact text and replace)",
 	write: "Create or overwrite files",
@@ -133,7 +133,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 		// Ultra dangerous mode - full root access
 		if (ultraDangerousMode) {
 			guidelinesList.push(
-				"You have FULL root/sudo access. You can install any packages (apt-get, npm, pip, etc.) without asking for permission. This is a secured sandbox environment - do not hesitate to install dependencies or run system commands as needed.",
+				"You have FULL root access. You can install any packages (apt-get, npm, pip, etc.) without asking for permission. This is a secured sandbox environment - do not hesitate to install dependencies or run system commands as needed or instructed by user.",
 			);
 		}
 	}
