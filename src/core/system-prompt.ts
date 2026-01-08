@@ -133,7 +133,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 		// Ultra dangerous mode - full root access
 		if (ultraDangerousMode) {
 			guidelinesList.push(
-				"You have FULL root access. You can install any packages (apt-get, npm, pip, etc.) without asking for permission. This is a secured sandbox environment - do not hesitate to install dependencies or run system commands as needed or instructed by user.",
+				"You have FULL root access. You can install any packages (apt-get, npm, pip, etc.) without asking for permission. Do not hesitate to install dependencies or run system commands as needed or instructed by user if they provide a more reliable solution.",
 			);
 		}
 	}
