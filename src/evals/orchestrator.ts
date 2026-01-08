@@ -24,8 +24,8 @@ export interface EvalConfig {
 	resultsDir?: string;
 	provider?: Provider<Api>;
     envVars?: Record<string, string>;
-    /** Optional system prompt to override the default agent system prompt */
-    systemPrompt?: string;
+    /** Optional system prompt builder function. Receives the workdir and returns the prompt string. */
+    systemPrompt?: (cwd: string) => string;
     /** Post-evaluation analysis options */
     analysis?: AnalysisOptions;
 }
@@ -36,8 +36,8 @@ export interface BulkEvalConfig {
     resultsDir?: string;
     provider?: Provider<Api>;
     envVars?: Record<string, string>;
-    /** Optional system prompt to override the default agent system prompt (applied to all tasks) */
-    systemPrompt?: string;
+    /** Optional system prompt builder function. Receives the workdir and returns the prompt string (applied to all tasks). */
+    systemPrompt?: (cwd: string) => string;
     /** Post-evaluation analysis options (applied to all tasks) */
     analysis?: AnalysisOptions;
 }
@@ -180,9 +180,9 @@ export class Evals {
              });
         }
 
-        // Pass system prompt via env var if provided
+        // Pass system prompt via env var if provided (call the builder function with workdir)
         if (config.systemPrompt) {
-            envVars.AGENT_SYSTEM_PROMPT = config.systemPrompt;
+            envVars.AGENT_SYSTEM_PROMPT = config.systemPrompt(workdir);
         }
 
         // 4. Execution
@@ -193,7 +193,7 @@ export class Evals {
         try {
             await executor.runAgent(containerId);
             await executor.archiveSolution(taskPath, resultDir);
-            verification = await executor.verify(containerId, resultDir);
+            verification = await executor.verify(containerId, resultDir, taskPath);
         } catch (error: any) {
             console.error("Evaluation failed during execution:", error);
             // We rethrow so bulk runner knows it failed hard (or return error result)
