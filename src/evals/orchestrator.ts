@@ -24,6 +24,8 @@ export interface EvalConfig {
 	resultsDir?: string;
 	provider?: Provider<Api>;
     envVars?: Record<string, string>;
+    /** Optional system prompt to override the default agent system prompt */
+    systemPrompt?: string;
     /** Post-evaluation analysis options */
     analysis?: AnalysisOptions;
 }
@@ -34,6 +36,8 @@ export interface BulkEvalConfig {
     resultsDir?: string;
     provider?: Provider<Api>;
     envVars?: Record<string, string>;
+    /** Optional system prompt to override the default agent system prompt (applied to all tasks) */
+    systemPrompt?: string;
     /** Post-evaluation analysis options (applied to all tasks) */
     analysis?: AnalysisOptions;
 }
@@ -99,6 +103,7 @@ export class Evals {
                     resultsDir: config.resultsDir,
                     provider: config.provider,
                     envVars: config.envVars,
+                    systemPrompt: config.systemPrompt,
                     analysis: config.analysis
                 });
                 results.push(result);
@@ -173,6 +178,11 @@ export class Evals {
                  modelId: config.provider.model.id,
                  providerOptions: config.provider.providerOptions
              });
+        }
+
+        // Pass system prompt via env var if provided
+        if (config.systemPrompt) {
+            envVars.AGENT_SYSTEM_PROMPT = config.systemPrompt;
         }
 
         // 4. Execution

@@ -52,10 +52,17 @@ async function main() {
             }
         }
 
+        // Check for custom system prompt
+        const systemPrompt = process.env.AGENT_SYSTEM_PROMPT;
+        if (systemPrompt) {
+            console.log("Using custom system prompt from AGENT_SYSTEM_PROMPT env var");
+        }
+
 		const { session } = await createAgentSession({
             cwd: workDir,
             provider: providerConfig,
-            ultraDangerousMode: true
+            ultraDangerousMode: true,
+            ...(systemPrompt && { systemPrompt })
         });
 
 		console.log(`Agent Session Initialized. ID: ${session.sessionId}`);
