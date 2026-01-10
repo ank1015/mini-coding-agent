@@ -23,7 +23,14 @@ async function main() {
 			console.error(`Error: instruction.md not found at ${instructionsFile}`);
 			process.exit(1);
 		}
-		const instructions = readFileSync(instructionsFile, "utf-8");
+		let instructions = readFileSync(instructionsFile, "utf-8");
+
+		// Check for injected prompt to append to instructions
+		const injectedPrompt = process.env.AGENT_INJECTED_PROMPT;
+		if (injectedPrompt) {
+			console.log("Appending injected prompt from AGENT_INJECTED_PROMPT env var");
+			instructions = instructions + "\n" + injectedPrompt;
+		}
 
 		// 3. Initialize Agent
         let providerConfig: any = {

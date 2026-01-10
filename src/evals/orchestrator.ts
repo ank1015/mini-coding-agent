@@ -26,6 +26,8 @@ export interface EvalConfig {
     envVars?: Record<string, string>;
     /** Optional system prompt builder function. Receives the workdir and returns the prompt string. */
     systemPrompt?: (cwd: string) => string;
+    /** Optional prompt to append to task instructions (e.g., guidelines or hints). */
+    injectedPrompt?: string;
     /** Post-evaluation analysis options */
     analysis?: AnalysisOptions;
 }
@@ -38,6 +40,8 @@ export interface BulkEvalConfig {
     envVars?: Record<string, string>;
     /** Optional system prompt builder function. Receives the workdir and returns the prompt string (applied to all tasks). */
     systemPrompt?: (cwd: string) => string;
+    /** Optional prompt to append to task instructions (e.g., guidelines or hints). Applied to all tasks. */
+    injectedPrompt?: string;
     /** Post-evaluation analysis options (applied to all tasks) */
     analysis?: AnalysisOptions;
 }
@@ -104,6 +108,7 @@ export class Evals {
                     provider: config.provider,
                     envVars: config.envVars,
                     systemPrompt: config.systemPrompt,
+                    injectedPrompt: config.injectedPrompt,
                     analysis: config.analysis
                 });
                 results.push(result);
@@ -183,6 +188,11 @@ export class Evals {
         // Pass system prompt via env var if provided (call the builder function with workdir)
         if (config.systemPrompt) {
             envVars.AGENT_SYSTEM_PROMPT = config.systemPrompt(workdir);
+        }
+
+        // Pass injected prompt via env var if provided (appended to task instructions)
+        if (config.injectedPrompt) {
+            envVars.AGENT_INJECTED_PROMPT = config.injectedPrompt;
         }
 
         // 4. Execution

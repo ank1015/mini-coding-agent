@@ -43,7 +43,7 @@ async function fetchRegistry(): Promise<TaskRegistry[]> {
 
 export const getTaskIdByName = async (name: string) => {
   const registry = await fetchRegistry();
-  const tBenchRegistry = registry[2];
+  const tBenchRegistry = registry[3];
 
   for (let i = 0; i < tBenchRegistry.tasks.length; i++){
     const taskName = tBenchRegistry.tasks[i].name;

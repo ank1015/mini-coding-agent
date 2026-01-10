@@ -402,34 +402,34 @@ export async function performLLMJudgeAnalysis(
 
 
     // Call the LLM
-    const response = await complete(
-        config.model,
-        {
-            systemPrompt: SYSTEM_PROMPT,
-            messages: [
-                {
-                    role: "user",
-                    id: generateUUID(),
-                    timestamp: Date.now(),
-                    content: [{ type: "text", content: analysisContext.join("\n") }],
-                },
-            ],
-        },
-        config.providerOptions
-    );
+    // const response = await complete(
+    //     config.model,
+    //     {
+    //         systemPrompt: SYSTEM_PROMPT,
+    //         messages: [
+    //             {
+    //                 role: "user",
+    //                 id: generateUUID(),
+    //                 timestamp: Date.now(),
+    //                 content: [{ type: "text", content: analysisContext.join("\n") }],
+    //             },
+    //         ],
+    //     },
+    //     config.providerOptions
+    // );
 
-    const analysis = extractResponseText(response);
+    // const analysis = extractResponseText(response);
 
     return {
         taskName,
         passed: trace.isPass,
-        analysis,
+        analysis: '',
         model: config.model.id,
         conversationContext: analysisContext.slice(0, -2).join("\n"),
         tokenUsage: {
-            input: response.usage.input + response.usage.cacheRead,
-            output: response.usage.output,
-            total: response.usage.totalTokens,
+            input: 0,
+            output: 0,
+            total: 0,
         },
     };
 }
