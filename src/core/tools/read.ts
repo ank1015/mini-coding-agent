@@ -1,4 +1,4 @@
-import type { AgentTool, ImageContent, TextContent } from "@ank1015/providers";
+import type { AgentTool, Content, ImageContent, Message, TextContent } from "@ank1015/providers";
 import { Type } from "@sinclair/typebox";
 import { constants } from "fs";
 import { access, readFile } from "fs/promises";
@@ -12,8 +12,80 @@ const readSchema = Type.Object({
 	limit: Type.Optional(Type.Number({ description: "Maximum number of lines to read" })),
 });
 
+interface ToolExecutionContext {
+	/** Read-only conversation history (messages up to but not including current tool results) */
+	messages: readonly Message[];
+}
+
 export interface ReadToolDetails {
 	truncation?: TruncationResult;
+}
+
+/**
+ * Compare two Content arrays for equality
+ */
+function contentEquals(a: Content, b: Content): boolean {
+	if (a.length !== b.length) return false;
+	for (let i = 0; i < a.length; i++) {
+		const itemA = a[i];
+		const itemB = b[i];
+		if (itemA.type !== itemB.type) return false;
+		if (itemA.type === "text" && itemB.type === "text") {
+			if (itemA.content !== itemB.content) return false;
+		} else if (itemA.type === "image" && itemB.type === "image") {
+			if (itemA.data !== itemB.data || itemA.mimeType !== itemB.mimeType) return false;
+		} else if (itemA.type === "file" && itemB.type === "file") {
+			if (itemA.data !== itemB.data || itemA.mimeType !== itemB.mimeType || itemA.filename !== itemB.filename) return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * Find previous read of the same file with same parameters
+ * Returns the previous content if found, null otherwise
+ */
+function findPreviousRead(
+	context: ToolExecutionContext | undefined,
+	absolutePath: string,
+	offset: number | undefined,
+	limit: number | undefined,
+	cwd: string,
+): Content | null {
+	if (!context?.messages) return null;
+
+	// Build a map of toolCallId to arguments from assistant messages
+	const toolCallArgs = new Map<string, Record<string, any>>();
+	for (const msg of context.messages) {
+		if (msg.role === "assistant") {
+			for (const item of msg.content) {
+				if (item.type === "toolCall" && item.name === "read") {
+					toolCallArgs.set(item.toolCallId, item.arguments);
+				}
+			}
+		}
+	}
+
+	// Find matching tool result (iterate in reverse to find most recent)
+	for (let i = context.messages.length - 1; i >= 0; i--) {
+		const msg = context.messages[i] as Message;
+		if (msg.role === "toolResult" && msg.toolName === "read" && !msg.isError) {
+			const args = toolCallArgs.get(msg.toolCallId);
+			if (!args) continue;
+
+			// Compare path (resolve to absolute)
+			const prevPath = resolveReadPath(args.path, cwd);
+			if (prevPath !== absolutePath) continue;
+
+			// Compare offset and limit (treat undefined as equivalent)
+			if (args.offset !== offset || args.limit !== limit) continue;
+
+			// Found a match - return the content
+			return msg.content as Content;
+		}
+	}
+
+	return null;
 }
 
 export function createReadTool(cwd: string): AgentTool<typeof readSchema> {
@@ -26,6 +98,8 @@ export function createReadTool(cwd: string): AgentTool<typeof readSchema> {
 			_toolCallId: string,
 			{ path, offset, limit }: { path: string; offset?: number; limit?: number },
 			signal?: AbortSignal,
+			_onUpdate?: unknown,
+			context?: ToolExecutionContext,
 		) => {
 			const absolutePath = resolveReadPath(path, cwd);
 
@@ -147,6 +221,16 @@ export function createReadTool(cwd: string): AgentTool<typeof readSchema> {
 							// Clean up abort handler
 							if (signal) {
 								signal.removeEventListener("abort", onAbort);
+							}
+
+							// Check if content matches a previous read of the same file
+							const previousContent = findPreviousRead(context, absolutePath, offset, limit, cwd);
+							if (previousContent !== null && contentEquals(previousContent, content)) {
+								resolve({
+									content: [{ type: "text", content: "[File unchanged since last read. Use previous content.]" }],
+									details: undefined,
+								});
+								return;
 							}
 
 							resolve({ content, details });

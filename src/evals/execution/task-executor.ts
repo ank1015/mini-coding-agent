@@ -47,18 +47,18 @@ export class TaskExecutor {
         const containerName = `eval-${taskName}-${runId}`;
 
         // Mounts:
-        // - /workspace: The task code (instructions, source, tests)
+        // - /workspace: The task code (instructions, source) - NOTE: tests are NOT mounted here
+        //   to prevent the agent from cheating by reading test files
         // - /results: Where agent writes session/events
         // - /logs/verifier: Where test.sh writes reward.txt. We map this to our local logs dir.
-        // - /tests: We map taskPath/tests to /tests because test.sh expects absolute /tests/test_state.py
-        
+        // NOTE: /tests is NOT mounted at startup - tests are copied AFTER agent completes in verify()
+
         const cmd = `docker run -d \
             --name ${containerName} \
             ${envFlags} \
             -v "${absoluteTaskPath}:/workspace" \
             -v "${absoluteResultDir}:/results" \
             -v "${absoluteLogsDir}:/logs/verifier" \
-            -v "${join(absoluteTaskPath, 'tests')}:/tests" \
             ${imageId} \
             tail -f /dev/null`;
 
@@ -100,21 +100,36 @@ export class TaskExecutor {
 
     /**
      * Run the verification script inside the container.
+     * Tests are copied to the container AFTER the agent completes to prevent cheating.
      */
-    async verify(containerId: string, resultDir: string): Promise<VerificationResult> {
+    async verify(containerId: string, resultDir: string, taskPath: string): Promise<VerificationResult> {
         console.log(`Running Verification in container ${containerId}...`);
-        
-        // 1. Run test.sh
-        // It is located at /workspace/tests/test.sh
+
+        // 1. Copy test files to container AFTER agent has completed
+        // This prevents the agent from reading test files and cheating
+        const absoluteTaskPath = resolve(taskPath);
+        const testsPath = join(absoluteTaskPath, "tests");
+
+        if (existsSync(testsPath)) {
+            console.log(`Copying test files from ${testsPath} to container /tests...`);
+            // Create /tests directory in container and copy test files
+            await execAsync(`docker exec ${containerId} mkdir -p /tests`);
+            await execAsync(`docker cp "${testsPath}/." ${containerId}:/tests/`);
+        } else {
+            console.warn(`No tests directory found at ${testsPath}`);
+        }
+
+        // 2. Run test.sh
+        // It is located at /tests/test.sh (copied above)
         // We assume it exists.
-        
+
         // We wrap in try/catch because if tests fail, the exit code might be non-zero (depending on script).
-        // The example script: 
+        // The example script:
         // if [ $? -eq 0 ]; then echo 1 > ... else echo 0 > ... fi
-        // So the script itself might exit 0 even if tests fail? 
+        // So the script itself might exit 0 even if tests fail?
         // We'll see. If it exits non-zero, execAsync throws.
-        
-        const testCmd = `docker exec ${containerId} bash -l /workspace/tests/test.sh`;
+
+        const testCmd = `docker exec ${containerId} bash -l /tests/test.sh`;
         
         try {
             await execAsync(testCmd);

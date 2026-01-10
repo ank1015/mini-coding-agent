@@ -75,7 +75,7 @@ export class EnvironmentManager {
 		const runnerImageTag = `agent-runner:${taskName}`;
 		console.log(`Building runner image ${runnerImageTag} on top of ${baseImage}...`);
 		
-		const wrapperDockerfile = this.generateWrapperDockerfile(baseImage);
+		const wrapperDockerfile = this.generateWrapperDockerfile(baseImage, workdir);
 		const wrapperPath = join(taskPath, "wrapper.Dockerfile");
 		writeFileSync(wrapperPath, wrapperDockerfile);
 
@@ -92,7 +92,7 @@ export class EnvironmentManager {
 		return { imageId: runnerImageTag, workdir };
 	}
 
-	private generateWrapperDockerfile(baseImage: string): string {
+	private generateWrapperDockerfile(baseImage: string, taskWorkdir: string): string {
 		return `
 FROM ${baseImage}
 
@@ -112,24 +112,23 @@ WORKDIR /opt/agent
 # 3. Copy Agent Dependencies and Source
 # We assume we are building from the agent's root
 COPY package.json .
-# COPY package-lock.json . 
+# COPY package-lock.json .
 
 # 4. Install dependencies (omitting dev deps to save time/space)
 RUN npm install --omit=dev
 
 # 5. Copy built source
 COPY dist ./dist
-COPY src ./src 
-# (Copying src might be useful if we need to read templates or raw files, though dist should suffice for execution. 
+COPY src ./src
+# (Copying src might be useful if we need to read templates or raw files, though dist should suffice for execution.
 #  Keeping it simple: just dist and package.json is usually enough if main points to dist)
 
 # 6. Set Environment Variables
 ENV NODE_ENV=production
 ENV AGENT_MODE=headless
 
-# 7. Setup Workspace
-# We default to /workspace. If the task uses something else, we might need to adjust.
-WORKDIR /workspace
+# 7. Setup Workspace - use the task's WORKDIR extracted from its Dockerfile
+WORKDIR ${taskWorkdir}
 `;
 	}
 

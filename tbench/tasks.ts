@@ -12,3 +12,43 @@ export const hardTasks = [
    57, 58, 60, 62, 71, 75, 78, 81, 82,
    83, 85, 88
  ]
+
+
+interface TaskRegistry {
+	name: string;
+	version: string;
+	description: string;
+	tasks: RegistryTaskEntry[];
+}
+
+export interface RegistryTaskEntry {
+	name: string;
+	git_url: string;
+	git_commit_id?: string;
+	path: string;
+}
+
+
+async function fetchRegistry(): Promise<TaskRegistry[]> {
+    try {
+        const response = await fetch('https://raw.githubusercontent.com/laude-institute/harbor/refs/heads/main/registry.json');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch registry: ${response.statusText}`);
+        }
+        return await response.json() as TaskRegistry[];
+    } catch (error) {
+        throw new Error(`Error fetching registry: ${error}`);
+    }
+}
+
+export const getTaskIdByName = async (name: string) => {
+  const registry = await fetchRegistry();
+  const tBenchRegistry = registry[3];
+
+  for (let i = 0; i < tBenchRegistry.tasks.length; i++){
+    const taskName = tBenchRegistry.tasks[i].name;
+    if(name === taskName) return i
+  }
+
+  return undefined
+}

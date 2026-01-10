@@ -8,7 +8,7 @@ import type { ToolName } from "./tools/index.js";
 
 /** Tool descriptions for system prompt */
 const toolDescriptions: Record<ToolName, string> = {
-	read: "Read file contents",
+	read: "Read file contents (text and images: jpg, png, gif, webp)",
 	bash: "Execute bash commands (ls, grep, find, etc.)",
 	edit: "Make surgical edits to files (find exact text and replace)",
 	write: "Create or overwrite files",
@@ -45,6 +45,11 @@ export interface BuildSystemPromptOptions {
 	appendSystemPrompt?: string;
 	/** Working directory. Default: process.cwd() */
 	cwd?: string;
+	/**
+	 * Enable ultra dangerous mode - tells the agent it has full root/sudo access
+	 * and can install any packages it needs. Only use in secured environments!
+	 */
+	ultraDangerousMode?: boolean;
 }
 
 /** Build the system prompt with tools, guidelines, and context */
@@ -54,6 +59,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 		selectedTools,
 		appendSystemPrompt,
 		cwd,
+		ultraDangerousMode,
 	} = options;
 	const resolvedCwd = cwd ?? process.cwd();
 	const resolvedCustomPrompt = resolvePromptInput(customPrompt, "system prompt");
@@ -123,6 +129,13 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 		guidelinesList.push(
 			"Bash output is aggressively truncated by default (first/last few lines). Use `fullOutput: true` to see more.",
 		);
+
+		// Ultra dangerous mode - full root access
+		if (ultraDangerousMode) {
+			guidelinesList.push(
+				"You have FULL root access. You can install any packages (apt-get, npm, pip, etc.) without asking for permission. Do not hesitate to install dependencies or run system commands as needed or instructed by user if they provide a more reliable solution.",
+			);
+		}
 	}
 
 	// Read before edit guideline

@@ -100,6 +100,24 @@ function generateDiffString(oldContent: string, newContent: string, contextLines
 	return output.join("\n");
 }
 
+/**
+ * Find all line numbers where a substring occurs in content
+ */
+function findOccurrenceLineNumbers(content: string, searchText: string): number[] {
+	const lineNumbers: number[] = [];
+	let searchStart = 0;
+	let foundIndex: number;
+
+	while ((foundIndex = content.indexOf(searchText, searchStart)) !== -1) {
+		// Count newlines before this position to get line number
+		const lineNumber = content.substring(0, foundIndex).split("\n").length;
+		lineNumbers.push(lineNumber);
+		searchStart = foundIndex + 1;
+	}
+
+	return lineNumbers;
+}
+
 const editSchema = Type.Object({
 	path: Type.String({ description: "Path to the file to edit (relative or absolute)" }),
 	oldText: Type.String({ description: "Exact text to find and replace (must match exactly)" }),
@@ -189,9 +207,11 @@ export function createEditTool(cwd: string): AgentTool<typeof editSchema> {
 							if (signal) {
 								signal.removeEventListener("abort", onAbort);
 							}
+							const lineNumbers = findOccurrenceLineNumbers(content, oldText);
+							const lineList = lineNumbers.join(", ");
 							reject(
 								new Error(
-									`Found ${occurrences} occurrences of the text in ${path}. The text must be unique. Please provide more context to make it unique.`,
+									`Found ${occurrences} occurrences of the text in ${path} at lines ${lineList}. Please provide more surrounding context to uniquely identify the target.`,
 								),
 							);
 							return;
