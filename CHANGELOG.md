@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.0.17
+
+### Features
+- **Prompt Optimizations & Security**:
+  - **Ultra Dangerous Mode**: Added `ultraDangerousMode` flag to enable full root/sudo access in system prompts for secured environments.
+  - **Injected Prompts**: Added support for `AGENT_INJECTED_PROMPT` environment variable to append instructions to evaluations.
+  - **System Prompts in Evals**: Updated `Orchestrator` and `AgentRunner` to support custom system prompts during evaluation.
+- **Improved Tooling**:
+  - **Read Tool**: Implemented smart caching to skip re-reading unchanged files.
+  - **Bash Tool**: Enhanced error handling to capture and report `stderr` separately.
+  - **Grep Tool**: Set default context lines to 2 for more concise search results.
+  - **Edit Tool**: Improved error messages to include line numbers for better debugging.
+- **TBench Dashboard**: Added infrastructure for a tasks dashboard (`tbench/`) including conversation context visualization.
+
+### Fixes
+- **Evaluations**: Corrected verification directory paths in evaluation setup.
+
 ## 0.0.16
 
 ### Features
