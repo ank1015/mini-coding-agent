@@ -1,9 +1,9 @@
-import { type BaseAssistantMessage, type AgentState, type Api, GoogleThinkingLevel } from "@ank1015/providers";
+import { type BaseAssistantMessage, type AgentState, type Api } from "@ank1015/providers";
 import { type Component, visibleWidth } from "@ank1015/agents-tui";
 import { theme } from "../theme/theme.js";
 
 /**
- * Footer component that shows token stats, context usage, and model info
+ * Footer component that shows token stats, context usage, and session branch
  */
 export class FooterComponent implements Component {
 	private state: AgentState;
@@ -111,71 +111,15 @@ export class FooterComponent implements Component {
 		// Add active branch name
 		statsParts.push(`[${this.activeBranch}]`);
 
-		let statsLeft = statsParts.join(" ");
+		let statsLine = statsParts.join(" ");
 
-		// Add model name on the right side, plus thinking level if model supports it
-		const modelName = this.state.provider.model?.id || "no-model";
-		
-		// Add thinking level hint
-		let thinkingHint = "";
-		const model = this.state.provider.model;
-		const options = this.state.provider.providerOptions;
-		if (model?.api === "openai") {
-			const level = (options as any).reasoning?.effort;
-			if (level) thinkingHint = ` [${level}]`;
-		} else if (model?.api === "google") {
-			const level = (options as any).thinkingConfig?.thinkingLevel;
-			if (level !== undefined && level !== null) {
-				const label = level === GoogleThinkingLevel.HIGH ? 'high' : 'low';
-				thinkingHint = ` [${label}]`;
-			}
+		// Truncate if too wide
+		const statsLineWidth = visibleWidth(statsLine);
+		if (statsLineWidth > width) {
+			const plainStatsLine = statsLine.replace(/\x1b\[[0-9;]*m/g, "");
+			statsLine = `${plainStatsLine.substring(0, width - 3)}...`;
 		}
 
-		let rightSide = modelName + thinkingHint;
-
-		let statsLeftWidth = visibleWidth(statsLeft);
-		const rightSideWidth = visibleWidth(rightSide);
-
-		// If statsLeft is too wide, truncate it
-		if (statsLeftWidth > width) {
-			// Truncate statsLeft to fit width (no room for right side)
-			const plainStatsLeft = statsLeft.replace(/\x1b\[[0-9;]*m/g, "");
-			statsLeft = `${plainStatsLeft.substring(0, width - 3)}...`;
-			statsLeftWidth = visibleWidth(statsLeft);
-		}
-
-		// Calculate available space for padding (minimum 2 spaces between stats and model)
-		const minPadding = 2;
-		const totalNeeded = statsLeftWidth + minPadding + rightSideWidth;
-
-		let statsLine: string;
-		if (totalNeeded <= width) {
-			// Both fit - add padding to right-align model
-			const padding = " ".repeat(width - statsLeftWidth - rightSideWidth);
-			statsLine = statsLeft + padding + rightSide;
-		} else {
-			// Need to truncate right side
-			const availableForRight = width - statsLeftWidth - minPadding;
-			if (availableForRight > 3) {
-				// Truncate to fit (strip ANSI codes for length calculation, then truncate raw string)
-				const plainRightSide = rightSide.replace(/\x1b\[[0-9;]*m/g, "");
-				const truncatedPlain = plainRightSide.substring(0, availableForRight);
-				// For simplicity, just use plain truncated version (loses color, but fits)
-				const padding = " ".repeat(width - statsLeftWidth - truncatedPlain.length);
-				statsLine = statsLeft + padding + truncatedPlain;
-			} else {
-				// Not enough space for right side at all
-				statsLine = statsLeft;
-			}
-		}
-
-		// Apply dim to each part separately. statsLeft may contain color codes (for context %)
-		// that end with a reset, which would clear an outer dim wrapper. So we dim the parts
-		// before and after the colored section independently.
-		const dimStatsLeft = theme.fg("dim", statsLeft);
-		const remainder = statsLine.slice(statsLeft.length); // padding + rightSide
-		const dimRemainder = theme.fg("dim", remainder);
-
-		return [dimStatsLeft + dimRemainder];
+		return [theme.fg("dim", statsLine)];
 	}
 }

@@ -26,7 +26,7 @@ import { FooterComponent } from "./components/footer.js";
 import { AssistantMessageComponent } from "./components/assistant-message.js";
 import { ToolExecutionComponent } from "./components/tool-execution.js";
 import { getEditorTheme, getMarkdownTheme, onThemeChange, theme } from "./theme/theme.js";
-import { APP_NAME, getDebugLogPath } from "../config.js";
+import { getDebugLogPath } from "../config.js";
 import { AgentState, Api, BaseAssistantEvent, BaseAssistantMessage, Message } from "@ank1015/providers";
 import { UserMessageComponent } from "./components/user-message.js";
 import { DynamicBorder } from "./components/dynamic-border.js";
@@ -684,11 +684,27 @@ export class InteractiveMode {
 
 	/**
 	 * Update the editor info line with current model information.
-	 * Shows: "Build  <model-name>  <app-name>"
+	 * Shows: "Build  <model-name>  [thinking-level]" (thinking level only for supported models)
 	 */
 	private updateEditorInfoLine(): void {
 		const modelName = this.session.state.provider.model?.id || "no-model";
-		const infoLine = `${theme.fg("accent", "Build")}  ${modelName}  ${APP_NAME}`;
+
+		// Get thinking level hint if applicable
+		let thinkingHint = "";
+		const model = this.session.state.provider.model;
+		const options = this.session.state.provider.providerOptions;
+		if (model?.api === "openai") {
+			const level = (options as OpenAIProviderOptions).reasoning?.effort;
+			if (level) thinkingHint = `  [${level}]`;
+		} else if (model?.api === "google") {
+			const level = (options as GoogleProviderOptions).thinkingConfig?.thinkingLevel;
+			if (level !== undefined && level !== null) {
+				const label = level === GoogleThinkingLevel.HIGH ? 'high' : 'low';
+				thinkingHint = `  [${label}]`;
+			}
+		}
+
+		const infoLine = `${theme.fg("accent", "Build")}  ${modelName}${thinkingHint}`;
 		this.editor.setInfoLine(infoLine);
 	}
 
