@@ -148,45 +148,9 @@ export class InteractiveMode {
 		// Clear terminal on startup (remove previous terminal history)
 		this.ui.terminal.write("\x1b[3J\x1b[2J\x1b[H");
 
-		// Add header
-		const logo = theme.bold(theme.fg("accent", APP_NAME)) + theme.fg("dim", ` v${this.version}`);
-		const instructions =
-			theme.fg("dim", "esc") +
-			theme.fg("muted", " to interrupt") +
-			"\n" +
-			theme.fg("dim", "ctrl+c") +
-			theme.fg("muted", " to clear") +
-			"\n" +
-			theme.fg("dim", "ctrl+c twice") +
-			theme.fg("muted", " to exit") +
-			"\n" +
-			theme.fg("dim", "ctrl+d") +
-			theme.fg("muted", " to exit (empty)") +
-			"\n" +
-			theme.fg("dim", "ctrl+z") +
-			theme.fg("muted", " to suspend") +
-			"\n" +
-			theme.fg("dim", "ctrl+k") +
-			theme.fg("muted", " to delete line") +
-			"\n" +
-			theme.fg("dim", "ctrl+o") +
-			theme.fg("muted", " to expand tools") +
-			"\n" +
-			theme.fg("dim", "ctrl+g") +
-			theme.fg("muted", " for external editor") +
-			"\n" +
-			theme.fg("dim", "/") +
-			theme.fg("muted", " for commands") +
-			"\n" +
-			theme.fg("dim", "drop files") +
-			theme.fg("muted", " to attach");
-		const header = new Text(`${logo}\n${instructions}`, 1, 0);
-
 		this.fullScreenBox.addChild(new WelcomeBox())
 
 		// Setup UI layout
-		this.fullScreenBox.addChild(new Spacer(1));
-		this.fullScreenBox.addChild(header);
 		this.fullScreenBox.addChild(new Spacer(1));
 
 		this.fullScreenBox.addChild(this.chatContainer);
