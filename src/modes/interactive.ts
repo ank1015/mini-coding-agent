@@ -6,6 +6,7 @@ import {
 	CombinedAutocompleteProvider,
 	type Component,
 	Container,
+	DynamicSpacer,
 	FullScreenBox,
 	getCapabilities,
 	Loader,
@@ -156,7 +157,34 @@ export class InteractiveMode {
 		this.fullScreenBox.addChild(this.chatContainer);
 		this.fullScreenBox.addChild(this.pendingMessagesContainer);
 		this.fullScreenBox.addChild(this.statusContainer);
-		this.fullScreenBox.addChild(new Spacer(1));
+
+		// Dynamic spacer that pushes editor to bottom
+		const flexSpacer = new DynamicSpacer(() => {
+			const terminalHeight = this.ui.terminal.rows;
+			const terminalWidth = this.ui.terminal.columns;
+
+			// Fixed component heights
+			const welcomeBoxHeight = 14;
+			const spacerAfterWelcome = 1;
+			const editorHeight = 3;
+			const footerHeight = 2;
+			const fixedHeight = welcomeBoxHeight + spacerAfterWelcome + editorHeight + footerHeight;
+
+			// Calculate dynamic content height by rendering containers
+			const chatLines = this.chatContainer.render(terminalWidth).length;
+			const pendingLines = this.pendingMessagesContainer.render(terminalWidth).length;
+			const statusLines = this.statusContainer.render(terminalWidth).length;
+			const dynamicContentHeight = chatLines + pendingLines + statusLines;
+
+			// Total content height (excluding this spacer)
+			const totalContentHeight = fixedHeight + dynamicContentHeight;
+
+			// Return remaining space to push editor to bottom
+			// If content exceeds terminal, return 0 (no spacing needed)
+			return Math.max(0, terminalHeight - totalContentHeight);
+		});
+		this.fullScreenBox.addChild(flexSpacer);
+
 		this.fullScreenBox.addChild(this.editorContainer);
 		this.fullScreenBox.addChild(this.footer);
 
