@@ -137,6 +137,9 @@ export class InteractiveMode {
 	async init(): Promise<void> {
 		if (this.isInitialized) return;
 
+		// Clear terminal on startup (remove previous terminal history)
+		this.ui.terminal.write("\x1b[3J\x1b[2J\x1b[H");
+
 		// Add header
 		const logo = theme.bold(theme.fg("accent", APP_NAME)) + theme.fg("dim", ` v${this.version}`);
 		const instructions =
@@ -1388,6 +1391,8 @@ export class InteractiveMode {
 		}
 		if (this.isInitialized) {
 			this.ui.stop();
+			// Clear terminal on exit (remove all agent UI)
+			process.stdout.write("\x1b[3J\x1b[2J\x1b[H");
 			this.isInitialized = false;
 		}
 	}
