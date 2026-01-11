@@ -162,6 +162,7 @@ export class InteractiveMode {
 		// Clear terminal on startup (remove previous terminal history)
 		this.ui.terminal.write("\x1b[3J\x1b[2J\x1b[H");
 
+		this.fullScreenBox.addChild(new Spacer(1)); // Spacer above welcome box
 		this.fullScreenBox.addChild(new WelcomeBox())
 
 		// Setup UI layout
@@ -177,11 +178,12 @@ export class InteractiveMode {
 			const terminalWidth = this.ui.terminal.columns;
 
 			// Fixed component heights
+			const spacerBeforeWelcome = 1;
 			const welcomeBoxHeight = 14;
 			const spacerAfterWelcome = 1;
 			const editorHeight = 5; // 1 padding top + 1 input line + 1 spacer + 1 info line + 1 padding bottom
-			const footerHeight = 1; // Single line: stats + model info
-			const fixedHeight = welcomeBoxHeight + spacerAfterWelcome + editorHeight + footerHeight;
+			const footerHeight = 3; // spacer + stats line + spacer
+			const fixedHeight = spacerBeforeWelcome + welcomeBoxHeight + spacerAfterWelcome + editorHeight + footerHeight;
 
 			// Calculate dynamic content height by rendering containers
 			const chatLines = this.chatContainer.render(terminalWidth).length;
@@ -684,7 +686,7 @@ export class InteractiveMode {
 
 	/**
 	 * Update the editor info line with current model information.
-	 * Shows: "Build  <model-name>  [thinking-level]" (thinking level only for supported models)
+	 * Shows: "Build" on left, "<model-name> [thinking-level]" on right (flex layout)
 	 */
 	private updateEditorInfoLine(): void {
 		const modelName = this.session.state.provider.model?.id || "no-model";
@@ -695,16 +697,31 @@ export class InteractiveMode {
 		const options = this.session.state.provider.providerOptions;
 		if (model?.api === "openai") {
 			const level = (options as OpenAIProviderOptions).reasoning?.effort;
-			if (level) thinkingHint = `  [${level}]`;
+			if (level) thinkingHint = ` [${level}]`;
 		} else if (model?.api === "google") {
 			const level = (options as GoogleProviderOptions).thinkingConfig?.thinkingLevel;
 			if (level !== undefined && level !== null) {
 				const label = level === GoogleThinkingLevel.HIGH ? 'high' : 'low';
-				thinkingHint = `  [${label}]`;
+				thinkingHint = ` [${label}]`;
 			}
 		}
 
-		const infoLine = `${theme.fg("accent", "Build")}  ${modelName}${thinkingHint}`;
+		// Calculate content width for flex layout
+		// Editor setup: maxWidth = columns - 4, leftBorder = 2, paddingLeft = 0
+		const editorMargin = 4;
+		const leftBorderWidth = 2;
+		const rightMargin = 1; // Add margin so right side doesn't touch the edge
+		const contentWidth = this.ui.terminal.columns - editorMargin - leftBorderWidth - rightMargin;
+
+		const leftPart = theme.fg("accent", "Build");
+		const rightPart = `${modelName}${thinkingHint}`;
+
+		// Calculate padding between left and right parts
+		const leftWidth = 5; // "Build" = 5 chars
+		const rightWidth = rightPart.length;
+		const padding = Math.max(1, contentWidth - leftWidth - rightWidth);
+
+		const infoLine = `${leftPart}${" ".repeat(padding)}${rightPart}`;
 		this.editor.setInfoLine(infoLine);
 	}
 

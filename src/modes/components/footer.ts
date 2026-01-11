@@ -113,13 +113,22 @@ export class FooterComponent implements Component {
 
 		let statsLine = statsParts.join(" ");
 
+		// Add left margin (2 columns)
+		const leftMargin = "  ";
+		const availableWidth = width - leftMargin.length;
+
 		// Truncate if too wide
 		const statsLineWidth = visibleWidth(statsLine);
-		if (statsLineWidth > width) {
+		if (statsLineWidth > availableWidth) {
 			const plainStatsLine = statsLine.replace(/\x1b\[[0-9;]*m/g, "");
-			statsLine = `${plainStatsLine.substring(0, width - 3)}...`;
+			statsLine = `${plainStatsLine.substring(0, availableWidth - 3)}...`;
 		}
 
-		return [theme.fg("dim", statsLine)];
+		// Return 3 lines: spacer, content with margin, spacer
+		return [
+			"",
+			leftMargin + theme.fg("dim", statsLine),
+			"",
+		];
 	}
 }
