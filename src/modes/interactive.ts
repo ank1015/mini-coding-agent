@@ -180,7 +180,7 @@ export class InteractiveMode {
 			const welcomeBoxHeight = 14;
 			const spacerAfterWelcome = 1;
 			const editorHeight = 5; // 1 padding top + 1 input line + 1 spacer + 1 info line + 1 padding bottom
-			const footerHeight = 2;
+			const footerHeight = 1; // Single line: stats + model info
 			const fixedHeight = welcomeBoxHeight + spacerAfterWelcome + editorHeight + footerHeight;
 
 			// Calculate dynamic content height by rendering containers
@@ -223,11 +223,6 @@ export class InteractiveMode {
 			this.ui.invalidate();
 			this.updateEditorBorderColor();
 			this.updateEditorInfoLine();
-			this.ui.requestRender();
-		});
-
-		// Set up git branch watcher
-		this.footer.watchBranch(() => {
 			this.ui.requestRender();
 		});
 	}
