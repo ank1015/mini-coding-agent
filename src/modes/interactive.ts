@@ -105,6 +105,8 @@ export class InteractiveMode {
 		this.chatContainer = new Container();
 		this.pendingMessagesContainer = new Container();
 		this.statusContainer = new Container();
+		// Editor margin: x = 20, so marginLeft = 10, maxWidth = columns - 20
+		const editorMargin = 4;
 		this.editor = new CustomEditor(getEditorTheme(), {
 			showTopBorder: false,
 			showBottomBorder: false,
@@ -113,6 +115,9 @@ export class InteractiveMode {
 			paddingTop: 1,
 			paddingBottom: 1,
 			leftBorderColor: (str) => theme.fgHex("#5C9CF5", str),
+			maxWidth: () => this.ui.terminal.columns - editorMargin,
+			marginLeft: () => Math.floor(editorMargin / 2),
+			outerBgColor: (str) => theme.bg("background", str),
 		});
 		this.editorContainer = new Container();
 		this.editorContainer.addChild(this.editor);
