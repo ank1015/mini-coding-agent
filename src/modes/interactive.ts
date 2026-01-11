@@ -181,7 +181,7 @@ export class InteractiveMode {
 			const spacerBeforeWelcome = 1;
 			const welcomeBoxHeight = 14;
 			const spacerAfterWelcome = 1;
-			const spacerBeforeEditor = 4;
+			const spacerBeforeEditor = 1;
 			const editorHeight = 5; // 1 padding top + 1 input line + 1 spacer + 1 info line + 1 padding bottom
 			const footerHeight = 3; // spacer + stats line + spacer
 			const fixedHeight = spacerBeforeWelcome + welcomeBoxHeight + spacerAfterWelcome + spacerBeforeEditor + editorHeight + footerHeight;
@@ -229,6 +229,11 @@ export class InteractiveMode {
 			this.updateEditorBorderColor();
 			this.updateEditorInfoLine();
 			this.ui.requestRender();
+		});
+
+		// Set up resize handler to recalculate flex layout in editor info line
+		process.stdout.on("resize", () => {
+			this.updateEditorInfoLine();
 		});
 	}
 
