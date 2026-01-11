@@ -112,6 +112,7 @@ export class InteractiveMode {
 			showBottomBorder: false,
 			showLeftBorder: true,
 			paddingLeft: 0,
+			paddingRight: 1, // Right margin for input text
 			paddingTop: 1,
 			paddingBottom: 1,
 			leftBorderColor: (str) => theme.fgHex("#5C9CF5", str),
@@ -182,15 +183,15 @@ export class InteractiveMode {
 			const welcomeBoxHeight = 14;
 			const spacerAfterWelcome = 1;
 			const spacerBeforeEditor = 2;
-			const editorHeight = 5; // 1 padding top + 1 input line + 1 spacer + 1 info line + 1 padding bottom
 			const footerHeight = 3; // spacer + stats line + spacer
-			const fixedHeight = spacerBeforeWelcome + welcomeBoxHeight + spacerAfterWelcome + spacerBeforeEditor + editorHeight + footerHeight;
+			const fixedHeight = spacerBeforeWelcome + welcomeBoxHeight + spacerAfterWelcome + spacerBeforeEditor + footerHeight;
 
 			// Calculate dynamic content height by rendering containers
 			const chatLines = this.chatContainer.render(terminalWidth).length;
 			const pendingLines = this.pendingMessagesContainer.render(terminalWidth).length;
 			const statusLines = this.statusContainer.render(terminalWidth).length;
-			const dynamicContentHeight = chatLines + pendingLines + statusLines;
+			const editorLines = this.editorContainer.render(terminalWidth).length; // Dynamic based on input lines
+			const dynamicContentHeight = chatLines + pendingLines + statusLines + editorLines;
 
 			// Total content height (excluding this spacer)
 			const totalContentHeight = fixedHeight + dynamicContentHeight;
