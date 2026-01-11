@@ -54,7 +54,7 @@ import { getAgentDir } from "../config.js";
 export interface CreateAgentSessionOptions {
 	/** Working directory for project-local discovery. Default: process.cwd() */
 	cwd?: string;
-	/** Global config directory. Default: ~/.pi/agent */
+	/** Global config directory. Default: ~/.mini/agent */
 	agentDir?: string;
 
 	/** Model and provider options together */
