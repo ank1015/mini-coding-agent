@@ -24,7 +24,7 @@ const ThemeJsonSchema = Type.Object({
 	name: Type.String(),
 	vars: Type.Optional(Type.Record(Type.String(), ColorValueSchema)),
 	colors: Type.Object({
-		// Core UI (10 colors)
+		// Core UI (11 colors)
 		accent: ColorValueSchema,
 		border: ColorValueSchema,
 		borderAccent: ColorValueSchema,
@@ -36,7 +36,9 @@ const ThemeJsonSchema = Type.Object({
 		dim: ColorValueSchema,
 		text: ColorValueSchema,
 		box: ColorValueSchema,
-		// Backgrounds & Content Text (7 colors)
+		background: ColorValueSchema,
+		// Backgrounds & Content Text (8 colors)
+		editorBg: ColorValueSchema,
 		userMessageBg: ColorValueSchema,
 		userMessageText: ColorValueSchema,
 		toolPendingBg: ColorValueSchema,
@@ -117,7 +119,7 @@ export type ThemeColor =
 	| "syntaxPunctuation"
 	| "bashMode";
 
-export type ThemeBg = "userMessageBg" | "toolPendingBg" | "toolSuccessBg" | "toolErrorBg";
+export type ThemeBg = "background" | "editorBg" | "userMessageBg" | "toolPendingBg" | "toolSuccessBg" | "toolErrorBg";
 
 type ColorMode = "truecolor" | "256color";
 
@@ -454,7 +456,7 @@ function createTheme(themeJson: ThemeJson, mode?: ColorMode): Theme {
 	const resolvedColors = resolveThemeColors(themeJson.colors, themeJson.vars);
 	const fgColors: Record<ThemeColor, string | number> = {} as Record<ThemeColor, string | number>;
 	const bgColors: Record<ThemeBg, string | number> = {} as Record<ThemeBg, string | number>;
-	const bgColorKeys: Set<string> = new Set(["userMessageBg", "toolPendingBg", "toolSuccessBg", "toolErrorBg"]);
+	const bgColorKeys: Set<string> = new Set(["background", "editorBg", "userMessageBg", "toolPendingBg", "toolSuccessBg", "toolErrorBg"]);
 	for (const [key, value] of Object.entries(resolvedColors)) {
 		if (bgColorKeys.has(key)) {
 			bgColors[key as ThemeBg] = value;
@@ -773,6 +775,7 @@ export function getSelectListTheme(): SelectListTheme {
 export function getEditorTheme(): EditorTheme {
 	return {
 		borderColor: (text: string) => theme.fg("borderMuted", text),
+		bgColor: (text: string) => theme.bg("editorBg", text),
 		selectList: getSelectListTheme(),
 	};
 }

@@ -6,6 +6,7 @@ import {
 	CombinedAutocompleteProvider,
 	type Component,
 	Container,
+	FullScreenBox,
 	getCapabilities,
 	Loader,
 	Markdown,
@@ -42,6 +43,7 @@ import { Model, GoogleThinkingLevel, OpenAIProviderOptions, GoogleProviderOption
 export class InteractiveMode {
     private session: AgentSession;
 	private ui: TUI;
+	private fullScreenBox: FullScreenBox;
 	private chatContainer: Container;
 	private pendingMessagesContainer: Container;
 	private statusContainer: Container;
@@ -93,6 +95,12 @@ export class InteractiveMode {
 		this.session = session;
 		this.version = version;
 		this.ui = new TUI(new ProcessTerminal());
+		this.fullScreenBox = new FullScreenBox(
+			() => this.ui.terminal.rows,
+			0, // paddingX
+			0, // paddingY
+			(text) => theme.bg("background", text), // background color
+		);
 		this.chatContainer = new Container();
 		this.pendingMessagesContainer = new Container();
 		this.statusContainer = new Container();
@@ -174,19 +182,22 @@ export class InteractiveMode {
 			theme.fg("muted", " to attach");
 		const header = new Text(`${logo}\n${instructions}`, 1, 0);
 
-		this.ui.addChild(new WelcomeBox())
+		this.fullScreenBox.addChild(new WelcomeBox())
 
 		// Setup UI layout
-		this.ui.addChild(new Spacer(1));
-		this.ui.addChild(header);
-		this.ui.addChild(new Spacer(1));
+		this.fullScreenBox.addChild(new Spacer(1));
+		this.fullScreenBox.addChild(header);
+		this.fullScreenBox.addChild(new Spacer(1));
 
-		this.ui.addChild(this.chatContainer);
-		this.ui.addChild(this.pendingMessagesContainer);
-		this.ui.addChild(this.statusContainer);
-		this.ui.addChild(new Spacer(1));
-		this.ui.addChild(this.editorContainer);
-		this.ui.addChild(this.footer);
+		this.fullScreenBox.addChild(this.chatContainer);
+		this.fullScreenBox.addChild(this.pendingMessagesContainer);
+		this.fullScreenBox.addChild(this.statusContainer);
+		this.fullScreenBox.addChild(new Spacer(1));
+		this.fullScreenBox.addChild(this.editorContainer);
+		this.fullScreenBox.addChild(this.footer);
+
+		// Add fullScreenBox to TUI
+		this.ui.addChild(this.fullScreenBox);
 		this.ui.setFocus(this.editor);
 
 		this.setupKeyHandlers();
