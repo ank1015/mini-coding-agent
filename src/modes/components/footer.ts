@@ -114,7 +114,7 @@ export class FooterComponent implements Component {
 		let statsLine = statsParts.join(" ");
 
 		// Add left margin (2 columns)
-		const leftMargin = "  ";
+		const leftMargin = "   ";
 		const availableWidth = width - leftMargin.length;
 
 		// Truncate if too wide

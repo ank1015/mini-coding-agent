@@ -181,9 +181,10 @@ export class InteractiveMode {
 			const spacerBeforeWelcome = 1;
 			const welcomeBoxHeight = 14;
 			const spacerAfterWelcome = 1;
+			const spacerBeforeEditor = 4;
 			const editorHeight = 5; // 1 padding top + 1 input line + 1 spacer + 1 info line + 1 padding bottom
 			const footerHeight = 3; // spacer + stats line + spacer
-			const fixedHeight = spacerBeforeWelcome + welcomeBoxHeight + spacerAfterWelcome + editorHeight + footerHeight;
+			const fixedHeight = spacerBeforeWelcome + welcomeBoxHeight + spacerAfterWelcome + spacerBeforeEditor + editorHeight + footerHeight;
 
 			// Calculate dynamic content height by rendering containers
 			const chatLines = this.chatContainer.render(terminalWidth).length;
@@ -200,6 +201,8 @@ export class InteractiveMode {
 		});
 		this.fullScreenBox.addChild(flexSpacer);
 
+		// Add spacing before editor when there's content above
+		this.fullScreenBox.addChild(new Spacer(1));
 		this.fullScreenBox.addChild(this.editorContainer);
 		this.fullScreenBox.addChild(this.footer);
 
@@ -388,7 +391,7 @@ export class InteractiveMode {
 					this.statusContainer.clear();
 					this.loadingAnimation = new Loader(
 						this.ui,
-						(spinner) => theme.fg("accent", spinner),
+						(spinner) => "  " + theme.fg("accent", spinner), // 2-space left margin
 						(text) => theme.fg("muted", text),
 						"Working... (esc to interrupt)",
 					);
@@ -789,7 +792,7 @@ export class InteractiveMode {
 		this.stopLoader();
 		this.loadingAnimation = new Loader(
 			this.ui,
-			(spinner) => theme.fg("accent", spinner),
+			(spinner) => "  " + theme.fg("accent", spinner), // 2-space left margin
 			(text) => theme.fg("muted", text),
 			message,
 		);
