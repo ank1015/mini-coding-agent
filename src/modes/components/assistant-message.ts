@@ -2,6 +2,10 @@ import type { BaseAssistantMessage, Api, TextContent, BaseAssistantEventMessage 
 import { Container, Markdown, Spacer, Text } from "@ank1015/agents-tui";
 import { getMarkdownTheme, theme } from "../theme/theme.js";
 
+// Margin to match editor layout (editorMargin = 4, marginLeft = 2)
+const MARGIN_LEFT = "  "; // 2 spaces
+const MARGIN_TOTAL = 4; // Total width reduction to match editor
+
 /**
  * Component that renders a complete assistant message
  */
@@ -88,5 +92,10 @@ export class AssistantMessageComponent extends Container {
 				this.contentContainer.addChild(new Text(theme.fg("error", `Error: ${errorMsg}`), 1, 0));
 			}
 		}
+	}
+
+	render(width: number): string[] {
+		const lines = super.render(width - MARGIN_TOTAL);
+		return lines.map(line => MARGIN_LEFT + line);
 	}
 }
