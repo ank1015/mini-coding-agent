@@ -537,8 +537,8 @@ export class InteractiveMode {
 
 	/** Show a status message in the chat */
 	private showStatus(message: string): void {
+		this.chatContainer.addChild(new Text("  " + theme.fg("dim", message), 1, 0)); // 2-column left margin
 		this.chatContainer.addChild(new Spacer(1));
-		this.chatContainer.addChild(new Text(theme.fg("dim", message), 1, 0));
 		this.ui.requestRender();
 	}
 
@@ -723,11 +723,12 @@ export class InteractiveMode {
 		const contentWidth = this.ui.terminal.columns - editorMargin - leftBorderWidth - rightMargin;
 
 		const leftPart = theme.fg("accent", "Build");
-		const rightPart = `${modelName}${thinkingHint}`;
+		const rightPartText = `${modelName}${thinkingHint}`;
+		const rightPart = theme.fg("dim", rightPartText); // Dim color like cwd in welcome box
 
 		// Calculate padding between left and right parts
 		const leftWidth = 5; // "Build" = 5 chars
-		const rightWidth = rightPart.length;
+		const rightWidth = rightPartText.length; // Use plain text length for calculation
 		const padding = Math.max(1, contentWidth - leftWidth - rightWidth);
 
 		const infoLine = `${leftPart}${" ".repeat(padding)}${rightPart}`;
