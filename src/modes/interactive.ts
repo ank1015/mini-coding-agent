@@ -181,7 +181,7 @@ export class InteractiveMode {
 			const spacerBeforeWelcome = 1;
 			const welcomeBoxHeight = 14;
 			const spacerAfterWelcome = 1;
-			const spacerBeforeEditor = 1;
+			const spacerBeforeEditor = 2;
 			const editorHeight = 5; // 1 padding top + 1 input line + 1 spacer + 1 info line + 1 padding bottom
 			const footerHeight = 3; // spacer + stats line + spacer
 			const fixedHeight = spacerBeforeWelcome + welcomeBoxHeight + spacerAfterWelcome + spacerBeforeEditor + editorHeight + footerHeight;
@@ -201,8 +201,8 @@ export class InteractiveMode {
 		});
 		this.fullScreenBox.addChild(flexSpacer);
 
-		// Add spacing before editor when there's content above
-		this.fullScreenBox.addChild(new Spacer(1));
+		// Add spacing before editor (outside the box)
+		this.fullScreenBox.addChild(new Spacer(2));
 		this.fullScreenBox.addChild(this.editorContainer);
 		this.fullScreenBox.addChild(this.footer);
 
