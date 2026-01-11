@@ -4,7 +4,7 @@
 
 import { VERSION } from "../config.js";
 
-export type Mode = "interactive" | "print" | "rpc";
+export type Mode = "interactive" | "print" | "rpc" | "mock" | "discord";
 export type OutputFormat = "text" | "json";
 
 export interface Args {
@@ -24,6 +24,9 @@ export interface Args {
 	// Help/version
 	help?: boolean;
 	version?: boolean;
+
+	// Remote server options
+	workingDir?: string;
 }
 
 export function parseArgs(args: string[]): Args {
@@ -46,11 +49,15 @@ export function parseArgs(args: string[]): Args {
 		// Mode selection
 		else if (arg === "--mode" && i + 1 < args.length) {
 			const modeArg = args[++i];
-			if (modeArg === "rpc" || modeArg === "print" || modeArg === "interactive") {
-				result.mode = modeArg;
+			if (["rpc", "print", "interactive", "mock", "discord"].includes(modeArg)) {
+				result.mode = modeArg as Mode;
 			}
 		} else if (arg === "--print" || arg === "-p") {
 			result.mode = "print";
+		} else if (arg === "--mock") {
+			result.mode = "mock";
+		} else if (arg === "--discord") {
+			result.mode = "discord";
 		}
 
 		// Output format (for print mode)
@@ -72,6 +79,11 @@ export function parseArgs(args: string[]): Args {
 			result.session = args[++i];
 		}
 
+		// Working directory (for remote modes)
+		else if ((arg === "--cwd" || arg === "-d") && i + 1 < args.length) {
+			result.workingDir = args[++i];
+		}
+
 		// Positional arguments (messages)
 		else if (!arg.startsWith("-")) {
 			result.messages.push(arg);
@@ -89,12 +101,14 @@ export function parseArgs(args: string[]): Args {
 
 export function printHelp(): void {
 	console.log(`
-Usage: agent [options] [message...]
+Usage: mini [options] [message...]
 
 Modes:
   (default)              Interactive TUI mode
   -p, --print            Print mode (single-shot, output and exit)
-  --mode <mode>          Explicit mode: interactive, print, rpc
+  --mode <mode>          Explicit mode: interactive, print, rpc, mock, discord
+  --mock                 Start mock server (console-based testing)
+  --discord              Start Discord bot
 
 Output (print mode):
   --output <format>      Output format: text (default), json
@@ -105,17 +119,31 @@ Session:
   --session <path>       Use specific session file
   --no-session           Don't persist session (in-memory only)
 
+Remote servers:
+  -d, --cwd <path>       Working directory for the agent
+
+Discord environment variables:
+  DISCORD_BOT_TOKEN      Required: Your Discord bot token
+  DISCORD_ALLOWED_USERS  Optional: Comma-separated user IDs
+  DISCORD_ALLOWED_CHANNELS Optional: Comma-separated channel IDs
+  DISCORD_COMMAND_PREFIX Optional: Require prefix (e.g., "!agent")
+  DISCORD_DM_ONLY        Optional: "true" for DM-only mode
+  DISCORD_REQUIRE_MENTION Optional: "true" to require @mention
+
 Other:
   -h, --help             Show this help
   -v, --version          Show version
 
 Examples:
-  agent                          Start interactive mode
-  agent "What is 2+2?"           Print mode with prompt
-  agent -p "Hello" --output json Print mode with JSON events
-  agent --mode rpc               Start RPC server mode
-  agent -c                       Continue last session
-  agent -r                       Pick a session to resume
+  mini                           Start interactive mode
+  mini "What is 2+2?"            Print mode with prompt
+  mini -p "Hello" --output json  Print mode with JSON events
+  mini --mode rpc                Start RPC server mode
+  mini --mock                    Start mock server for testing
+  mini --discord                 Start Discord bot
+  mini --discord -d /path/to/project  Discord bot with custom working dir
+  mini -c                        Continue last session
+  mini -r                        Pick a session to resume
 
 Version: ${VERSION}
 `);

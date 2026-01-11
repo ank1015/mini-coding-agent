@@ -7,5 +7,7 @@
 
 export { RemoteAgent, type RemoteAgentConfig } from "./remote-agent.js";
 export { RemoteServer, type RemoteServerConfig } from "./remote-server.js";
-export { MockServer, type MockServerConfig } from "./mock-server.js";
 export type { MessageHandler, RemoteAttachment, RemoteMessage, RemoteResponse } from "./types.js";
+
+// Platform-specific servers
+export { MockServer, type MockServerConfig, DiscordServer, type DiscordServerConfig } from "./servers/index.js";

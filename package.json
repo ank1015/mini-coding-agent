@@ -29,8 +29,7 @@
 		"build": "npm run clean && npm run copy-assets && tsc",
 		"copy-assets": "mkdir -p dist/modes/theme && cp src/modes/theme/*.json dist/modes/theme/",
 		"test": "vitest --run",
-		"prepublishOnly": "npm run build",
-		"mock": "node dist/remote/run-mock.js"
+		"prepublishOnly": "npm run build"
 	},
 	"dependencies": {
 		"@ank1015/agents-tui": "^0.0.21",
@@ -39,6 +38,7 @@
 		"chalk": "^5.5.0",
 		"cli-highlight": "^2.1.11",
 		"diff": "^8.0.2",
+		"discord.js": "^14.25.1",
 		"file-type": "^21.1.1",
 		"glob": "^11.0.3",
 		"jiti": "^2.6.1",

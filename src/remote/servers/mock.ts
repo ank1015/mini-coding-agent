@@ -7,8 +7,8 @@
  */
 
 import * as readline from "readline";
-import { RemoteServer, type RemoteServerConfig } from "./remote-server.js";
-import type { RemoteResponse } from "./types.js";
+import { RemoteServer, type RemoteServerConfig } from "../remote-server.js";
+import type { RemoteResponse } from "../types.js";
 
 export interface MockServerConfig extends RemoteServerConfig {
 	/** User ID to simulate */
