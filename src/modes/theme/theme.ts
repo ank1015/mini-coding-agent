@@ -325,6 +325,14 @@ export class Theme {
 		return `${ansi}${text}\x1b[39m`; // Reset only foreground color
 	}
 
+	/**
+	 * Apply a hex color directly to text (bypasses theme colors).
+	 */
+	fgHex(hex: string, text: string): string {
+		const ansi = fgAnsi(hex, this.mode);
+		return `${ansi}${text}\x1b[39m`;
+	}
+
 	bg(color: ThemeBg, text: string): string {
 		const ansi = this.bgColors.get(color);
 		if (!ansi) throw new Error(`Unknown theme background color: ${color}`);

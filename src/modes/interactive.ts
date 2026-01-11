@@ -105,7 +105,15 @@ export class InteractiveMode {
 		this.chatContainer = new Container();
 		this.pendingMessagesContainer = new Container();
 		this.statusContainer = new Container();
-		this.editor = new CustomEditor(getEditorTheme());
+		this.editor = new CustomEditor(getEditorTheme(), {
+			showTopBorder: false,
+			showBottomBorder: false,
+			showLeftBorder: true,
+			paddingLeft: 0,
+			paddingTop: 1,
+			paddingBottom: 1,
+			leftBorderColor: (str) => theme.fgHex("#5C9CF5", str),
+		});
 		this.editorContainer = new Container();
 		this.editorContainer.addChild(this.editor);
 		this.footer = new FooterComponent(session.state);
@@ -166,7 +174,7 @@ export class InteractiveMode {
 			// Fixed component heights
 			const welcomeBoxHeight = 14;
 			const spacerAfterWelcome = 1;
-			const editorHeight = 3;
+			const editorHeight = 5; // 1 padding top + 1 input line + 1 spacer + 1 info line + 1 padding bottom
 			const footerHeight = 2;
 			const fixedHeight = welcomeBoxHeight + spacerAfterWelcome + editorHeight + footerHeight;
 
@@ -199,6 +207,8 @@ export class InteractiveMode {
 		this.ui.start();
 		this.isInitialized = true;
 
+		// Initialize editor info line with model info
+		this.updateEditorInfoLine();
 
 		// Subscribe to agent events
 		this.subscribeToAgent();
@@ -207,6 +217,7 @@ export class InteractiveMode {
 		onThemeChange(() => {
 			this.ui.invalidate();
 			this.updateEditorBorderColor();
+			this.updateEditorInfoLine();
 			this.ui.requestRender();
 		});
 
@@ -365,6 +376,7 @@ export class InteractiveMode {
 		}
 		try {
 			this.footer.updateState(state, this.session.activeBranch);
+			this.updateEditorInfoLine();
 
 			switch (event.type) {
 				case "agent_start":
@@ -550,6 +562,7 @@ export class InteractiveMode {
 		if (options.updateFooter) {
 			this.footer.updateState(this.session.state, this.session.activeBranch);
 			this.updateEditorBorderColor();
+			this.updateEditorInfoLine();
 		}
 
 		for (const message of messages) {
@@ -667,6 +680,16 @@ export class InteractiveMode {
 
 	private updateEditorBorderColor(): void {
 		this.ui.requestRender();
+	}
+
+	/**
+	 * Update the editor info line with current model information.
+	 * Shows: "Build  <model-name>  <app-name>"
+	 */
+	private updateEditorInfoLine(): void {
+		const modelName = this.session.state.provider.model?.id || "no-model";
+		const infoLine = `${theme.fg("accent", "Build")}  ${modelName}  ${APP_NAME}`;
+		this.editor.setInfoLine(infoLine);
 	}
 
 	private toggleToolOutputExpansion(): void {
@@ -1130,6 +1153,7 @@ export class InteractiveMode {
 		try {
 			await this.session.updateThinkingLevel(level);
 			this.footer.updateState(this.session.state, this.session.activeBranch);
+			this.updateEditorInfoLine();
 			this.showStatus(`Thinking level set to: ${level}`);
 		} catch (error) {
 			this.showError(`Failed to set thinking level: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -1142,8 +1166,9 @@ export class InteractiveMode {
 
 			this.showStatus(`Switched to ${model.id}`);
 
-			// Update footer to show new model
+			// Update footer and editor info line to show new model
 			this.footer.updateState(this.session.state, this.session.activeBranch);
+			this.updateEditorInfoLine();
 			this.ui.requestRender();
 
 		} catch (error) {

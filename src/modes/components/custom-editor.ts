@@ -1,5 +1,7 @@
 import {
 	Editor,
+	type EditorOptions,
+	type EditorTheme,
 	isCtrlC,
 	isCtrlD,
 	isCtrlG,
@@ -24,6 +26,10 @@ export class CustomEditor extends Editor {
 	public onCtrlT?: () => void;
 	public onCtrlG?: () => void;
 	public onCtrlZ?: () => void;
+
+	constructor(theme: EditorTheme, options?: EditorOptions) {
+		super(theme, options);
+	}
 
 	handleInput(data: string): void {
 		// Intercept Ctrl+G for external editor
