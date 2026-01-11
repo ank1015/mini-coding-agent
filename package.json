@@ -29,7 +29,8 @@
 		"build": "npm run clean && npm run copy-assets && tsc",
 		"copy-assets": "mkdir -p dist/modes/theme && cp src/modes/theme/*.json dist/modes/theme/",
 		"test": "vitest --run",
-		"prepublishOnly": "npm run build"
+		"prepublishOnly": "npm run build",
+		"mock": "node dist/remote/run-mock.js"
 	},
 	"dependencies": {
 		"@ank1015/agents-tui": "^0.0.21",

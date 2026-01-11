@@ -67,4 +67,31 @@ export {
 // Re-export provider types for convenience
 export type { Api, Model, Provider, Message, Attachment, OptionsForApi } from "@ank1015/providers";
 
+// RPC mode for headless operation
+export {
+	RpcClient,
+	type RpcClientOptions,
+	type RpcEventListener,
+	type ModelInfo,
+	type SessionInfo,
+	type RpcCommand,
+	type RpcCommandType,
+	type RpcResponse,
+	type RpcSessionState,
+} from "./modes/rpc/index.js";
+
+// Remote control for messaging platforms
+export {
+	RemoteAgent,
+	RemoteServer,
+	MockServer,
+	type RemoteAgentConfig,
+	type RemoteServerConfig,
+	type MockServerConfig,
+	type RemoteMessage,
+	type RemoteAttachment,
+	type RemoteResponse,
+	type MessageHandler,
+} from "./remote/index.js";
+
 export * from './evals/index.js'
