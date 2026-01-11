@@ -26,6 +26,7 @@ import { initTheme } from "./modes/theme/theme.js";
 import { RemoteAgent } from "./remote/remote-agent.js";
 import { MockServer } from "./remote/servers/mock.js";
 import { DiscordServer } from "./remote/servers/discord.js";
+import { SlackServer } from "./remote/servers/slack.js";
 
 /**
  * Run interactive TUI mode.
@@ -186,6 +187,87 @@ async function runDiscordMode(cwd: string, cliPath: string): Promise<void> {
 	console.log("[Discord] Bot is running. Press Ctrl+C to stop.");
 }
 
+/**
+ * Run Slack bot mode.
+ */
+async function runSlackMode(cwd: string, cliPath: string): Promise<void> {
+	// Get tokens from environment
+	const botToken = process.env.SLACK_BOT_TOKEN;
+	const appToken = process.env.SLACK_APP_TOKEN;
+
+	if (!botToken || !appToken) {
+		console.error(chalk.red("Error: SLACK_BOT_TOKEN and SLACK_APP_TOKEN environment variables are required"));
+		console.error(chalk.dim("\nUsage:"));
+		console.error(chalk.dim("  SLACK_BOT_TOKEN=xoxb-... SLACK_APP_TOKEN=xapp-... mini --slack"));
+		process.exit(1);
+	}
+
+	console.log(`[Slack] Working directory: ${cwd}`);
+
+	// Parse optional config from environment
+	const allowedUsers = process.env.SLACK_ALLOWED_USERS?.split(",").map((s) => s.trim()).filter(Boolean);
+	const allowedChannels = process.env.SLACK_ALLOWED_CHANNELS?.split(",").map((s) => s.trim()).filter(Boolean);
+	const commandPrefix = process.env.SLACK_COMMAND_PREFIX;
+	const dmOnly = process.env.SLACK_DM_ONLY === "true";
+	const requireMention = process.env.SLACK_REQUIRE_MENTION === "true";
+
+	if (allowedUsers?.length) {
+		console.log(`[Slack] Allowed users: ${allowedUsers.join(", ")}`);
+	}
+	if (allowedChannels?.length) {
+		console.log(`[Slack] Allowed channels: ${allowedChannels.join(", ")}`);
+	}
+	if (commandPrefix) {
+		console.log(`[Slack] Command prefix: "${commandPrefix}"`);
+	}
+	if (dmOnly) {
+		console.log(`[Slack] DM-only mode enabled`);
+	}
+	if (requireMention) {
+		console.log(`[Slack] Require @mention enabled`);
+	}
+
+	const server = new SlackServer({
+		botToken,
+		appToken,
+		allowedUsers,
+		allowedChannels,
+		commandPrefix,
+		dmOnly,
+		requireMention,
+	});
+
+	const agent = new RemoteAgent(server, {
+		rpc: {
+			cliPath,
+			cwd,
+		},
+		showTypingIndicator: false, // Slack doesn't support typing indicators for bots
+		onAgentStart: (msg) => {
+			console.log(`[Slack] Processing message from ${msg.username}: "${msg.text.substring(0, 50)}${msg.text.length > 50 ? "..." : ""}"`);
+		},
+		onAgentEnd: (msg, response) => {
+			console.log(`[Slack] Sent response to ${msg.username} (${response.length} chars)`);
+		},
+		onError: (err, msg) => {
+			console.error(`[Slack] Error processing message from ${msg.username}:`, err.message);
+		},
+	});
+
+	// Handle graceful shutdown
+	const shutdown = async () => {
+		console.log("\n[Slack] Shutting down...");
+		await agent.stop();
+		process.exit(0);
+	};
+
+	process.on("SIGINT", shutdown);
+	process.on("SIGTERM", shutdown);
+
+	await agent.start();
+	console.log("[Slack] Bot is running. Press Ctrl+C to stop.");
+}
+
 export async function main(args: string[]) {
 	const parsed = parseArgs(args);
 
@@ -207,16 +289,18 @@ export async function main(args: string[]) {
 		process.exit(1);
 	}
 
-	// Handle remote server modes (mock, discord)
+	// Handle remote server modes (mock, discord, slack)
 	// These use RpcClient internally, not AgentSession directly
-	if (parsed.mode === "mock" || parsed.mode === "discord") {
+	if (parsed.mode === "mock" || parsed.mode === "discord" || parsed.mode === "slack") {
 		const cwd = parsed.workingDir ? path.resolve(parsed.workingDir) : process.cwd();
 		const cliPath = path.resolve(import.meta.dirname, "cli.js");
 
 		if (parsed.mode === "mock") {
 			await runMockMode(cwd, cliPath);
-		} else {
+		} else if (parsed.mode === "discord") {
 			await runDiscordMode(cwd, cliPath);
+		} else {
+			await runSlackMode(cwd, cliPath);
 		}
 		return;
 	}

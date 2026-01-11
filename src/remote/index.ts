@@ -10,4 +10,11 @@ export { RemoteServer, type RemoteServerConfig } from "./remote-server.js";
 export type { MessageHandler, RemoteAttachment, RemoteMessage, RemoteResponse } from "./types.js";
 
 // Platform-specific servers
-export { MockServer, type MockServerConfig, DiscordServer, type DiscordServerConfig } from "./servers/index.js";
+export {
+	MockServer,
+	type MockServerConfig,
+	DiscordServer,
+	type DiscordServerConfig,
+	SlackServer,
+	type SlackServerConfig,
+} from "./servers/index.js";

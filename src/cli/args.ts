@@ -4,7 +4,7 @@
 
 import { VERSION } from "../config.js";
 
-export type Mode = "interactive" | "print" | "rpc" | "mock" | "discord";
+export type Mode = "interactive" | "print" | "rpc" | "mock" | "discord" | "slack";
 export type OutputFormat = "text" | "json";
 
 export interface Args {
@@ -49,7 +49,7 @@ export function parseArgs(args: string[]): Args {
 		// Mode selection
 		else if (arg === "--mode" && i + 1 < args.length) {
 			const modeArg = args[++i];
-			if (["rpc", "print", "interactive", "mock", "discord"].includes(modeArg)) {
+			if (["rpc", "print", "interactive", "mock", "discord", "slack"].includes(modeArg)) {
 				result.mode = modeArg as Mode;
 			}
 		} else if (arg === "--print" || arg === "-p") {
@@ -58,6 +58,8 @@ export function parseArgs(args: string[]): Args {
 			result.mode = "mock";
 		} else if (arg === "--discord") {
 			result.mode = "discord";
+		} else if (arg === "--slack") {
+			result.mode = "slack";
 		}
 
 		// Output format (for print mode)
@@ -106,9 +108,10 @@ Usage: mini [options] [message...]
 Modes:
   (default)              Interactive TUI mode
   -p, --print            Print mode (single-shot, output and exit)
-  --mode <mode>          Explicit mode: interactive, print, rpc, mock, discord
+  --mode <mode>          Explicit mode: interactive, print, rpc, mock, discord, slack
   --mock                 Start mock server (console-based testing)
   --discord              Start Discord bot
+  --slack                Start Slack bot
 
 Output (print mode):
   --output <format>      Output format: text (default), json
@@ -123,12 +126,21 @@ Remote servers:
   -d, --cwd <path>       Working directory for the agent
 
 Discord environment variables:
-  DISCORD_BOT_TOKEN      Required: Your Discord bot token
-  DISCORD_ALLOWED_USERS  Optional: Comma-separated user IDs
+  DISCORD_BOT_TOKEN        Required: Your Discord bot token
+  DISCORD_ALLOWED_USERS    Optional: Comma-separated user IDs
   DISCORD_ALLOWED_CHANNELS Optional: Comma-separated channel IDs
-  DISCORD_COMMAND_PREFIX Optional: Require prefix (e.g., "!agent")
-  DISCORD_DM_ONLY        Optional: "true" for DM-only mode
-  DISCORD_REQUIRE_MENTION Optional: "true" to require @mention
+  DISCORD_COMMAND_PREFIX   Optional: Require prefix (e.g., "!agent")
+  DISCORD_DM_ONLY          Optional: "true" for DM-only mode
+  DISCORD_REQUIRE_MENTION  Optional: "true" to require @mention
+
+Slack environment variables:
+  SLACK_BOT_TOKEN          Required: Bot token (xoxb-...)
+  SLACK_APP_TOKEN          Required: App token for Socket Mode (xapp-...)
+  SLACK_ALLOWED_USERS      Optional: Comma-separated user IDs
+  SLACK_ALLOWED_CHANNELS   Optional: Comma-separated channel IDs
+  SLACK_COMMAND_PREFIX     Optional: Require prefix (e.g., "!agent")
+  SLACK_DM_ONLY            Optional: "true" for DM-only mode
+  SLACK_REQUIRE_MENTION    Optional: "true" to require @mention
 
 Other:
   -h, --help             Show this help
@@ -141,7 +153,8 @@ Examples:
   mini --mode rpc                Start RPC server mode
   mini --mock                    Start mock server for testing
   mini --discord                 Start Discord bot
-  mini --discord -d /path/to/project  Discord bot with custom working dir
+  mini --slack                   Start Slack bot
+  mini --discord -d /path/to/project  Bot with custom working dir
   mini -c                        Continue last session
   mini -r                        Pick a session to resume
 
