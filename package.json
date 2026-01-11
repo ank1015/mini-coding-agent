@@ -1,6 +1,6 @@
 {
 	"name": "@ank1015/mini-coding-agent",
-	"version": "0.0.17",
+	"version": "0.0.18",
 	"description": "MINI coding agent",
 	"type": "module",
 	"miniConfig": {

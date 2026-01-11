@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.0.18
+
+### Features
+- **Multiple Operation Modes**: Extended CLI to support multiple operation modes beyond interactive TUI.
+  - **Print Mode**: Single-shot mode for scripting and piping (`mini "prompt"` or `mini -p "prompt"`).
+  - **RPC Mode**: Headless JSON protocol over stdin/stdout for embedding in other applications (`mini --mode rpc`).
+- **Remote Server Architecture**: Added infrastructure for controlling the agent from external messaging platforms.
+  - **RemoteServer**: Abstract base class for platform integrations with filtering (users, channels, prefix).
+  - **RemoteAgent**: Orchestrator that ties RemoteServer with RpcClient for seamless message routing.
+  - **Mock Server**: Console-based server for local testing (`mini --mock`).
+- **Discord Integration**: Full Discord bot support (`mini --discord`).
+  - Message chunking for long responses (>2000 chars).
+  - Typing indicators, attachments support, reply threading.
+  - Configurable via environment variables (DM-only, require mention, allowed users/channels).
+- **Slack Integration**: Full Slack bot support using Socket Mode (`mini --slack`).
+  - Outbound-only connections (no webhooks needed).
+  - DM and channel support, @mention detection.
+  - Configurable via environment variables.
+- **RpcClient**: Programmatic client for spawning and communicating with the agent in RPC mode.
+  - Full typed API for prompts, sessions, branches, models, and more.
+  - Event streaming and wait-for-idle functionality.
+
+### Documentation
+- Added `docs/remote-control-architecture.md` with comprehensive architecture guide for remote integrations.
+
 ## 0.0.17
 
 ### Features
