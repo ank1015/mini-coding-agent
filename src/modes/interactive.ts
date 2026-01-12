@@ -891,7 +891,7 @@ export class InteractiveMode {
 			this.ui.hideModal();
 		});
 
-		this.ui.showModal(palette, { width: 50 });
+		this.ui.showModal(palette, { width: 60 });
 	}
 
 	/**

@@ -1,6 +1,7 @@
 import {
 	type Component,
 	Input,
+	type InputOptions,
 	isArrowDown,
 	isArrowUp,
 	isCtrlC,
@@ -8,6 +9,7 @@ import {
 	isEnter,
 	isEscape,
 	Modal,
+	type ModalComponentOptions,
 	type ModalTheme,
 	truncateToWidth,
 	visibleWidth,
@@ -38,6 +40,7 @@ export interface CommandPaletteTheme {
 	shortcut: (text: string) => string;
 	noResults: (text: string) => string;
 	scrollInfo: (text: string) => string;
+	placeholder: (text: string) => string;
 }
 
 /**
@@ -54,11 +57,15 @@ class CommandList implements Component {
 	public onSelect?: (item: CommandItem) => void;
 	public onCancel?: () => void;
 
-	constructor(items: CommandItem[], theme: CommandPaletteTheme) {
+	constructor(items: CommandItem[], paletteTheme: CommandPaletteTheme) {
 		this.allItems = items;
 		this.filteredItems = items;
-		this.theme = theme;
-		this.searchInput = new Input();
+		this.theme = paletteTheme;
+		this.searchInput = new Input({
+			prompt: "",
+			placeholder: "Search",
+			placeholderStyle: paletteTheme.placeholder,
+		});
 
 		this.searchInput.onSubmit = () => {
 			const selected = this.filteredItems[this.selectedIndex];
@@ -199,6 +206,7 @@ export class CommandPaletteModal extends Modal {
 		super(paletteTheme.modal, {
 			title: "Commands",
 			closeHint: "esc",
+			showSeparator: false,
 		});
 
 		this.commandList = new CommandList(commands, paletteTheme);
@@ -245,5 +253,6 @@ export function getCommandPaletteTheme(): CommandPaletteTheme {
 		shortcut: (text) => theme.fg("dim", text),
 		noResults: (text) => theme.fg("muted", text),
 		scrollInfo: (text) => theme.fg("dim", text),
+		placeholder: (text) => theme.fg("muted", text),
 	};
 }
