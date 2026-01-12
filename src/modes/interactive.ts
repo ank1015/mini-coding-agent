@@ -41,6 +41,7 @@ import { ShowImagesSelectorComponent } from "./components/show-images-selector.j
 import { WelcomeBox } from "./components/welcome-box.js";
 import { CommandPaletteModal, type CommandItem, getCommandPaletteTheme } from "./components/command-palette.js";
 import { ModelSelectorModal, getModelSelectorModalTheme } from "./components/model-selector-modal.js";
+import { ThinkingSelectorModal, getThinkingSelectorModalTheme } from "./components/thinking-selector-modal.js";
 import { Model, GoogleThinkingLevel, OpenAIProviderOptions, GoogleProviderOptions } from "@ank1015/providers";
 
 export class InteractiveMode {
@@ -355,7 +356,7 @@ export class InteractiveMode {
 				return;
 			}
 			if (text === "/thinking") {
-				this.showThinkingSelector();
+				this.showThinkingSelectorModal();
 				this.editor.setText("");
 				return;
 			}
@@ -937,7 +938,7 @@ export class InteractiveMode {
 				this.showQueueModeSelector();
 				break;
 			case "thinking":
-				this.showThinkingSelector();
+				this.showThinkingSelectorModal();
 				break;
 			case "show-images":
 				this.showShowImagesSelector();
@@ -1205,6 +1206,43 @@ export class InteractiveMode {
 			);
 			return { component: selector, focus: selector.getSelectList() };
 		});
+	}
+
+	private showThinkingSelectorModal(): void {
+		const model = this.session.model;
+		if (!model || (model.api !== "openai" && model.api !== "google")) {
+			this.showWarning("Thinking level only supported for OpenAI and Google models");
+			return;
+		}
+
+		let currentLevel: 'low' | 'high' | undefined;
+		const opts = this.session.providerOptions;
+
+		if (model.api === "openai") {
+			const o = opts as OpenAIProviderOptions;
+			const effort = o.reasoning?.effort;
+			if (effort === 'low' || effort === 'high') {
+				currentLevel = effort;
+			}
+		} else if (model.api === "google") {
+			const o = opts as GoogleProviderOptions;
+			const level = o.thinkingConfig?.thinkingLevel;
+			if (level === GoogleThinkingLevel.HIGH) currentLevel = 'high';
+			else if (level === GoogleThinkingLevel.LOW) currentLevel = 'low';
+		}
+
+		const modal = new ThinkingSelectorModal(currentLevel, getThinkingSelectorModalTheme());
+
+		modal.setOnSelect(async (level) => {
+			this.ui.hideModal();
+			await this.handleThinkingChange(level);
+		});
+
+		modal.setOnClose(() => {
+			this.ui.hideModal();
+		});
+
+		this.ui.showModal(modal, { width: 50 });
 	}
 
 	private showBranchSwitchSelector(): void {
