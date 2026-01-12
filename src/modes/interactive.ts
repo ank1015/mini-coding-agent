@@ -40,6 +40,7 @@ import { ThinkingSelectorComponent } from "./components/thinking-selector.js";
 import { ShowImagesSelectorComponent } from "./components/show-images-selector.js";
 import { WelcomeBox } from "./components/welcome-box.js";
 import { CommandPaletteModal, type CommandItem, getCommandPaletteTheme } from "./components/command-palette.js";
+import { ModelSelectorModal, getModelSelectorModalTheme } from "./components/model-selector-modal.js";
 import { Model, GoogleThinkingLevel, OpenAIProviderOptions, GoogleProviderOptions } from "@ank1015/providers";
 
 export class InteractiveMode {
@@ -329,7 +330,7 @@ export class InteractiveMode {
 				return;
 			}
 			if (text === "/model") {
-				this.showModelSelector();
+				this.showModelSelectorModal();
 				this.editor.setText("");
 				return;
 			}
@@ -900,7 +901,7 @@ export class InteractiveMode {
 	private handleCommandPaletteSelection(commandId: string): void {
 		switch (commandId) {
 			case "model":
-				this.showModelSelector();
+				this.showModelSelectorModal();
 				break;
 			case "session":
 				this.handleSessionCommand();
@@ -1149,6 +1150,22 @@ export class InteractiveMode {
 			);
 			return { component: selector, focus: selector.getModelList() };
 		});
+	}
+
+	private showModelSelectorModal(): void {
+		const models = discoverAvailableModels();
+		const modal = new ModelSelectorModal(models, getModelSelectorModalTheme());
+
+		modal.setOnSelect(async (model) => {
+			this.ui.hideModal();
+			await this.handleModelChange(model);
+		});
+
+		modal.setOnClose(() => {
+			this.ui.hideModal();
+		});
+
+		this.ui.showModal(modal, { width: 60 });
 	}
 
 	private showThinkingSelector(): void {
