@@ -104,13 +104,6 @@ export class AutocompleteOverlay implements Component {
 			lines.push(line);
 		}
 
-		// Add scroll indicator if needed
-		if (items.length > this.maxVisible) {
-			const scrollText = `(${selectedIndex + 1}/${items.length})`;
-			const paddedScroll = padToWidth(scrollText, width);
-			lines.push(this.theme.background(this.theme.scrollInfo(paddedScroll)));
-		}
-
 		return lines;
 	}
 }
