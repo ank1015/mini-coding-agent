@@ -11,6 +11,7 @@ import {
 	Modal,
 	type ModalComponentOptions,
 	type ModalTheme,
+	padToWidth,
 	truncateToWidth,
 	visibleWidth,
 } from "@ank1015/agents-tui";
@@ -115,6 +116,7 @@ class CommandList implements Component {
 
 		// Track current section for headers
 		let currentSection = "";
+		let isFirstSection = true;
 
 		// Render visible items
 		for (let i = startIndex; i < endIndex; i++) {
@@ -123,42 +125,44 @@ class CommandList implements Component {
 
 			// Render section header if changed
 			if (item.section && item.section !== currentSection) {
+				// Add spacer above new sections (except the first one)
+				if (!isFirstSection) {
+					lines.push("");
+				}
+				isFirstSection = false;
 				currentSection = item.section;
-				lines.push(this.theme.sectionHeader(item.section));
+				// Add same prefix as items for alignment
+				lines.push("  " + this.theme.sectionHeader(item.section));
 			}
 
-			// Build the item line
-			const prefix = isSelected ? "› " : "  ";
+			// Build the item line (no prefix indicator, use background color for selection)
+			const prefix = "  ";
 			const label = item.label;
 			const shortcut = item.shortcut || "";
 
-			// Calculate spacing
+			// Calculate spacing between label and shortcut
 			const prefixWidth = visibleWidth(prefix);
 			const labelWidth = visibleWidth(label);
 			const shortcutWidth = visibleWidth(shortcut);
-			const availableForSpacing = width - prefixWidth - labelWidth - shortcutWidth - 2;
-			const spacing = " ".repeat(Math.max(1, availableForSpacing));
+			const minSpacing = 2;
+			const usedWidth = prefixWidth + labelWidth + minSpacing + shortcutWidth;
+			const extraSpacing = Math.max(0, width - usedWidth);
+			const spacing = " ".repeat(minSpacing + extraSpacing);
 
 			let line: string;
 			if (isSelected) {
-				// Highlight entire selected line
+				// Build content and pad to EXACT width for full background coverage
 				const content = prefix + label + spacing + shortcut;
-				line = this.theme.selectedItem(truncateToWidth(content, width, ""));
+				const exactWidth = padToWidth(content, width);
+				line = this.theme.selectedItem(exactWidth);
 			} else {
 				// Normal item
 				const labelStyled = this.theme.itemLabel(label);
 				const shortcutStyled = shortcut ? this.theme.shortcut(shortcut) : "";
 				line = prefix + labelStyled + spacing + shortcutStyled;
-				line = truncateToWidth(line, width, "");
 			}
 
 			lines.push(line);
-		}
-
-		// Add scroll indicator if needed
-		if (this.filteredItems.length > this.maxVisible) {
-			const scrollText = `  (${this.selectedIndex + 1}/${this.filteredItems.length})`;
-			lines.push(this.theme.scrollInfo(scrollText));
 		}
 
 		return lines;
@@ -238,6 +242,10 @@ export class CommandPaletteModal extends Modal {
  * Create a default command palette theme based on the app theme
  */
 export function getCommandPaletteTheme(): CommandPaletteTheme {
+	// Selection colors - configurable
+	const selectionBg = "#FAB283";
+	const selectionFg = "#141414";
+
 	return {
 		modal: {
 			border: (text) => theme.fg("dim", text),
@@ -247,7 +255,23 @@ export function getCommandPaletteTheme(): CommandPaletteTheme {
 			separator: (text) => theme.fg("dim", text),
 		},
 		sectionHeader: (text) => theme.fg("accent", text),
-		selectedItem: (text) => theme.bg("toolPendingBg", theme.bold(text)),
+		// Selection highlight: reset to modal background at end to prevent bleed
+		selectedItem: (text) => {
+			const mode = theme.getColorMode();
+			// Selection colors
+			const bgCode = mode === "truecolor"
+				? `\x1b[48;2;250;178;131m`  // #FAB283 in RGB
+				: `\x1b[48;5;216m`;          // Closest 256-color
+			const fgCode = mode === "truecolor"
+				? `\x1b[38;2;20;20;20m`      // #141414 in RGB
+				: `\x1b[38;5;234m`;          // Closest 256-color
+			// Reset to modal background (#141414) at end, not terminal default
+			const modalBgCode = mode === "truecolor"
+				? `\x1b[48;2;20;20;20m`      // #141414 in RGB
+				: `\x1b[48;5;234m`;          // Closest 256-color
+			const defaultFg = `\x1b[39m`;    // Reset foreground to default
+			return `${bgCode}${fgCode}${text}${modalBgCode}${defaultFg}`;
+		},
 		itemLabel: (text) => text,
 		itemDescription: (text) => theme.fg("muted", text),
 		shortcut: (text) => theme.fg("dim", text),
