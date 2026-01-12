@@ -39,6 +39,7 @@ import { ModelSelectorComponent } from "./components/model-selector.js";
 import { ThinkingSelectorComponent } from "./components/thinking-selector.js";
 import { ShowImagesSelectorComponent } from "./components/show-images-selector.js";
 import { WelcomeBox } from "./components/welcome-box.js";
+import { CommandPaletteModal, type CommandItem, getCommandPaletteTheme } from "./components/command-palette.js";
 import { Model, GoogleThinkingLevel, OpenAIProviderOptions, GoogleProviderOptions } from "@ank1015/providers";
 
 export class InteractiveMode {
@@ -261,6 +262,7 @@ export class InteractiveMode {
 		this.editor.onCtrlZ = () => this.handleCtrlZ();
 		this.editor.onCtrlO = () => this.toggleToolOutputExpansion();
 		this.editor.onCtrlG = () => this.openExternalEditor();
+		this.editor.onCtrlP = () => this.showCommandPalette();
 
 	}
 
@@ -843,6 +845,141 @@ export class InteractiveMode {
 				this.pendingMessagesContainer.addChild(new TruncatedText(queuedText, 1, 0));
 			}
 		}
+	}
+
+	// =========================================================================
+	// Command Palette
+	// =========================================================================
+
+	/**
+	 * Show the command palette modal (Ctrl+P)
+	 */
+	private showCommandPalette(): void {
+		const commands: CommandItem[] = [
+			// Suggested / Quick Actions
+			{ id: "model", label: "Switch model", shortcut: "ctrl+m", section: "Suggested" },
+			{ id: "session", label: "Session info", section: "Suggested" },
+			{ id: "resume", label: "Resume session", shortcut: "ctrl+r", section: "Suggested" },
+			{ id: "clear", label: "Clear context", section: "Suggested" },
+
+			// Session Management
+			{ id: "branch", label: "Create branch", shortcut: "ctrl+b", section: "Session" },
+			{ id: "branches", label: "List branches", section: "Session" },
+			{ id: "switch-branch", label: "Switch branch", section: "Session" },
+			{ id: "merge", label: "Merge branch", section: "Session" },
+			{ id: "checkpoint", label: "Create checkpoint", section: "Session" },
+			{ id: "compact", label: "Compact history", section: "Session" },
+			{ id: "export", label: "Export to HTML", section: "Session" },
+
+			// Settings
+			{ id: "queue", label: "Queue mode", section: "Settings" },
+			{ id: "thinking", label: "Thinking level", section: "Settings" },
+			{ id: "show-images", label: "Toggle images", section: "Settings" },
+
+			// Help
+			{ id: "hotkeys", label: "Show hotkeys", section: "Help" },
+		];
+
+		const palette = new CommandPaletteModal(commands, getCommandPaletteTheme());
+
+		palette.setOnSelect((item) => {
+			this.ui.hideModal();
+			this.handleCommandPaletteSelection(item.id);
+		});
+
+		palette.setOnClose(() => {
+			this.ui.hideModal();
+		});
+
+		this.ui.showModal(palette, { width: 50 });
+	}
+
+	/**
+	 * Handle command palette selection
+	 */
+	private handleCommandPaletteSelection(commandId: string): void {
+		switch (commandId) {
+			case "model":
+				this.showModelSelector();
+				break;
+			case "session":
+				this.handleSessionCommand();
+				break;
+			case "resume":
+				this.showSessionSelector();
+				break;
+			case "clear":
+				void this.handleClearCommand();
+				break;
+			case "branch":
+				this.showBranchSelector();
+				break;
+			case "branches":
+				this.handleBranchesCommand();
+				break;
+			case "switch-branch":
+				this.showBranchSwitchSelector();
+				break;
+			case "merge":
+				this.showMergeSelector();
+				break;
+			case "checkpoint":
+				this.promptForCheckpointName();
+				break;
+			case "compact":
+				void this.handleCompactCommand("/compact");
+				break;
+			case "export":
+				this.handleExportCommand("/export");
+				break;
+			case "queue":
+				this.showQueueModeSelector();
+				break;
+			case "thinking":
+				this.showThinkingSelector();
+				break;
+			case "show-images":
+				this.showShowImagesSelector();
+				break;
+			case "hotkeys":
+				this.handleHotkeysCommand();
+				break;
+		}
+	}
+
+	/**
+	 * Prompt for checkpoint name before creating
+	 */
+	private promptForCheckpointName(): void {
+		this.showStatus(theme.fg("accent", "Enter checkpoint name:"));
+
+		const originalOnSubmit = this.editor.onSubmit;
+		const originalOnEscape = this.editor.onEscape;
+
+		const restore = () => {
+			this.editor.onSubmit = originalOnSubmit;
+			this.editor.onEscape = originalOnEscape;
+		};
+
+		this.editor.onEscape = () => {
+			restore();
+			this.editor.setText("");
+			this.showStatus("Checkpoint creation cancelled.");
+		};
+
+		this.editor.onSubmit = (text: string) => {
+			restore();
+			const name = text.trim();
+			this.editor.setText("");
+			if (name) {
+				this.handleCheckpointCommand(name);
+			} else {
+				this.showStatus("Checkpoint name required.");
+			}
+		};
+
+		this.ui.setFocus(this.editor);
+		this.ui.requestRender();
 	}
 
 	// =========================================================================

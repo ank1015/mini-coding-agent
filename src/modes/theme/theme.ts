@@ -326,11 +326,19 @@ export class Theme {
 	}
 
 	/**
-	 * Apply a hex color directly to text (bypasses theme colors).
+	 * Apply a hex foreground color directly to text (bypasses theme colors).
 	 */
 	fgHex(hex: string, text: string): string {
 		const ansi = fgAnsi(hex, this.mode);
 		return `${ansi}${text}\x1b[39m`;
+	}
+
+	/**
+	 * Apply a hex background color directly to text (bypasses theme colors).
+	 */
+	bgHex(hex: string, text: string): string {
+		const ansi = bgAnsi(hex, this.mode);
+		return `${ansi}${text}\x1b[49m`;
 	}
 
 	bg(color: ThemeBg, text: string): string {
