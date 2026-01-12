@@ -32,7 +32,7 @@
 		"prepublishOnly": "npm run build"
 	},
 	"dependencies": {
-		"@ank1015/agents-tui": "file:../agents-tui",
+		"@ank1015/agents-tui": "0.0.22",
 		"@ank1015/providers": "^0.0.36",
 		"@sinclair/typebox": "^0.34.41",
 		"@slack/bolt": "^4.6.0",
