@@ -42,6 +42,8 @@ import { WelcomeBox } from "./components/welcome-box.js";
 import { CommandPaletteModal, type CommandItem, getCommandPaletteTheme } from "./components/command-palette.js";
 import { ModelSelectorModal, getModelSelectorModalTheme } from "./components/model-selector-modal.js";
 import { ThinkingSelectorModal, getThinkingSelectorModalTheme } from "./components/thinking-selector-modal.js";
+import { AutocompleteOverlay, getAutocompleteOverlayTheme } from "./components/autocomplete-overlay.js";
+import type { AutocompleteState } from "@ank1015/agents-tui";
 import { Model, GoogleThinkingLevel, OpenAIProviderOptions, GoogleProviderOptions } from "@ank1015/providers";
 
 export class InteractiveMode {
@@ -79,6 +81,9 @@ export class InteractiveMode {
 
 	// Agent subscription unsubscribe function
 	private unsubscribe?: () => void;
+
+	// Autocomplete overlay
+	private autocompleteOverlay: AutocompleteOverlay | null = null;
 
 	// Convenience accessors
 	private get agent() {
@@ -122,7 +127,13 @@ export class InteractiveMode {
 			maxWidth: () => this.ui.terminal.columns - editorMargin,
 			marginLeft: () => Math.floor(editorMargin / 2),
 			outerBgColor: (str) => theme.bg("background", str),
+			externalAutocomplete: true,
 		});
+
+		// Set up autocomplete overlay handler
+		this.editor.onAutocompleteChange = (state: AutocompleteState) => {
+			this.handleAutocompleteChange(state);
+		};
 		this.editorContainer = new Container();
 		this.editorContainer.addChild(this.editor);
 		this.footer = new FooterComponent(session.state);
@@ -852,6 +863,40 @@ export class InteractiveMode {
 	// =========================================================================
 	// Command Palette
 	// =========================================================================
+
+	/**
+	 * Handle autocomplete state changes from the editor
+	 */
+	private handleAutocompleteChange(state: AutocompleteState): void {
+		if (state.isActive && state.items.length > 0) {
+			// Show or update the autocomplete overlay
+			if (!this.autocompleteOverlay) {
+				this.autocompleteOverlay = new AutocompleteOverlay(state, getAutocompleteOverlayTheme());
+			} else {
+				this.autocompleteOverlay.setState(state);
+			}
+
+			// Calculate overlay position: above the editor
+			// Footer is 3 lines, editor area varies but we position above it
+			// bottomOffset is how many lines from the bottom of viewport
+			const editorLines = this.editor.render(this.ui.terminal.columns).length;
+			const footerLines = 3;
+			const bottomOffset = editorLines + footerLines;
+
+			this.ui.showOverlay(this.autocompleteOverlay, {
+				bottomOffset,
+				marginLeft: 2,
+				width: this.ui.terminal.columns - 4,
+			});
+		} else {
+			// Hide the autocomplete overlay
+			if (this.ui.isOverlayVisible()) {
+				this.ui.hideOverlay();
+			}
+			this.autocompleteOverlay = null;
+		}
+		this.ui.requestRender();
+	}
 
 	/**
 	 * Show the command palette modal (Ctrl+P)
