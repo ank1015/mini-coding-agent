@@ -9,12 +9,17 @@ import {
 	Spacer,
 	Text,
 	type TUI,
+	visibleWidth,
 } from "@ank1015/agents-tui";
 import stripAnsi from "strip-ansi";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize } from "../../core/tools/truncate.js";
 import { getLanguageFromPath, highlightCode, theme } from "../theme/theme.js";
 import { renderDiff } from "./diff.js";
 import { Content } from "@ank1015/providers";
+
+// Margin to match editor layout (editorMargin = 4, marginLeft = 2)
+const MARGIN_LEFT = 2;
+const MARGIN_TOTAL = 4; // Total width reduction to match editor
 
 // Preview line limit for bash when not expanded
 const BASH_PREVIEW_LINES = 5;
@@ -439,5 +444,21 @@ export class ToolExecutionComponent extends Container {
 		}
 
 		return text;
+	}
+
+	render(width: number): string[] {
+		const contentWidth = width - MARGIN_TOTAL;
+		const lines = super.render(contentWidth);
+		const rightPadding = width - MARGIN_LEFT - contentWidth;
+
+		return lines.map(line => {
+			// Add left margin with background
+			const leftMargin = theme.bg("background", " ".repeat(MARGIN_LEFT));
+			// Add right padding with background to fill full width
+			const lineWidth = visibleWidth(line);
+			const rightPad = Math.max(0, contentWidth - lineWidth) + rightPadding;
+			const rightMargin = theme.bg("background", " ".repeat(rightPad));
+			return leftMargin + line + rightMargin;
+		});
 	}
 }

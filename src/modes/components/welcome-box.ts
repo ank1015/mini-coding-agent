@@ -1,6 +1,53 @@
 import type { Component } from "@ank1015/agents-tui";
 import { theme } from "../theme/theme.js";
 import * as os from "node:os";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+
+/**
+ * Find the git root directory by walking up from cwd.
+ * Returns the path to .git/HEAD if found, null otherwise.
+ */
+function findGitHeadPath(): string | null {
+	let dir = process.cwd();
+	while (true) {
+		const gitHeadPath = join(dir, ".git", "HEAD");
+		if (existsSync(gitHeadPath)) {
+			return gitHeadPath;
+		}
+		const parent = dirname(dir);
+		if (parent === dir) {
+			// Reached filesystem root
+			return null;
+		}
+		dir = parent;
+	}
+}
+
+/**
+ * Get current git branch by reading .git/HEAD directly.
+ * Returns null if not in a git repo, branch name otherwise.
+ */
+function getCurrentBranch(): string | null {
+	try {
+		const gitHeadPath = findGitHeadPath();
+		if (!gitHeadPath) {
+			return null;
+		}
+		const content = readFileSync(gitHeadPath, "utf8").trim();
+
+		if (content.startsWith("ref: refs/heads/")) {
+			// Normal branch: extract branch name
+			return content.slice(16);
+		} else {
+			// Detached HEAD state
+			return "detached";
+		}
+	} catch {
+		// Not in a git repo or error reading file
+		return null;
+	}
+}
 
 /**
  * Welcome box component that displays app info, user greeting, and tips
@@ -13,6 +60,7 @@ export class WelcomeBox implements Component {
 	private accountType = "Claude Pro";
 	private userEmail: string;
 	private currentDir: string;
+	private gitBranch: string | null;
 	private marginSize = 2; // Left and right margin in spaces
 
 	constructor() {
@@ -20,6 +68,7 @@ export class WelcomeBox implements Component {
 		this.userName = os.userInfo().username || "User";
 		this.userEmail = `${this.userName}@example.com`;
 		this.currentDir = this.formatPath(process.cwd());
+		this.gitBranch = getCurrentBranch();
 	}
 
 	private formatPath(dirPath: string): string {
@@ -105,8 +154,11 @@ export class WelcomeBox implements Component {
 		// const modelInfo = `${this.modelName} · ${this.accountType} ·`;
 		// lines.push(this.centerLine(theme.fg("dim", modelInfo), contentWidth));
 
-		// Current directory (centered)
-		lines.push(this.centerLine(theme.fg("dim", this.currentDir), contentWidth));
+		// Current directory with git branch (centered)
+		const locationInfo = this.gitBranch
+			? `${this.currentDir} (${this.gitBranch})`
+			: this.currentDir;
+		lines.push(this.centerLine(theme.fg("dim", locationInfo), contentWidth));
 
 		lines.push(this.centerLine("", contentWidth));
 

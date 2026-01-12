@@ -6,6 +6,8 @@ import {
 	CombinedAutocompleteProvider,
 	type Component,
 	Container,
+	DynamicSpacer,
+	FullScreenBox,
 	getCapabilities,
 	Loader,
 	Markdown,
@@ -24,7 +26,7 @@ import { FooterComponent } from "./components/footer.js";
 import { AssistantMessageComponent } from "./components/assistant-message.js";
 import { ToolExecutionComponent } from "./components/tool-execution.js";
 import { getEditorTheme, getMarkdownTheme, onThemeChange, theme } from "./theme/theme.js";
-import { APP_NAME, getDebugLogPath } from "../config.js";
+import { getDebugLogPath } from "../config.js";
 import { AgentState, Api, BaseAssistantEvent, BaseAssistantMessage, Message } from "@ank1015/providers";
 import { UserMessageComponent } from "./components/user-message.js";
 import { DynamicBorder } from "./components/dynamic-border.js";
@@ -37,11 +39,17 @@ import { ModelSelectorComponent } from "./components/model-selector.js";
 import { ThinkingSelectorComponent } from "./components/thinking-selector.js";
 import { ShowImagesSelectorComponent } from "./components/show-images-selector.js";
 import { WelcomeBox } from "./components/welcome-box.js";
+import { CommandPaletteModal, type CommandItem, getCommandPaletteTheme } from "./components/command-palette.js";
+import { ModelSelectorModal, getModelSelectorModalTheme } from "./components/model-selector-modal.js";
+import { ThinkingSelectorModal, getThinkingSelectorModalTheme } from "./components/thinking-selector-modal.js";
+import { AutocompleteOverlay, getAutocompleteOverlayTheme } from "./components/autocomplete-overlay.js";
+import type { AutocompleteState } from "@ank1015/agents-tui";
 import { Model, GoogleThinkingLevel, OpenAIProviderOptions, GoogleProviderOptions } from "@ank1015/providers";
 
 export class InteractiveMode {
     private session: AgentSession;
 	private ui: TUI;
+	private fullScreenBox: FullScreenBox;
 	private chatContainer: Container;
 	private pendingMessagesContainer: Container;
 	private statusContainer: Container;
@@ -74,6 +82,9 @@ export class InteractiveMode {
 	// Agent subscription unsubscribe function
 	private unsubscribe?: () => void;
 
+	// Autocomplete overlay
+	private autocompleteOverlay: AutocompleteOverlay | null = null;
+
 	// Convenience accessors
 	private get agent() {
 		return this.session.agent;
@@ -93,10 +104,36 @@ export class InteractiveMode {
 		this.session = session;
 		this.version = version;
 		this.ui = new TUI(new ProcessTerminal());
+		this.fullScreenBox = new FullScreenBox(
+			() => this.ui.terminal.rows,
+			0, // paddingX
+			0, // paddingY
+			(text) => theme.bg("background", text), // background color
+		);
 		this.chatContainer = new Container();
 		this.pendingMessagesContainer = new Container();
 		this.statusContainer = new Container();
-		this.editor = new CustomEditor(getEditorTheme());
+		// Editor margin: x = 20, so marginLeft = 10, maxWidth = columns - 20
+		const editorMargin = 4;
+		this.editor = new CustomEditor(getEditorTheme(), {
+			showTopBorder: false,
+			showBottomBorder: false,
+			showLeftBorder: true,
+			paddingLeft: 0,
+			paddingRight: 1, // Right margin for input text
+			paddingTop: 1,
+			paddingBottom: 1,
+			leftBorderColor: (str) => theme.fgHex("#5C9CF5", str),
+			maxWidth: () => this.ui.terminal.columns - editorMargin,
+			marginLeft: () => Math.floor(editorMargin / 2),
+			outerBgColor: (str) => theme.bg("background", str),
+			externalAutocomplete: true,
+		});
+
+		// Set up autocomplete overlay handler
+		this.editor.onAutocompleteChange = (state: AutocompleteState) => {
+			this.handleAutocompleteChange(state);
+		};
 		this.editorContainer = new Container();
 		this.editorContainer.addChild(this.editor);
 		this.footer = new FooterComponent(session.state);
@@ -137,53 +174,55 @@ export class InteractiveMode {
 	async init(): Promise<void> {
 		if (this.isInitialized) return;
 
-		// Add header
-		const logo = theme.bold(theme.fg("accent", APP_NAME)) + theme.fg("dim", ` v${this.version}`);
-		const instructions =
-			theme.fg("dim", "esc") +
-			theme.fg("muted", " to interrupt") +
-			"\n" +
-			theme.fg("dim", "ctrl+c") +
-			theme.fg("muted", " to clear") +
-			"\n" +
-			theme.fg("dim", "ctrl+c twice") +
-			theme.fg("muted", " to exit") +
-			"\n" +
-			theme.fg("dim", "ctrl+d") +
-			theme.fg("muted", " to exit (empty)") +
-			"\n" +
-			theme.fg("dim", "ctrl+z") +
-			theme.fg("muted", " to suspend") +
-			"\n" +
-			theme.fg("dim", "ctrl+k") +
-			theme.fg("muted", " to delete line") +
-			"\n" +
-			theme.fg("dim", "ctrl+o") +
-			theme.fg("muted", " to expand tools") +
-			"\n" +
-			theme.fg("dim", "ctrl+g") +
-			theme.fg("muted", " for external editor") +
-			"\n" +
-			theme.fg("dim", "/") +
-			theme.fg("muted", " for commands") +
-			"\n" +
-			theme.fg("dim", "drop files") +
-			theme.fg("muted", " to attach");
-		const header = new Text(`${logo}\n${instructions}`, 1, 0);
+		// Clear terminal on startup (remove previous terminal history)
+		this.ui.terminal.write("\x1b[3J\x1b[2J\x1b[H");
 
-		this.ui.addChild(new WelcomeBox())
+		this.fullScreenBox.addChild(new Spacer(1)); // Spacer above welcome box
+		this.fullScreenBox.addChild(new WelcomeBox())
 
 		// Setup UI layout
-		this.ui.addChild(new Spacer(1));
-		this.ui.addChild(header);
-		this.ui.addChild(new Spacer(1));
+		this.fullScreenBox.addChild(new Spacer(1));
 
-		this.ui.addChild(this.chatContainer);
-		this.ui.addChild(this.pendingMessagesContainer);
-		this.ui.addChild(this.statusContainer);
-		this.ui.addChild(new Spacer(1));
-		this.ui.addChild(this.editorContainer);
-		this.ui.addChild(this.footer);
+		this.fullScreenBox.addChild(this.chatContainer);
+		this.fullScreenBox.addChild(this.pendingMessagesContainer);
+		this.fullScreenBox.addChild(this.statusContainer);
+
+		// Dynamic spacer that pushes editor to bottom
+		const flexSpacer = new DynamicSpacer(() => {
+			const terminalHeight = this.ui.terminal.rows;
+			const terminalWidth = this.ui.terminal.columns;
+
+			// Fixed component heights
+			const spacerBeforeWelcome = 1;
+			const welcomeBoxHeight = 14;
+			const spacerAfterWelcome = 1;
+			const spacerBeforeEditor = 2;
+			const footerHeight = 3; // spacer + stats line + spacer
+			const fixedHeight = spacerBeforeWelcome + welcomeBoxHeight + spacerAfterWelcome + spacerBeforeEditor + footerHeight;
+
+			// Calculate dynamic content height by rendering containers
+			const chatLines = this.chatContainer.render(terminalWidth).length;
+			const pendingLines = this.pendingMessagesContainer.render(terminalWidth).length;
+			const statusLines = this.statusContainer.render(terminalWidth).length;
+			const editorLines = this.editorContainer.render(terminalWidth).length; // Dynamic based on input lines
+			const dynamicContentHeight = chatLines + pendingLines + statusLines + editorLines;
+
+			// Total content height (excluding this spacer)
+			const totalContentHeight = fixedHeight + dynamicContentHeight;
+
+			// Return remaining space to push editor to bottom
+			// If content exceeds terminal, return 0 (no spacing needed)
+			return Math.max(0, terminalHeight - totalContentHeight);
+		});
+		this.fullScreenBox.addChild(flexSpacer);
+
+		// Add spacing before editor (outside the box)
+		this.fullScreenBox.addChild(new Spacer(2));
+		this.fullScreenBox.addChild(this.editorContainer);
+		this.fullScreenBox.addChild(this.footer);
+
+		// Add fullScreenBox to TUI
+		this.ui.addChild(this.fullScreenBox);
 		this.ui.setFocus(this.editor);
 
 		this.setupKeyHandlers();
@@ -193,6 +232,8 @@ export class InteractiveMode {
 		this.ui.start();
 		this.isInitialized = true;
 
+		// Initialize editor info line with model info
+		this.updateEditorInfoLine();
 
 		// Subscribe to agent events
 		this.subscribeToAgent();
@@ -201,12 +242,13 @@ export class InteractiveMode {
 		onThemeChange(() => {
 			this.ui.invalidate();
 			this.updateEditorBorderColor();
+			this.updateEditorInfoLine();
 			this.ui.requestRender();
 		});
 
-		// Set up git branch watcher
-		this.footer.watchBranch(() => {
-			this.ui.requestRender();
+		// Set up resize handler to recalculate flex layout in editor info line
+		process.stdout.on("resize", () => {
+			this.updateEditorInfoLine();
 		});
 	}
 
@@ -233,6 +275,7 @@ export class InteractiveMode {
 		this.editor.onCtrlZ = () => this.handleCtrlZ();
 		this.editor.onCtrlO = () => this.toggleToolOutputExpansion();
 		this.editor.onCtrlG = () => this.openExternalEditor();
+		this.editor.onCtrlP = () => this.showCommandPalette();
 
 	}
 
@@ -299,7 +342,7 @@ export class InteractiveMode {
 				return;
 			}
 			if (text === "/model") {
-				this.showModelSelector();
+				this.showModelSelectorModal();
 				this.editor.setText("");
 				return;
 			}
@@ -324,7 +367,7 @@ export class InteractiveMode {
 				return;
 			}
 			if (text === "/thinking") {
-				this.showThinkingSelector();
+				this.showThinkingSelectorModal();
 				this.editor.setText("");
 				return;
 			}
@@ -359,6 +402,7 @@ export class InteractiveMode {
 		}
 		try {
 			this.footer.updateState(state, this.session.activeBranch);
+			this.updateEditorInfoLine();
 
 			switch (event.type) {
 				case "agent_start":
@@ -368,7 +412,7 @@ export class InteractiveMode {
 					this.statusContainer.clear();
 					this.loadingAnimation = new Loader(
 						this.ui,
-						(spinner) => theme.fg("accent", spinner),
+						(spinner) => "  " + theme.fg("accent", spinner), // 2-space left margin
 						(text) => theme.fg("muted", text),
 						"Working... (esc to interrupt)",
 					);
@@ -508,8 +552,8 @@ export class InteractiveMode {
 
 	/** Show a status message in the chat */
 	private showStatus(message: string): void {
+		this.chatContainer.addChild(new Text("  " + theme.fg("dim", message), 1, 0)); // 2-column left margin
 		this.chatContainer.addChild(new Spacer(1));
-		this.chatContainer.addChild(new Text(theme.fg("dim", message), 1, 0));
 		this.ui.requestRender();
 	}
 
@@ -544,6 +588,7 @@ export class InteractiveMode {
 		if (options.updateFooter) {
 			this.footer.updateState(this.session.state, this.session.activeBranch);
 			this.updateEditorBorderColor();
+			this.updateEditorInfoLine();
 		}
 
 		for (const message of messages) {
@@ -663,6 +708,48 @@ export class InteractiveMode {
 		this.ui.requestRender();
 	}
 
+	/**
+	 * Update the editor info line with current model information.
+	 * Shows: "Build" on left, "<model-name> [thinking-level]" on right (flex layout)
+	 */
+	private updateEditorInfoLine(): void {
+		const modelName = this.session.state.provider.model?.id || "no-model";
+
+		// Get thinking level hint if applicable
+		let thinkingHint = "";
+		const model = this.session.state.provider.model;
+		const options = this.session.state.provider.providerOptions;
+		if (model?.api === "openai") {
+			const level = (options as OpenAIProviderOptions).reasoning?.effort;
+			if (level) thinkingHint = ` [${level}]`;
+		} else if (model?.api === "google") {
+			const level = (options as GoogleProviderOptions).thinkingConfig?.thinkingLevel;
+			if (level !== undefined && level !== null) {
+				const label = level === GoogleThinkingLevel.HIGH ? 'high' : 'low';
+				thinkingHint = ` [${label}]`;
+			}
+		}
+
+		// Calculate content width for flex layout
+		// Editor setup: maxWidth = columns - 4, leftBorder = 2, paddingLeft = 0
+		const editorMargin = 4;
+		const leftBorderWidth = 2;
+		const rightMargin = 1; // Add margin so right side doesn't touch the edge
+		const contentWidth = this.ui.terminal.columns - editorMargin - leftBorderWidth - rightMargin;
+
+		const leftPart = theme.fg("accent", "Build");
+		const rightPartText = `${modelName}${thinkingHint}`;
+		const rightPart = theme.fg("dim", rightPartText); // Dim color like cwd in welcome box
+
+		// Calculate padding between left and right parts
+		const leftWidth = 5; // "Build" = 5 chars
+		const rightWidth = rightPartText.length; // Use plain text length for calculation
+		const padding = Math.max(1, contentWidth - leftWidth - rightWidth);
+
+		const infoLine = `${leftPart}${" ".repeat(padding)}${rightPart}`;
+		this.editor.setInfoLine(infoLine);
+	}
+
 	private toggleToolOutputExpansion(): void {
 		this.toolOutputExpanded = !this.toolOutputExpanded;
 		for (const child of this.chatContainer.children) {
@@ -727,7 +814,7 @@ export class InteractiveMode {
 		this.stopLoader();
 		this.loadingAnimation = new Loader(
 			this.ui,
-			(spinner) => theme.fg("accent", spinner),
+			(spinner) => "  " + theme.fg("accent", spinner), // 2-space left margin
 			(text) => theme.fg("muted", text),
 			message,
 		);
@@ -771,6 +858,175 @@ export class InteractiveMode {
 				this.pendingMessagesContainer.addChild(new TruncatedText(queuedText, 1, 0));
 			}
 		}
+	}
+
+	// =========================================================================
+	// Command Palette
+	// =========================================================================
+
+	/**
+	 * Handle autocomplete state changes from the editor
+	 */
+	private handleAutocompleteChange(state: AutocompleteState): void {
+		if (state.isActive && state.items.length > 0) {
+			// Show or update the autocomplete overlay
+			if (!this.autocompleteOverlay) {
+				this.autocompleteOverlay = new AutocompleteOverlay(state, getAutocompleteOverlayTheme());
+			} else {
+				this.autocompleteOverlay.setState(state);
+			}
+
+			// Calculate overlay position: above the editor
+			// Footer is 3 lines, editor area varies but we position above it
+			// bottomOffset is how many lines from the bottom of viewport
+			const editorLines = this.editor.render(this.ui.terminal.columns).length;
+			const footerLines = 3;
+			const bottomOffset = editorLines + footerLines;
+
+			this.ui.showOverlay(this.autocompleteOverlay, {
+				bottomOffset,
+				marginLeft: 2,
+				width: this.ui.terminal.columns - 4,
+			});
+		} else {
+			// Hide the autocomplete overlay
+			if (this.ui.isOverlayVisible()) {
+				this.ui.hideOverlay();
+			}
+			this.autocompleteOverlay = null;
+		}
+		this.ui.requestRender();
+	}
+
+	/**
+	 * Show the command palette modal (Ctrl+P)
+	 */
+	private showCommandPalette(): void {
+		const commands: CommandItem[] = [
+			// Suggested / Quick Actions
+			{ id: "model", label: "Switch model", shortcut: "ctrl+m", section: "Suggested" },
+			{ id: "session", label: "Session info", section: "Suggested" },
+			{ id: "resume", label: "Resume session", shortcut: "ctrl+r", section: "Suggested" },
+			{ id: "clear", label: "Clear context", section: "Suggested" },
+
+			// Session Management
+			{ id: "branch", label: "Create branch", shortcut: "ctrl+b", section: "Session" },
+			{ id: "branches", label: "List branches", section: "Session" },
+			{ id: "switch-branch", label: "Switch branch", section: "Session" },
+			{ id: "merge", label: "Merge branch", section: "Session" },
+			{ id: "checkpoint", label: "Create checkpoint", section: "Session" },
+			{ id: "compact", label: "Compact history", section: "Session" },
+			{ id: "export", label: "Export to HTML", section: "Session" },
+
+			// Settings
+			{ id: "queue", label: "Queue mode", section: "Settings" },
+			{ id: "thinking", label: "Thinking level", section: "Settings" },
+			{ id: "show-images", label: "Toggle images", section: "Settings" },
+
+			// Help
+			{ id: "hotkeys", label: "Show hotkeys", section: "Help" },
+		];
+
+		const palette = new CommandPaletteModal(commands, getCommandPaletteTheme());
+
+		palette.setOnSelect((item) => {
+			this.ui.hideModal();
+			this.handleCommandPaletteSelection(item.id);
+		});
+
+		palette.setOnClose(() => {
+			this.ui.hideModal();
+		});
+
+		this.ui.showModal(palette, { width: 60 });
+	}
+
+	/**
+	 * Handle command palette selection
+	 */
+	private handleCommandPaletteSelection(commandId: string): void {
+		switch (commandId) {
+			case "model":
+				this.showModelSelectorModal();
+				break;
+			case "session":
+				this.handleSessionCommand();
+				break;
+			case "resume":
+				this.showSessionSelector();
+				break;
+			case "clear":
+				void this.handleClearCommand();
+				break;
+			case "branch":
+				this.showBranchSelector();
+				break;
+			case "branches":
+				this.handleBranchesCommand();
+				break;
+			case "switch-branch":
+				this.showBranchSwitchSelector();
+				break;
+			case "merge":
+				this.showMergeSelector();
+				break;
+			case "checkpoint":
+				this.promptForCheckpointName();
+				break;
+			case "compact":
+				void this.handleCompactCommand("/compact");
+				break;
+			case "export":
+				this.handleExportCommand("/export");
+				break;
+			case "queue":
+				this.showQueueModeSelector();
+				break;
+			case "thinking":
+				this.showThinkingSelectorModal();
+				break;
+			case "show-images":
+				this.showShowImagesSelector();
+				break;
+			case "hotkeys":
+				this.handleHotkeysCommand();
+				break;
+		}
+	}
+
+	/**
+	 * Prompt for checkpoint name before creating
+	 */
+	private promptForCheckpointName(): void {
+		this.showStatus(theme.fg("accent", "Enter checkpoint name:"));
+
+		const originalOnSubmit = this.editor.onSubmit;
+		const originalOnEscape = this.editor.onEscape;
+
+		const restore = () => {
+			this.editor.onSubmit = originalOnSubmit;
+			this.editor.onEscape = originalOnEscape;
+		};
+
+		this.editor.onEscape = () => {
+			restore();
+			this.editor.setText("");
+			this.showStatus("Checkpoint creation cancelled.");
+		};
+
+		this.editor.onSubmit = (text: string) => {
+			restore();
+			const name = text.trim();
+			this.editor.setText("");
+			if (name) {
+				this.handleCheckpointCommand(name);
+			} else {
+				this.showStatus("Checkpoint name required.");
+			}
+		};
+
+		this.ui.setFocus(this.editor);
+		this.ui.requestRender();
 	}
 
 	// =========================================================================
@@ -942,6 +1198,22 @@ export class InteractiveMode {
 		});
 	}
 
+	private showModelSelectorModal(): void {
+		const models = discoverAvailableModels();
+		const modal = new ModelSelectorModal(models, getModelSelectorModalTheme());
+
+		modal.setOnSelect(async (model) => {
+			this.ui.hideModal();
+			await this.handleModelChange(model);
+		});
+
+		modal.setOnClose(() => {
+			this.ui.hideModal();
+		});
+
+		this.ui.showModal(modal, { width: 60 });
+	}
+
 	private showThinkingSelector(): void {
 		const model = this.session.model;
 		if (!model || (model.api !== "openai" && model.api !== "google")) {
@@ -979,6 +1251,43 @@ export class InteractiveMode {
 			);
 			return { component: selector, focus: selector.getSelectList() };
 		});
+	}
+
+	private showThinkingSelectorModal(): void {
+		const model = this.session.model;
+		if (!model || (model.api !== "openai" && model.api !== "google")) {
+			this.showWarning("Thinking level only supported for OpenAI and Google models");
+			return;
+		}
+
+		let currentLevel: 'low' | 'high' | undefined;
+		const opts = this.session.providerOptions;
+
+		if (model.api === "openai") {
+			const o = opts as OpenAIProviderOptions;
+			const effort = o.reasoning?.effort;
+			if (effort === 'low' || effort === 'high') {
+				currentLevel = effort;
+			}
+		} else if (model.api === "google") {
+			const o = opts as GoogleProviderOptions;
+			const level = o.thinkingConfig?.thinkingLevel;
+			if (level === GoogleThinkingLevel.HIGH) currentLevel = 'high';
+			else if (level === GoogleThinkingLevel.LOW) currentLevel = 'low';
+		}
+
+		const modal = new ThinkingSelectorModal(currentLevel, getThinkingSelectorModalTheme());
+
+		modal.setOnSelect(async (level) => {
+			this.ui.hideModal();
+			await this.handleThinkingChange(level);
+		});
+
+		modal.setOnClose(() => {
+			this.ui.hideModal();
+		});
+
+		this.ui.showModal(modal, { width: 50 });
 	}
 
 	private showBranchSwitchSelector(): void {
@@ -1124,6 +1433,7 @@ export class InteractiveMode {
 		try {
 			await this.session.updateThinkingLevel(level);
 			this.footer.updateState(this.session.state, this.session.activeBranch);
+			this.updateEditorInfoLine();
 			this.showStatus(`Thinking level set to: ${level}`);
 		} catch (error) {
 			this.showError(`Failed to set thinking level: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -1136,8 +1446,9 @@ export class InteractiveMode {
 
 			this.showStatus(`Switched to ${model.id}`);
 
-			// Update footer to show new model
+			// Update footer and editor info line to show new model
 			this.footer.updateState(this.session.state, this.session.activeBranch);
+			this.updateEditorInfoLine();
 			this.ui.requestRender();
 
 		} catch (error) {
@@ -1388,6 +1699,8 @@ export class InteractiveMode {
 		}
 		if (this.isInitialized) {
 			this.ui.stop();
+			// Clear terminal on exit (remove all agent UI)
+			process.stdout.write("\x1b[3J\x1b[2J\x1b[H");
 			this.isInitialized = false;
 		}
 	}

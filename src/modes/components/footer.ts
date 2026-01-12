@@ -1,38 +1,13 @@
-import { type BaseAssistantMessage, type AgentState, type Api, GoogleThinkingLevel } from "@ank1015/providers";
+import { type BaseAssistantMessage, type AgentState, type Api } from "@ank1015/providers";
 import { type Component, visibleWidth } from "@ank1015/agents-tui";
-import { existsSync, type FSWatcher, readFileSync, watch } from "fs";
-import { dirname, join } from "path";
 import { theme } from "../theme/theme.js";
 
 /**
- * Find the git root directory by walking up from cwd.
- * Returns the path to .git/HEAD if found, null otherwise.
- */
-function findGitHeadPath(): string | null {
-	let dir = process.cwd();
-	while (true) {
-		const gitHeadPath = join(dir, ".git", "HEAD");
-		if (existsSync(gitHeadPath)) {
-			return gitHeadPath;
-		}
-		const parent = dirname(dir);
-		if (parent === dir) {
-			// Reached filesystem root
-			return null;
-		}
-		dir = parent;
-	}
-}
-
-/**
- * Footer component that shows pwd, token stats, and context usage
+ * Footer component that shows token stats, context usage, and session branch
  */
 export class FooterComponent implements Component {
 	private state: AgentState;
 	private activeBranch: string = "main"; // Default
-	private cachedBranch: string | null | undefined = undefined; // undefined = not checked yet, null = not in git repo, string = branch name
-	private gitWatcher: FSWatcher | null = null;
-	private onBranchChange: (() => void) | null = null;
 	private autoCompactEnabled: boolean = true;
 
 	constructor(state: AgentState) {
@@ -44,46 +19,10 @@ export class FooterComponent implements Component {
 	}
 
 	/**
-	 * Set up a file watcher on .git/HEAD to detect branch changes.
-	 * Call the provided callback when branch changes.
-	 */
-	watchBranch(onBranchChange: () => void): void {
-		this.onBranchChange = onBranchChange;
-		this.setupGitWatcher();
-	}
-
-	private setupGitWatcher(): void {
-		// Clean up existing watcher
-		if (this.gitWatcher) {
-			this.gitWatcher.close();
-			this.gitWatcher = null;
-		}
-
-		const gitHeadPath = findGitHeadPath();
-		if (!gitHeadPath) {
-			return;
-		}
-
-		try {
-			this.gitWatcher = watch(gitHeadPath, () => {
-				this.cachedBranch = undefined; // Invalidate cache
-				if (this.onBranchChange) {
-					this.onBranchChange();
-				}
-			});
-		} catch {
-			// Silently fail if we can't watch
-		}
-	}
-
-	/**
-	 * Clean up the file watcher
+	 * Clean up resources (no-op now, kept for API compatibility)
 	 */
 	dispose(): void {
-		if (this.gitWatcher) {
-			this.gitWatcher.close();
-			this.gitWatcher = null;
-		}
+		// No resources to clean up
 	}
 
 	updateState(state: AgentState, activeBranch?: string): void {
@@ -94,41 +33,7 @@ export class FooterComponent implements Component {
 	}
 
 	invalidate(): void {
-		// Invalidate cached branch so it gets re-read on next render
-		this.cachedBranch = undefined;
-	}
-
-	/**
-	 * Get current git branch by reading .git/HEAD directly.
-	 * Returns null if not in a git repo, branch name otherwise.
-	 */
-	private getCurrentBranch(): string | null {
-		// Return cached value if available
-		if (this.cachedBranch !== undefined) {
-			return this.cachedBranch;
-		}
-
-		try {
-			const gitHeadPath = findGitHeadPath();
-			if (!gitHeadPath) {
-				this.cachedBranch = null;
-				return null;
-			}
-			const content = readFileSync(gitHeadPath, "utf8").trim();
-
-			if (content.startsWith("ref: refs/heads/")) {
-				// Normal branch: extract branch name
-				this.cachedBranch = content.slice(16);
-			} else {
-				// Detached HEAD state
-				this.cachedBranch = "detached";
-			}
-		} catch {
-			// Not in a git repo or error reading file
-			this.cachedBranch = null;
-		}
-
-		return this.cachedBranch;
+		// No cached state to invalidate
 	}
 
 	render(width: number): string[] {
@@ -176,31 +81,6 @@ export class FooterComponent implements Component {
 			return `${Math.round(count / 1000000)}M`;
 		};
 
-		// Replace home directory with ~
-		let pwd = process.cwd();
-		const home = process.env.HOME || process.env.USERPROFILE;
-		if (home && pwd.startsWith(home)) {
-			pwd = `~${pwd.slice(home.length)}`;
-		}
-
-		// Add git branch if available
-		const branch = this.getCurrentBranch();
-		if (branch) {
-			pwd = `${pwd} (${branch})`;
-		}
-
-		// Truncate path if too long to fit width
-		if (pwd.length > width) {
-			const half = Math.floor(width / 2) - 2;
-			if (half > 0) {
-				const start = pwd.slice(0, half);
-				const end = pwd.slice(-(half - 1));
-				pwd = `${start}...${end}`;
-			} else {
-				pwd = pwd.slice(0, Math.max(1, width));
-			}
-		}
-
 		// Build stats line
 		const statsParts = [];
 		if (totalInput) statsParts.push(`↑${formatTokens(totalInput)}`);
@@ -231,81 +111,24 @@ export class FooterComponent implements Component {
 		// Add active branch name
 		statsParts.push(`[${this.activeBranch}]`);
 
-		let statsLeft = statsParts.join(" ");
+		let statsLine = statsParts.join(" ");
 
-		// Add model name on the right side, plus thinking level if model supports it
-		const modelName = this.state.provider.model?.id || "no-model";
-		
-		// Add thinking level hint
-		let thinkingHint = "";
-		const model = this.state.provider.model;
-		const options = this.state.provider.providerOptions;
-		if (model?.api === "openai") {
-			const level = (options as any).reasoning?.effort;
-			if (level) thinkingHint = ` [${level}]`;
-		} else if (model?.api === "google") {
-			const level = (options as any).thinkingConfig?.thinkingLevel;
-			if (level !== undefined && level !== null) {
-				const label = level === GoogleThinkingLevel.HIGH ? 'high' : 'low';
-				thinkingHint = ` [${label}]`;
-			}
+		// Add left margin (2 columns)
+		const leftMargin = "   ";
+		const availableWidth = width - leftMargin.length;
+
+		// Truncate if too wide
+		const statsLineWidth = visibleWidth(statsLine);
+		if (statsLineWidth > availableWidth) {
+			const plainStatsLine = statsLine.replace(/\x1b\[[0-9;]*m/g, "");
+			statsLine = `${plainStatsLine.substring(0, availableWidth - 3)}...`;
 		}
 
-		let rightSide = modelName + thinkingHint;
-
-        // Add current session branch
-        const session = (this.state as any).sessionTree; // Hack: state does not have session tree access directly here usually?
-        // Wait, the FooterComponent constructor only takes state.
-        // We need to pass the active branch name to the footer or let it access it.
-        // Since we can't easily change the constructor without refactoring InteractiveMode deeply (or maybe we can?),
-        // let's look at how InteractiveMode passes data.
-        // InteractiveMode has `this.footer = new FooterComponent(session.state);`
-        // We should add a method to update the active branch or pass it in updateState.
-        // Actually, state.activeBranch isn't a thing on AgentState.
-        
-		let statsLeftWidth = visibleWidth(statsLeft);
-		const rightSideWidth = visibleWidth(rightSide);
-
-		// If statsLeft is too wide, truncate it
-		if (statsLeftWidth > width) {
-			// Truncate statsLeft to fit width (no room for right side)
-			const plainStatsLeft = statsLeft.replace(/\x1b\[[0-9;]*m/g, "");
-			statsLeft = `${plainStatsLeft.substring(0, width - 3)}...`;
-			statsLeftWidth = visibleWidth(statsLeft);
-		}
-
-		// Calculate available space for padding (minimum 2 spaces between stats and model)
-		const minPadding = 2;
-		const totalNeeded = statsLeftWidth + minPadding + rightSideWidth;
-
-		let statsLine: string;
-		if (totalNeeded <= width) {
-			// Both fit - add padding to right-align model
-			const padding = " ".repeat(width - statsLeftWidth - rightSideWidth);
-			statsLine = statsLeft + padding + rightSide;
-		} else {
-			// Need to truncate right side
-			const availableForRight = width - statsLeftWidth - minPadding;
-			if (availableForRight > 3) {
-				// Truncate to fit (strip ANSI codes for length calculation, then truncate raw string)
-				const plainRightSide = rightSide.replace(/\x1b\[[0-9;]*m/g, "");
-				const truncatedPlain = plainRightSide.substring(0, availableForRight);
-				// For simplicity, just use plain truncated version (loses color, but fits)
-				const padding = " ".repeat(width - statsLeftWidth - truncatedPlain.length);
-				statsLine = statsLeft + padding + truncatedPlain;
-			} else {
-				// Not enough space for right side at all
-				statsLine = statsLeft;
-			}
-		}
-
-		// Apply dim to each part separately. statsLeft may contain color codes (for context %)
-		// that end with a reset, which would clear an outer dim wrapper. So we dim the parts
-		// before and after the colored section independently.
-		const dimStatsLeft = theme.fg("dim", statsLeft);
-		const remainder = statsLine.slice(statsLeft.length); // padding + rightSide
-		const dimRemainder = theme.fg("dim", remainder);
-
-		return [theme.fg("dim", pwd), dimStatsLeft + dimRemainder];
+		// Return 3 lines: spacer, content with margin, spacer
+		return [
+			"",
+			leftMargin + theme.fg("dim", statsLine),
+			"",
+		];
 	}
 }
